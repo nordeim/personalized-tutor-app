@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (82 unit + 64 Playwright
+   bun run test && bun run build && bun run test:e2e` (91 unit + 69 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -143,6 +143,20 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   visibly) while the collapsed pill renders the USER's name; with-course
   panel = `p-4`/`gap-3`/`w-10` avatar at `text-base`, no-course panel =
   `p-3`/`gap-2.5`/`w-8` with plain `p-2` items.
+- **THE session-9 invariants:** the Hub's Lesson Progress label is
+  UNCLAMPED (`lessonProgressLabel(answered)` = `{answered + 1}/8` — 8
+  correct renders "9/8", the live's observed terminal value; unit-pinned,
+  never reintroduce a Math.min clamp); the desktop anonymous Sign In pill
+  carries `from_url` (the live's `navigateToLogin` =
+  `redirectToLogin(window.location.href)`); the live's hub lesson-advance
+  machinery is dead code (the sidebar's activeLessonIndex is never written
+  after mount — the live dead-ends after lesson 1; the clone's advancing
+  flow is the pinned fix); the level-2/3 context cards (tan Real-World
+  Scenario / lilac Final Boss) render conditionally on the generated
+  scenario/challenge and are e2e-pinned via `?lesson=2|4`; the dashboard
+  card icons pin the LIVE's lucide 0.475 paths as parameterized local
+  components (BookOpen/Trophy were REDESIGNED by lucide 0.525 — do not
+  swap for lucide imports without re-probing).
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in

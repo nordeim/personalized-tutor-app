@@ -18,9 +18,9 @@ description: >
   header variant + the /demo auth gate + the Try-it navigation), the
   gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.7.0
-last_updated: 2026-10-02
-project_state: 82 unit tests + 64 e2e checks green; session-8 public-surface parity pass complete (the public onboarding with pending_student_setup + the signedOut header variant, the /demo auth gate, the Try-it → /demo navigation, the hubLessonSubject h2 decode, the challenge-modal Close swap, the Trophy/Brain card icons, Trap 8 alpha-color serialization)
+version: 1.8.0
+last_updated: 2026-10-03
+project_state: 91 unit tests + 69 e2e checks green; session-9 level-surface parity pass complete (the unclamped "9/8" Lesson Progress label, the Sign In pill from_url, the hub level-machinery decode + the level-2/3 context-card e2e pins via ?lesson=2|4, the lucide 0.475-vs-0.525 BookOpen/Trophy redesign trap)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -490,6 +490,32 @@ exercises this via real 429s). The Daily Challenge returns
     TrendingUp/Sparkles picks were drifts. The challenge modal has NO
     result banner: the Submit button swaps in place to "Close" after the
     reveal (overlay inline `rgba(0,0,0,0.5)`, no blur).
+27. **The Lesson Progress label is unclamped** (session-9, S9-F1): the
+    live's qP computes `[c + 1, "/", d]` — at the completing 8th correct
+    the card renders **"9/8"** (observed on the live; the clone's
+    Math.min clamp was drift). `lessonProgressLabel`/`lessonProgressPct`
+    are unit-pinned domain helpers — never reintroduce the clamp.
+28. **The hub's lesson-advance machinery is dead code on the live**
+    (session-9): the sidebar's activeLessonIndex is NEVER written after
+    mount (the setter only runs in the course-change reset; locked rows
+    are unclickable; the qP's activeLevel/levelingUp props are dead) —
+    the live's hub dead-ends after lesson 1's completion ("8/8 correct"
+    stuck behind the Level-Up interstitial; the level-up only persists
+    the StudySession's active_level). The clone's advancing 6-lesson flow
+    is the pinned doctrine fix. The level-2/3 context cards (tan
+    Real-World Scenario / lilac Final Boss) render CONDITIONALLY on the
+    generated scenario/challenge; the h2 = the generated title on levels
+    2/3 (yO/xO decode); both are e2e-pinned via `?lesson=2|4`.
+29. **lucide icon versions drift** (session-9): BookOpen AND Trophy were
+    REDESIGNED upstream between the live's lucide-react 0.475 and the
+    clone's 0.525 (0.475 BookOpen `M2 3h6…` vs 0.525 `M12 7v14…`). The
+    dashboard's card icons pin the live's exact path data as
+    parameterized local components — swapping them for current lucide
+    imports changes the rendered strokes AND breaks the e2e icon pins.
+    Re-probe the live's paths before ANY icon-component swap. The desktop
+    anonymous Sign In pill carries from_url (the live's navigateToLogin
+    = redirectToLogin(window.location.href) — same contract on the
+    desktop pill and the mobile item).
 
 ## §10 Debugging Guide
 
@@ -515,8 +541,8 @@ exercises this via real 429s). The Daily Challenge returns
 **Live-site verification commands:**
 ```bash
 curl -s localhost:3000/api/health          # {"ok":true,"data":{"status":"ok","db":true}}
-bun run test                              # 73 unit
-bun run build && bun run test:e2e         # 52 e2e on :3100
+bun run test                              # 91 unit
+bun run build && bun run test:e2e         # 69 e2e on :3100
 ```
 
 ## §11 Pre-Ship Checklist
@@ -526,9 +552,9 @@ Run IN ORDER; the local gate is the only gate (no hosted CI):
 ```bash
 bun run lint          # eslint . — zero warnings
 bun run typecheck     # tsc --noEmit — zero errors (build won't catch them!)
-bun run test          # 69 Vitest checks
+bun run test          # 91 Vitest checks
 bun run build         # standalone build (also required for e2e)
-bun run test:e2e      # 46 Playwright checks on :3100
+bun run test:e2e      # 69 Playwright checks on :3100
 ```
 
 Verification categories beyond the gate:

@@ -28,7 +28,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 82 unit tests + 64 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 91 unit tests + 69 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -113,9 +113,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 73 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status)
+bun run test          # 91 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 52 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 69 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
@@ -234,6 +234,26 @@ Tailwind v4 engine trap — the alpha-color serialization drift
 (`bg-black/50`/`text-black/40` compute `oklab(...)` vs v3's `rgba(...)`,
 Trap 8; pinned surfaces normalize via inline rgba). 73 → 82 unit,
 52 → 64 e2e.
+
+## The session-9 level-surface parity pass
+
+A ninth audit ([`docs/remediation-plan-session-9.md`](docs/remediation-plan-session-9.md))
+drove the live's quiz flow through a FULL lesson completion for the first
+time (observing the terminal state the prior sessions never reached) and
+re-decoded the hub's level machinery from the bundle: the Lesson Progress
+label is **unclamped** (the live renders "9/8" at the 8th correct — the
+clone had a Math.min clamp; now `lessonProgressLabel`/`lessonProgressPct`
+are unit-pinned domain helpers); the desktop anonymous Sign In pill carries
+`from_url` (the live's `navigateToLogin` = `redirectToLogin(
+window.location.href)`); the live's sidebar advance logic is dead code (its
+hub dead-ends after lesson 1 — the clone's advancing flow is the pinned
+fix); and the never-before-pinned **level-2/3 lesson surfaces** (the tan
+Real-World Scenario card, the lilac Final Boss Challenge card, the
+generated-title h2) gained e2e coverage via the `?lesson=2|4` params. The
+pass also caught a lucide version trap: **BookOpen and Trophy were
+redesigned upstream between the live's 0.475 and the clone's 0.525** — the
+dashboard icons pin the live's exact paths as parameterized local
+components. 82 → 91 unit, 64 → 69 e2e.
 
 ## Pushing to GitHub
 

@@ -23,6 +23,21 @@ import type { DashboardUser } from "@/components/dashboard/dashboard-app";
 const PENDING_SETUP_KEY = "pending_student_setup";
 
 type Mode = "topic" | "material";
+
+/** S9-F6b: the pending-setup pickup's validity guard — the SAME thresholds
+ * as the Continue gate (≥2-chars topic/course name, ≥20-chars material),
+ * expressed over the parsed pending payload. One predicate, two call sites. */
+function pendingInputsValid(pending: {
+  mode: string;
+  topic: string;
+  courseName: string;
+  contentText: string;
+}): boolean {
+  return pending.mode === "topic"
+    ? pending.topic.trim().length >= 2
+    : pending.courseName.trim().length >= 2 && pending.contentText.trim().length >= 20;
+}
+
 type MaterialTab = "text" | "file";
 
 const FEATURE_ICONS = {
@@ -136,32 +151,32 @@ export function OnboardingDashboard({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canContinue = publicMode
-    ? name.trim().length >= 2 &&
-      (mode === "topic"
-        ? topic.trim().length >= 2
-        : courseName.trim().length >= 2 && materialText.trim().length >= 20)
-    : mode === "topic"
+  // S9-F6b: ONE validity predicate shared by the Continue gate and the
+  // post-login pickup guards (three duplicated threshold copies drifted
+  // apart silently otherwise). The thresholds are the live's decoded
+  // (≥2-chars topic/course name, ≥20-chars material).
+  const inputsValid =
+    mode === "topic"
       ? topic.trim().length >= 2
       : courseName.trim().length >= 2 && materialText.trim().length >= 20;
+
+  const canContinue = publicMode ? name.trim().length >= 2 && inputsValid : inputsValid;
 
   // S8-F1: the post-login pickup — the live's X2 reads
   // pending_student_setup on the authenticated onboarding, removes it, and
   // proceeds into the quiz. Here: parse the stored form and auto-submit it
   // through the normal generate flow (which lands on /quiz?course=…).
+  // (pending.name stays in the stored payload — the sessionStorage schema
+  // is the live's own contract; the pickup ignoring it is the decoded
+  // account-name-wins behavior: full_name || pending.name with the account
+  // name always present post-login.)
   useEffect(() => {
     if (publicMode) return;
     const raw = sessionStorage.getItem(PENDING_SETUP_KEY);
     const pending = parsePendingSetup(raw);
     if (!pending) return;
     sessionStorage.removeItem(PENDING_SETUP_KEY);
-    if (pending.mode === "topic" && pending.topic.trim().length < 2) return;
-    if (
-      pending.mode === "material" &&
-      (pending.courseName.trim().length < 2 || pending.contentText.trim().length < 20)
-    ) {
-      return;
-    }
+    if (!pendingInputsValid(pending)) return;
     void generate({
       mode: pending.mode,
       topic: pending.topic,

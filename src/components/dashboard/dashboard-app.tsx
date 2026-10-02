@@ -94,7 +94,7 @@ export function DashboardApp({
     <ToastProvider>
       <div className="flex min-h-screen flex-col" style={{ backgroundColor: "rgb(15, 14, 14)" }}>
         <AppHeader
-          user={user ?? { name: "", email: "" }}
+          user={user}
           currentSubject={pillSubject}
           enrollments={headerEnrollments}
           courses={mobileCourses}
@@ -110,10 +110,10 @@ export function DashboardApp({
           onStudentUpdated={() => router.refresh()}
           signedOut={user === null}
         />
-        {showCourseDashboard && activeCourse ? (
+        {showCourseDashboard && activeCourse && user ? (
           <CourseDashboard
             key={activeCourse.id}
-            user={user ?? { name: "Guest", email: "guest@thinkerwell.demo" }}
+            user={user}
             bubbleQuote={bubbleQuote}
             course={{
               ...activeCourse,

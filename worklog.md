@@ -261,3 +261,22 @@ Work Log:
 
 Stage Summary:
 - Session-8 complete and pushed: the clone's public surface now matches the live's anonymous model (public onboarding + deferred setup + the /demo gate + the Try-it navigation), Trap 8 pinned, three data-semantics decodes closed, 82 unit + 64 e2e green.
+
+---
+Task ID: 16
+Agent: main (Super Z)
+Task: Session 9 — level-surface parity pass, live completion drive, lucide version trap, docs, push
+
+Work Log:
+- Workspace RESET (fresh clone) → bun install + cp .env.example .env + env -u DATABASE_URL db:push/db:seed (db/custom.db at the repo root per the prompt's DATABASE_URL requirement — already the default); baseline gate green (82 unit + 64 e2e); the stale shell DATABASE_URL trap re-armed (env -u for every command).
+- Two-axis code review of 5ca9c4e...e270282 (Standards/Spec parallel sub-agents per skills/code-review): 1 HARD (/demo missing force-dynamic) + 8 judgement calls + 1 spec-deviation candidate (the Sign In pill's width placement).
+- LIVE-VERIFIED the pill placement (S9): the pill IS desktop-only (parent hidden md:flex computes display:none at 390px; offsetParent null) — the CODE was right, the session-8 plan text was stale → docs corrected.
+- The live re-audit DROVE THE QUIZ FLOW TO COMPLETION for the first time (9 answered / 8 correct on the live hub): observed the terminal state — the Level-Up interstitial ("Preparing Lesson 1…" = Preparing Lesson {level}), the Lesson Progress "9/8" (UNCLAMPED), and the live's hub dead-ending (sidebar stuck at "Lesson 1 · Now"; pane at "8/8 correct"). Bundle re-decode (index-CkEI9gsZ.js): qP label [c+1,"/",d]; Y2 8-correct → onCorrect (ie: score+=10, C<3 interstitial, StudySession update consumed by NOTHING); qP's activeLevel/levelingUp = dead props; the sidebar's activeLessonIndex setter runs ONLY at mount reset — the live can never advance lessons.
+- The level-2/3 surfaces decoded (yO/xO: h2 = meta.title, conditional tan/lilac cards, Lightbulb/MapPin/Trophy icons — matching the clone's session-3 port, which had ZERO e2e coverage). The mobile menus + hub tab bar + toaster bug re-verified. The icon check found the NEW TRAP: lucide redesigns across versions (BookOpen + Trophy changed paths between the live's 0.475 and the clone's 0.525).
+- TDD: lessonProgressLabel/lessonProgressPct (UNCLAMPED — 8 → "9/8") RED→GREEN (82→91 unit); the hub card uses the helpers; the desktop Sign In pill carries from_url (navigateToLogin decode); /demo force-dynamic; icon dedup into parameterized local components (paths verbatim; the dead LESSON_ICON deleted; the why-not-lucide comment); the onboarding thresholds unified; the challenge overlay's dead bg-black/50 removed; dashboard-app's dead Guest null-object → honest nullable typing (AppHeader user: HeaderUser | null).
+- E2E 64→69: session9-parity.spec (level-2 tan card + generated-title h2 at ?lesson=2, level-3 lilac at ?lesson=4, the fresh 1/8 label) + session9-public.spec (the desktop pill from_url pin; the mobile anonymous guest menu REAL-TAP pin — logged-out file-level storageState per the scoping rule).
+- Gate green: lint ✓ typecheck ✓ 91 unit ✓ build ✓ 69 e2e ✓; runtime probes confirmed 1/8 → 2/8 → 9/8 at the interstitial; screenshots 71-74 (the level-2/3 cards — first runtime captures ever — the from_url chain, the 9/8 terminal state); the capture script's interstitial timing fixed (outcome-waiting, not fixed delays).
+- Docs: remediation-plan-session-9 (8 findings + 12 TODOs, R4 revised mid-flight with the lucide discovery), remediation-plan-session-8 R1 corrected (desktop-only pill), AGENTS (the unclamped invariant, the level-machinery decode, the icon-version trap, counts 91/69), CLAUDE (session-9 invariants), README (session-9 section + counts), PAD v1.8 [S9] + testing table, SKILL v1.8.0 (traps 27-29), docs/session_9.md, this worklog; .env.example re-verified (no new env vars).
+
+Stage Summary:
+- Session-9 complete: the unclamped "9/8" label pinned, the live's dead-end hub machinery decoded (the clone's advancing flow confirmed as the documented fix), the lucide-version trap documented, the level-2/3 surfaces e2e-pinned for the first time, 91 unit + 69 e2e green — ready for commit + push via the SSH wrapper.

@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/mascot";
 import { NoriChat } from "@/components/hub/nori-chat";
 import { LessonView } from "@/components/hub/lesson-view";
-import { stageLevelLabel, hubLessonSubject } from "@/lib/domain";
+import {
+  stageLevelLabel,
+  hubLessonSubject,
+  lessonProgressLabel as lessonProgressLabelValue,
+  lessonProgressPct as lessonProgressPctValue,
+} from "@/lib/domain";
 import { ToastProvider } from "@/components/toast";
 import { cn } from "@/lib/utils";
 import { useDismissOnOutsideClick } from "@/components/layout/use-dismiss";
@@ -124,8 +129,11 @@ export function HubApp({
     return { title, i, isActive, isDone, isLocked };
   });
 
-  const lessonProgressLabel = `${Math.min(sessionAnswered + 1, 8)}/8`;
-  const lessonProgressPct = Math.round((Math.min(sessionAnswered, 8) / 8) * 100);
+  // S9-F1: the live's qP label is UNCLAMPED (`[c + 1, "/", d]` — 8
+  // correct renders "9/8" through the Level-Up interstitial; observed on
+  // the live). The helpers are unit-pinned in tests/domain-session9.test.ts.
+  const lessonProgressLabel = lessonProgressLabelValue(sessionAnswered);
+  const lessonProgressPct = lessonProgressPctValue(sessionAnswered);
 
   // S8-F4: the lesson-view h2 subject = the STUDENT's current_subject (the
   // live's `ce` — NOT the course name; a blank subject renders "General").

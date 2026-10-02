@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (82 checks) | `bun run test` |
-| Browser E2E (64 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (91 checks) | `bun run test` |
+| Browser E2E (69 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (82) → `bun run build` → `bun run test:e2e` (64 Playwright
+`bun run test` (91) → `bun run build` → `bun run test:e2e` (69 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -186,17 +186,22 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
 - **THE public-surface model (session-8):** anonymous `/` and `/onboarding`
   render the PUBLIC ONBOARDING (the live's landing surface — no login
   redirect): the AppHeader `signedOut` variant (desktop black **Sign In
-  pill**, mobile items-only menu: My Courses + Sign In, NO yellow name
-  header), the "Your Name" block in the setup panel (anonymous-only —
-  required for Continue; authenticated users never see it), and the
-  deferred setup: Continue stores `pending_student_setup` (sessionStorage,
-  the live's key) then routes `/login?from_url=<current>`; after login the
-  onboarding picks it up and AUTO-SUBMITS through
-  `/api/courses/generate` → `/quiz` (the live's X2: create student →
-  `navigate("/quiz")`; the account name wins — `full_name || pending.name`).
-  `/demo`, `/hub`, `/quiz`, `/courses` remain auth-gated (`/demo` TOO — the
-  live registers it under the auth guard; anonymous →
-  `/login?from_url=%2Fdemo`).
+  pill** — DESKTOP-ONLY, inside the `hidden md:flex` container, live-
+  verified at 390px; mobile items-only menu: My Courses + Sign In, NO
+  yellow name header), the "Your Name" block in the setup panel
+  (anonymous-only — required for Continue; authenticated users never see
+  it), and the deferred setup: Continue stores `pending_student_setup`
+  (sessionStorage, the live's key) then routes
+  `/login?from_url=<current>`; after login the onboarding picks it up and
+  AUTO-SUBMITS through `/api/courses/generate` → `/quiz` (the live's X2:
+  create student → `navigate("/quiz")`; the account name wins —
+  `full_name || pending.name`). `/demo`, `/hub`, `/quiz`, `/courses`
+  remain auth-gated (`/demo` TOO — the live registers it under the auth
+  guard; anonymous → `/login?from_url=%2Fdemo`). The Sign In pill's
+  from_url (session-9, S9-F2): the live's `Ha` pill calls
+  `navigateToLogin()` = `redirectToLogin(window.location.href)` — the
+  current URL rides on BOTH the desktop pill and the mobile item (the
+  clone's pill previously pushed a bare `/login`).
 - **THE Try-it invariant (session-8):** "Try it Sample: Economics Course"
   NAVIGATES TO `/demo` — it never generates a course (the live's X2:
   `onTryIt: () => navigate("/demo")`; the is_sample pending path in the
@@ -210,6 +215,39 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   behavioral pin in `tests/e2e/session8-parity.spec.ts`. An unowned
   `?course=` renders the hub with NO course (the default grid —
   `matched ?? null` when the param was present).
+- **THE Lesson Progress label is UNCLAMPED (session-9):** the sidebar's
+  yellow card computes the live's qP formula `{answered + 1}/8` with NO
+  clamp — at the completing 8th correct it renders **"9/8"** (observed on
+  the live through the Level-Up interstitial; the session-9 drive
+  confirmed it). `lessonProgressLabel`/`lessonProgressPct` live in
+  `domain.ts`, unit-pinned in `tests/domain-session9.test.ts` — do NOT
+  reintroduce a `Math.min` clamp; the over-8 label is the reference's own
+  arithmetic.
+- **THE hub level machinery, decoded (session-9):** the live's sidebar
+  `activeLessonIndex` is NEVER written after mount (the setter is only
+  called in the course-change reset; locked rows are unclickable; the qP's
+  `activeLevel`/`levelingUp` props are DEAD), so the live's hub
+  DEAD-ENDS after lesson 1's completion (observed stuck at "8/8 correct"
+  behind the interstitial). The clone's advancing 6-lesson flow is the
+  DOCUMENTED FIX (the "where the reference ships a bug the clone fixes it
+  AND pins the fix" doctrine) — the level-up fires when the LEVEL changes
+  (lessons 1|3), the final lesson completes the course. The lesson-view
+  h2 = the SUBJECT on level 1, the GENERATED title on levels 2/3
+  (`meta.title` in the live's yO/xO decode); the level-2 tan
+  Real-World Scenario + level-3 lilac Final Boss context cards render
+  CONDITIONALLY on the generated scenario/challenge being non-empty —
+  e2e-pinned via the `?lesson=2`/`?lesson=4` params in
+  `tests/e2e/session9-parity.spec.ts` (the param drives the initial
+  lesson directly; the sidebar lock only gates row clicks).
+- **THE dashboard card icons pin the LIVE's lucide 0.475 paths
+  (session-9):** BookOpen AND Trophy were REDESIGNED upstream between the
+  live's lucide-react 0.475 and the clone's 0.525 (0.475 BookOpen
+  `M2 3h6…` vs 0.525 `M12 7v14…`), so `course-dashboard.tsx` renders
+  ONE parameterized local component per shape (BookOpenIcon /
+  TrophyIcon / BrainIcon / SparklesIcon — the paths verbatim from the
+  live probe) instead of lucide imports. Do NOT swap them for
+  `lucide-react` imports without re-probing the live's paths — the
+  session-8 e2e icon pins assert the `d` prefixes.
 - **THE daily-challenge modal (session-8):** overlay `rgba(0,0,0,0.5)` via
   INLINE style (Trap 8 — v4's bg-black/50 computes oklab), NO backdrop
   blur, and NO result banner — after the reveal the SAME button slot swaps

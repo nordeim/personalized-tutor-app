@@ -58,8 +58,18 @@ excluded from code checking, testing and compilation throughout.
   a `signedOut?: boolean` prop — when true: (a) desktop renders the black
   Sign In pill (`flex items-center gap-2 px-4 py-1.5 rounded-[9999px]
   bg-black text-white text-sm font-medium hover:bg-gray-800 transition-all`
-  → `router.push("/login")`) at ALL widths (the live shows the pill beside
-  the mobile hamburger too — it is NOT inside the `hidden md:flex` block);
+  → `router.push("/login")`) — **S9 CORRECTION: the pill renders inside the
+  `hidden md:flex` container (DESKTOP-ONLY)**. The pre-execution plan text
+  claimed "at ALL widths … NOT inside the hidden md:flex block" — the
+  session-8 transcript's mid-flight probe ("Correction: the Sign In pill
+  sits inside the hidden md:flex container — desktop-only") was right and
+  this text was never updated. Session-9 re-verified on the live at
+  390×844: the pill's parent computes `display: none` and the pill's
+  `offsetParent` is null (mobile shows logo + hamburger; Sign In lives in
+  the mobile menu). The executed CODE matches the live (desktop-only); the
+  S9-F2 pass additionally added the pill's `from_url`
+  (`navigateToLogin` = `redirectToLogin(window.location.href)` decoded from
+  the bundle's Ha header + auth provider);
   (b) the CoursePill + UserMenu desktop block is skipped; (c) the mobile
   menu panel renders ITEMS-ONLY (no yellow name header) via
   `MobileMenuBody` with `courses={[]}` + `guest` semantics (My Courses +

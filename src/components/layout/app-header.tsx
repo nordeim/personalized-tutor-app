@@ -651,7 +651,10 @@ export function AppHeader({
   guest = false,
   signedOut = false,
 }: {
-  user: HeaderUser;
+  /** S9-F6d: nullable for the PUBLIC onboarding (the anonymous variant
+   * renders no user chrome — the Sign In pill / items-only menu); every
+   * authenticated surface passes a real user. */
+  user: HeaderUser | null;
   /** The student's current subject — non-null renders the CoursePill. */
   currentSubject?: string | null;
   /** The OTHER courses (the live filters out the current subject). */
@@ -671,6 +674,7 @@ export function AppHeader({
   signedOut?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const mobileRef = useRef<HTMLDivElement>(null);
@@ -690,7 +694,7 @@ export function AppHeader({
     }
   }
 
-  const letter = avatarLetter(user.name);
+  const letter = avatarLetter(user?.name ?? "");
 
   return (
     <header
@@ -716,10 +720,15 @@ export function AppHeader({
           Sign In pill (the public onboarding; same hidden md:flex container,
           the live's desktop-only black pill). */}
       <div className="hidden items-center gap-3 md:flex">
-        {signedOut ? (
+        {signedOut || !user ? (
           <button
             type="button"
-            onClick={() => router.push("/login")}
+            // S9-F2: the live's pill calls navigateToLogin() =
+            // redirectToLogin(window.location.href) — the CURRENT URL rides
+            // as from_url (the same contract as the mobile Sign In item).
+            onClick={() =>
+              router.push(`/login?from_url=${encodeURIComponent(pathname ?? "/")}`)
+            }
             className="flex items-center gap-2 rounded-[9999px] bg-black px-4 py-1.5 text-sm font-medium text-white transition-all hover:bg-gray-800"
             style={{ fontFamily: '"Funnel Sans", sans-serif' }}
           >
@@ -784,7 +793,7 @@ export function AppHeader({
             {/* S8-F1: the anonymous (public onboarding) panel renders
                 ITEMS-ONLY — the live's anonymous menu has no yellow name
                 header (My Courses + Sign In below). */}
-            {signedOut ? null : (
+            {signedOut || !user ? null : (
               <div className="p-3" style={{ backgroundColor: "rgb(255, 253, 115)" }}>
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-8 w-8 items-center justify-center rounded-[9999px] bg-black font-semibold text-sm text-white">

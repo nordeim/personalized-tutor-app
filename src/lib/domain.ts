@@ -43,6 +43,22 @@ export function stageLevelLabel(index: number): string {
   return `Stage ${stage + 1} · Level ${stage + 1}`;
 }
 
+/** S9-F1: the Hub's Lesson Progress card label — the live's qP computes
+ * `[c + 1, "/", d]` UNCLAMPED (c = the session's correct count, d = 8): at
+ * the completing 8th correct the live renders "9/8" (observed through the
+ * Level-Up interstitial). Do NOT reintroduce a Math.min clamp — the
+ * over-8 label is the reference's own arithmetic. */
+export function lessonProgressLabel(answered: number): string {
+  return `${answered + 1}/8`;
+}
+
+/** S9-F1: the card's bar percent — the live's `Math.round(c / d * 100)`
+ * (unclamped like the label; answered never exceeds 8 because the lesson
+ * completes at 8 correct). */
+export function lessonProgressPct(answered: number): number {
+  return Math.round((answered / 8) * 100);
+}
+
 /** Parse the persisted roadmap JSON (invalid input → empty roadmap). */
 export function parseRoadmap(json: string | null | undefined): Roadmap {
   if (!json) return [];
