@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (65 checks) | `bun run test` |
-| Browser E2E (45 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (69 checks) | `bun run test` |
+| Browser E2E (46 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (65) → `bun run build` → `bun run test:e2e` (45 Playwright
+`bun run test` (69) → `bun run build` → `bun run test:e2e` (46 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -67,6 +67,27 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   name (`full_name`). The with-course panel header is `p-4`/`gap-3`/`w-10`
   avatar at `text-base`; the no-course panel is `p-3`/`gap-2.5`/`w-8` with
   `p-2` (no space-y) items.
+- **THE source-predicate split (session-6):** `domain.ts` exports TWO
+  distinct predicates and the split is intentional — `isCustomSource(s)`
+  (`custom || material`) drives the p_ CoursePill icon and the m_ context
+  line, while `courseSourceLabel(s)` (custom ONLY → "Custom Material",
+  else "AI-Generated Course") drives the CO course-card label. The
+  reference's bundle does exactly this; do not "consolidate" them (a
+  "material" course shows the BookOpen pill icon but still labels
+  AI-Generated). Pinned in `tests/domain-session6.test.ts`.
+- **THE icon-stroke invariants (session-6):** the CO card's ChevronRight
+  renders at lucide's default strokeWidth 2 (no explicit prop); the m_ user
+  pill's chevron is CONDITIONAL — `student ? 2 : 1.5` (the live ships two
+  trigger components); the /courses Add-a-Course tile's Plus is the
+  lucide-canonical path (`M12 5v14`, never a `v19` variant) at strokeWidth 2.
+  Trash2/subject icons stay at 1.5. Every one of these was decoded from the
+  live DOM or bundle — check before "normalizing" stroke weights to one value.
+- **Outside-click dismissal is ONE hook** (`src/components/layout/use-dismiss.ts`,
+  session-6 extraction): every dropdown consumes `useDismissOnOutsideClick`
+  with a memoized `onDismiss` (useCallback — the hook re-subscribes the
+  document listener on identity change). CoursePill, UserMenu, the AppHeader
+  mobile menu, AND the hub's course/help menus all use it; do not hand-roll
+  another copy.
 - **The with-course header is TWO dropdowns** (`app-header.tsx`): the
   bordered Course pill (p_) labeled `student.current_subject`, listing the
   OTHER courses (`course_name !== current_subject`) or "This is your only

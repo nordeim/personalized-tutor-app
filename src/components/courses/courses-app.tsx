@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/layout/app-header";
 import { AddCourseModal } from "@/components/courses/add-course-modal";
-import { derivedLessonsCompleted, quizProgressPercent, subjectIconName } from "@/lib/domain";
+import { courseSourceLabel, derivedLessonsCompleted, quizProgressPercent, subjectIconName } from "@/lib/domain";
 import { ToastProvider } from "@/components/toast";
 import {
   Atom,
@@ -20,6 +20,7 @@ import {
   Megaphone,
   Music,
   Palette,
+  Plus,
   Scale,
   Trash2,
 } from "lucide-react";
@@ -152,7 +153,7 @@ export function CoursesApp({ user, courses }: { user: DashboardUser; courses: Co
                                 {c.courseName}
                               </p>
                               <p className="mt-0.5 text-xs font-light text-black/40" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-                                {c.contentSource === "custom" ? "Custom Material" : "AI-Generated Course"}
+                                {courseSourceLabel(c.contentSource)}
                               </p>
                             </div>
                           </div>
@@ -175,7 +176,7 @@ export function CoursesApp({ user, courses }: { user: DashboardUser; courses: Co
                             >
                               <Trash2 className="h-4 w-4 text-black/30 hover:text-red-400" strokeWidth={1.5} />
                             </div>
-                            <ChevronRight className="h-5 w-5 flex-shrink-0 text-black/30" strokeWidth={1.5} />
+                            <ChevronRight className="h-5 w-5 flex-shrink-0 text-black/30" strokeWidth={2} />
                           </div>
                         </div>
                         <div className="space-y-1.5">
@@ -206,10 +207,10 @@ export function CoursesApp({ user, courses }: { user: DashboardUser; courses: Co
                 className="mt-auto flex w-full items-center justify-center gap-2 rounded-[16px] border-2 border-dashed border-black/15 py-4 text-sm font-medium text-black/40 transition-all hover:border-black/30 hover:text-black/60"
                 style={{ fontFamily: '"Funnel Sans", sans-serif' }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus h-4 w-4">
-                  <path d="M5 12h14" />
-                  <path d="M12 5v19" />
-                </svg>
+                {/* S6-F1: the live renders the lucide-canonical Plus (M12 5v14)
+                    at strokeWidth 2 — the inline SVG it replaces shipped a
+                    typo'd v19 path at 1.5. */}
+                <Plus className="h-4 w-4" strokeWidth={2} />
                 Add a Course
               </button>
             </div>

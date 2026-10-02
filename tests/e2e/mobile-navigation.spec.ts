@@ -63,6 +63,20 @@ test.describe("mobile navigation (390×844)", () => {
     ).toBeVisible();
   });
 
+  test("a single enrollment renders NO Switch Course section (S6-F6)", async ({ page }) => {
+    // The demo account has exactly one enrollment (Economics) — the
+    // reference's section exists only when enrollments.length > 1.
+    await page.getByRole("button", { name: "Open menu" }).tap();
+    const menu = page.getByRole("menu");
+    await expect(menu).toBeVisible();
+    await expect(menu.getByText("Switch Course")).toHaveCount(0);
+    // No course rows either — the rows live only inside the section.
+    await expect(menu.getByRole("button", { name: /Economics/ })).toHaveCount(0);
+    // The actions still render.
+    await expect(menu.getByRole("button", { name: "My Courses" })).toBeVisible();
+    await expect(menu.getByRole("button", { name: "Log Out" })).toBeVisible();
+  });
+
   test("the mobile menu carries the reference's Switch Course section (S5-F1)", async ({ page }) => {
     // A fresh user with TWO courses (API-driven; the register call shares
     // the context cookie jar). The reference's `md:hidden` panel renders a
@@ -93,6 +107,16 @@ test.describe("mobile navigation (390×844)", () => {
     await expect(menu.getByRole("button", { name: /Chemistry/ })).toBeVisible();
     await expect(
       menu.getByRole("button", { name: "Update Preferences" }),
+    ).toHaveCount(0);
+
+    // The Check marks the CURRENT course — the LAST generated (Chemistry;
+    // the page defaults to the newest enrollment) — and ONLY it (session-6,
+    // S6-F6: the pin the session-5 spec review found missing).
+    await expect(
+      menu.getByRole("button", { name: /Chemistry/ }).locator("svg.lucide-check"),
+    ).toHaveCount(1);
+    await expect(
+      menu.getByRole("button", { name: /Astronomy/ }).locator("svg.lucide-check"),
     ).toHaveCount(0);
 
     // A row tap navigates to /?course={id} (the DASHBOARD, not the hub).

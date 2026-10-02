@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/mascot";
 import { avatarLetter, courseContextLine, isCustomSource } from "@/lib/domain";
 import { AddCourseModal } from "@/components/courses/add-course-modal";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/utils";
+import { useDismissOnOutsideClick } from "@/components/layout/use-dismiss";
 import {
   BookOpen,
   Check,
@@ -75,22 +76,9 @@ export type MobileCourse = {
 };
 
 /* ------------------------------------------------------------------ */
-/* useDismissOnOutsideClick — the shared outside-click dismissal (the   */
-/* effect was triplicated across CoursePill/UserMenu/AppHeader before).  */
+/* The outside-click dismissal lives in use-dismiss.ts (session-6      */
+/* extraction — hub-app's dropdowns consume it too).                   */
 /* ------------------------------------------------------------------ */
-
-function useDismissOnOutsideClick(
-  ref: React.RefObject<HTMLDivElement | null>,
-  onDismiss: () => void,
-) {
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onDismiss();
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [ref, onDismiss]);
-}
 
 /** The student context that switches the user menu to the m_ variant. */
 export type HeaderStudent = {
@@ -119,7 +107,11 @@ function CoursePill({
   const [modalOpen, setModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useDismissOnOutsideClick(ref, () => setOpen(false));
+  // Memoized dismiss (session-6, S6-F8): the shared hook re-subscribes its
+  // document listener whenever onDismiss changes identity — a fresh arrow
+  // would re-subscribe on every render.
+  const dismiss = useCallback(() => setOpen(false), []);
+  useDismissOnOutsideClick(ref, dismiss);
 
   return (
     <div className="relative" ref={ref}>
@@ -468,6 +460,8 @@ function UserMenu({
           {letter}
         </div>
         <span className="text-sm font-medium text-black">{user.name}</span>
+        {/* S6-F3: the live's two triggers render different chevron weights —
+            the with-course trigger sw 2, the no-course trigger sw 1.5. */}
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -475,7 +469,7 @@ function UserMenu({
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.5"
+          strokeWidth={student ? "2" : "1.5"}
           strokeLinecap="round"
           strokeLinejoin="round"
           className={cn(
@@ -670,7 +664,8 @@ export function AppHeader({
   const [loggingOut, setLoggingOut] = useState(false);
   const mobileRef = useRef<HTMLDivElement>(null);
 
-  useDismissOnOutsideClick(mobileRef, () => setMobileOpen(false));
+  const dismissMobile = useCallback(() => setMobileOpen(false), []);
+  useDismissOnOutsideClick(mobileRef, dismissMobile);
 
   async function handleLogout() {
     setLoggingOut(true);

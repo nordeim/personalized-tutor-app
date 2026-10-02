@@ -206,3 +206,20 @@ Work Log:
 
 Stage Summary:
 - Session-5 deliverable complete: the mobile chrome now matches the decoded reference component (not an m_ reuse), the m_ name split is honest, computed radii match v3, and the full gate is green — ready to commit + push via the SSH wrapper.
+
+---
+Task ID: 12
+Agent: main (Super Z)
+Task: Session 6 — parity-polish & code-quality pass, e2e gap pins, docs, push
+
+Work Log:
+- git pull → 4fe8a2d (docs/session_6.md = session-5 transcript + prompt-to-review-3.md); docs re-reviewed; baseline gate green (65 unit + 45 e2e); stale shell DATABASE_URL unset (and env -u for CLI seeds).
+- Two-axis code review of c7cd576...HEAD (Standards/Spec parallel sub-agents per skills/code-review): found the module-private dismiss hook (hub hand-rolls its own), typewriter magic numbers, residual inline source predicate, fresh-arrow onDismiss, R17 plan-text drift (superseded by the name-split decode), missing Check-on-current + negative pins.
+- Live re-audit (login + DOM probes 1280/390 + 3 × /demo reloads + bundle decodes): the MOBILE menu verified end-to-end in all states; computed radius 9999px both sides; three icon-level drifts found (the /courses Add tile Plus path typo v19 + sw 1.5 vs canonical v14 + sw 2; the CO card ChevronRight sw 1.5 vs default 2; the m_ pill chevron one-weight vs the live's two trigger variants); the live /demo roadmap + challenge confirmed AI-generated PER VISIT (accepted divergence, documented); live toaster bug + hub hang re-confirmed.
+- TDD execution: courseSourceLabel pinning the intentional predicate split (65→69 unit RED→GREEN); Plus/ChevronRight/m_ chevron stroke fixes; useDismissOnOutsideClick extracted to src/components/layout/use-dismiss.ts with the hub's hand-rolled effect deleted; TYPEWRITER_*_MS named constants; useCallback dismiss callbacks; e2e +1 test and +2 assertions (single-enrollment negative, Check-on-current).
+- Gate green: lint ✓ typecheck ✓ 69 unit ✓ build ✓ 46 e2e ✓; runtime probes verified every fix on the dev server; screenshots 51–55; dev DB reseeded clean.
+- Docs: remediation-plan-session-6.md (11 findings + 14 TODOs, all executed), session-5 plan addendum (R17/R0 letter-vs-execution), AGENTS/CLAUDE/README invariants + counts, PAD v1.5 [S6], SKILL v1.5.0 (traps 19–20, §6 timing fix), docs/session_6.md, .env.example re-verified (no new env vars).
+- Conventional commit on main; push via docs/ssh_git_wrapper_v3.py --remote git@github.com:nordeim/personalized-tutor-app.git (paramiko shim; remote verified == HEAD; key shredded).
+
+Stage Summary:
+- Session-6 complete and pushed: icon-level parity closed (canonical Plus, ChevronRight sw 2, the conditional m_ chevron), the source-predicate split pinned, one shared dismiss hook for every dropdown, 69 unit + 46 e2e green, the mobile menu runtime-verified as the prompt demanded.

@@ -13,9 +13,9 @@ description: >
   In), the m_ student-vs-user name split, and the completed
   rounded-[9999px] computed-radius parity sweep, the gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.4.0
+version: 1.5.0
 last_updated: 2026-10-02
-project_state: 65 unit tests + 45 e2e checks green; session-5 chrome-polish pass complete (mobile menu as its own component, m_ name split, rounded-[9999px] sweep, exact typewriter/chip timings)
+project_state: 69 unit tests + 46 e2e checks green; session-6 parity-polish pass complete (icon-stroke parity fixes, courseSourceLabel/isCustomSource predicate split, the shared use-dismiss hook consumed by the hub, Switch Course e2e Check pins)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -240,14 +240,20 @@ channel, always via the `{ ok, data } | { ok, error }` envelope.
 
 ## §6 Custom "Hooks" Deep Dive
 
-**`useDismissOnOutsideClick(ref, onDismiss)`** (session-5, defined in
-`app-header.tsx`) — the one shared outside-click dismissal for the
-CoursePill, the UserMenu, and the mobile hamburger. It replaced three
-copy-pasted effects (the Standards review's Duplicated Code finding).
+**`useDismissOnOutsideClick(ref, onDismiss)`** (session-6 extraction,
+`src/components/layout/use-dismiss.ts`) — the ONE shared outside-click
+dismissal, consumed by the CoursePill, the UserMenu, the mobile hamburger,
+AND the hub's course/help menus (the hub's hand-rolled effect was deleted).
+Callers pass a useCallback-memoized `onDismiss` — the hook re-subscribes
+the document listener on identity change, so a fresh arrow re-subscribes
+on every render.
 
-- `useTypewriter(topics)` (`onboarding-dashboard.tsx`) — types a topic char
-  by char (90 ms), holds 2400 ms, deletes (45 ms), cycles; cleans its timer
-  on unmount; the caret is a separate `<span class="caret-blink">`.
+- `useTypewriter(topics)` (`onboarding-dashboard.tsx`) — the reference's
+  `o_` machine: types 60 ms/char, holds 2000 ms, deletes 50 ms/char, no
+  delete→type gap; the initial state renders the FULL first topic (held,
+  then deletes). Timings are named module constants (`TYPEWRITER_*_MS`);
+  cleans its timer on unmount; the caret is a separate
+  `<span class="caret-blink">`.
 - `useToast()` (`toast.tsx` + `ToastProvider`) — Sonner-compatible API;
   the container is `pointer-events-none` (§9) with items `auto`.
 - `useMascot*` — not hooks; the mascot wrappers (`MascotWelcome`,
@@ -410,6 +416,22 @@ exercises this via real 429s). The Daily Challenge returns
     writes) or the preferences rename visibly round-trips nowhere; the
     pill renders the USER's `full_name`. Same-name seeds hide this bug —
     test with a rename.
+19. **Icon stroke weights are decoded values, not style choices**
+    (session-6): the CO card's ChevronRight is lucide-default sw 2; the
+    m_ pill chevron is CONDITIONAL (`student ? 2 : 1.5` — the live ships
+    two trigger components); the /courses Add tile Plus is the canonical
+    `M12 5v14` at sw 2 (a `v19` typo renders a visibly longer stroke);
+    Trash2 + subject icons stay 1.5. "Normalizing" every icon to one
+    weight silently breaks parity.
+20. **Two source predicates, intentionally split** (session-6):
+    `isCustomSource` (custom‖material — the p_ icon + m_ context line) vs
+    `courseSourceLabel` (custom ONLY → "Custom Material" — the CO card
+    label). The reference's bundle ships exactly this split; a
+    "material" course shows the BookOpen pill icon but still labels
+    AI-Generated on the card. Pinned in `tests/domain-session6.test.ts`.
+    Also: the live /demo roadmap + challenge question are AI-generated PER
+    VISIT (titles alternate) — the clone's static sample is an accepted
+    divergence, not drift to chase.
 
 ## §10 Debugging Guide
 
@@ -435,8 +457,8 @@ exercises this via real 429s). The Daily Challenge returns
 **Live-site verification commands:**
 ```bash
 curl -s localhost:3000/api/health          # {"ok":true,"data":{"status":"ok","db":true}}
-bun run test                              # 65 unit
-bun run build && bun run test:e2e         # 45 e2e on :3100
+bun run test                              # 69 unit
+bun run build && bun run test:e2e         # 46 e2e on :3100
 ```
 
 ## §11 Pre-Ship Checklist
@@ -446,9 +468,9 @@ Run IN ORDER; the local gate is the only gate (no hosted CI):
 ```bash
 bun run lint          # eslint . — zero warnings
 bun run typecheck     # tsc --noEmit — zero errors (build won't catch them!)
-bun run test          # 65 Vitest checks
+bun run test          # 69 Vitest checks
 bun run build         # standalone build (also required for e2e)
-bun run test:e2e      # 45 Playwright checks on :3100
+bun run test:e2e      # 46 Playwright checks on :3100
 ```
 
 Verification categories beyond the gate:

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/mascot";
 import { NoriChat } from "@/components/hub/nori-chat";
@@ -8,6 +8,7 @@ import { LessonView } from "@/components/hub/lesson-view";
 import { stageLevelLabel } from "@/lib/domain";
 import { ToastProvider } from "@/components/toast";
 import { cn } from "@/lib/utils";
+import { useDismissOnOutsideClick } from "@/components/layout/use-dismiss";
 import {
   BookOpen,
   ChevronDown,
@@ -77,18 +78,14 @@ export function HubApp({
 
   const titles = course?.lessonTitles ?? DEMO_LESSONS;
 
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (courseMenuRef.current && !courseMenuRef.current.contains(e.target as Node)) {
-        setCourseMenuOpen(false);
-      }
-      if (helpMenuRef.current && !helpMenuRef.current.contains(e.target as Node)) {
-        setHelpMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, []);
+  // Session-6 (S6-F4): the hub's hand-rolled outside-click effect is gone —
+  // both menus consume the shared useDismissOnOutsideClick hook that
+  // app-header's dropdowns use. Memoized callbacks (the hook re-subscribes
+  // the document listener whenever onDismiss changes identity).
+  const dismissCourseMenu = useCallback(() => setCourseMenuOpen(false), []);
+  const dismissHelpMenu = useCallback(() => setHelpMenuOpen(false), []);
+  useDismissOnOutsideClick(courseMenuRef, dismissCourseMenu);
+  useDismissOnOutsideClick(helpMenuRef, dismissHelpMenu);
 
   function switchCourse(id: string) {
     setCourseMenuOpen(false);

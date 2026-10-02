@@ -48,11 +48,19 @@ const FEATURE_ICONS = {
  * idle 2000 ms → deleting 50 ms/char → typing 60 ms/char → idle… The initial
  * state renders the FULL first topic (it starts held, then deletes), exactly
  * like the live ("Dive into Economics" on first paint).
+ *
+ * Named module constants (session-6, S6-F5 — the lesson-view
+ * ANSWER_FEEDBACK_MS precedent; previously raw magic numbers inline).
  */
+const TYPEWRITER_HOLD_MS = 2000; // live: full topic held before deleting
+const TYPEWRITER_TYPE_MS = 60; // live: 60 ms per typed character
+const TYPEWRITER_DELETE_MS = 50; // live: 50 ms per deleted character
+const TYPEWRITER_SWITCH_MS = 0; // live: no gap between delete-complete and typing
+
 function useTypewriter(topics: readonly string[]): string {
   const [text, setText] = useState(topics[0] ?? "");
   // "deleting: true" at mount = the reference's post-idle state: the full
-  // first topic is held for the initial 2000 ms, then the delete begins.
+  // first topic is held for the initial hold period, then the delete begins.
   const state = useRef({ topic: 0, pos: topics[0]?.length ?? 0, deleting: true });
 
   useEffect(() => {
@@ -65,25 +73,25 @@ function useTypewriter(topics: readonly string[]): string {
         setText(current.slice(0, s.pos));
         if (s.pos >= current.length) {
           s.deleting = true;
-          timer = window.setTimeout(tick, 2000);
+          timer = window.setTimeout(tick, TYPEWRITER_HOLD_MS);
           return;
         }
-        timer = window.setTimeout(tick, 60);
+        timer = window.setTimeout(tick, TYPEWRITER_TYPE_MS);
       } else {
         s.pos -= 1;
         setText(current.slice(0, s.pos));
         if (s.pos <= 0) {
           s.deleting = false;
           s.topic = (s.topic + 1) % topics.length;
-          timer = window.setTimeout(tick, 0);
+          timer = window.setTimeout(tick, TYPEWRITER_SWITCH_MS);
           return;
         }
-        timer = window.setTimeout(tick, 50);
+        timer = window.setTimeout(tick, TYPEWRITER_DELETE_MS);
       }
     };
     // The first cycle holds the full first topic for the idle period, then
     // deletes — matching the live's initial mount state.
-    timer = window.setTimeout(tick, 2000);
+    timer = window.setTimeout(tick, TYPEWRITER_HOLD_MS);
     return () => window.clearTimeout(timer);
   }, [topics]);
 

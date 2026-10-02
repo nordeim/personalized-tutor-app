@@ -213,6 +213,20 @@ export function isCustomSource(
 }
 
 /**
+ * The CO course-card's source label (session-6, S6-F7): the reference's
+ * bundle renders `content_source === "custom" ? "Custom Material"
+ * : "AI-Generated Course"` — custom ONLY. Deliberately NARROWER than
+ * `isCustomSource` (which the p_ CoursePill icon uses for custom‖material):
+ * "material" courses get the BookOpen pill icon but still label as
+ * AI-Generated on the card. Pinned in tests/domain-session6.test.ts.
+ */
+export function courseSourceLabel(
+  contentSource: string | null | undefined,
+): "Custom Material" | "AI-Generated Course" {
+  return contentSource === "custom" ? "Custom Material" : "AI-Generated Course";
+}
+
+/**
  * The m_ user-dropdown header's context line (session-4):
  * "{current_subject} · Default" or "· Custom material" for custom sources;
  * the guest/null student renders "Default" alone (the live renders the

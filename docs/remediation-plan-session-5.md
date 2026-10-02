@@ -178,3 +178,24 @@ Execution order note: Phase 1 (red) → Phase 2 (mobile rework — biggest struc
 change) → Phase 3 (UserMenu/CoursePill) → Phase 4 (dashboard polish + sweep) →
 Phase 5 (hub cleanup) → unit green → build → Phase 6 e2e updates → full gate →
 screenshots → docs → push.
+
+---
+
+## Session-6 addendum (plan-text corrections — S6-F9)
+
+Two letter-vs-execution drifts in this plan, surfaced by the session-6 spec-axis
+review and recorded here so the plan reflects what actually shipped:
+
+1. **R17 (as written) was superseded mid-execution.** The letter says "after
+   Save Changes, the header pill name (and the m_ header name) shows the new
+   value." The bundle decode that landed mid-flight (the m_ name split) proved
+   the reference renders the **panel header** with the STUDENT's name (`e.name`
+   — the `PUT /api/student` rename target) while the **collapsed pill** keeps
+   the USER's name (`full_name`), which the rename never touches. The e2e
+   (`tests/e2e/session5-parity.spec.ts`) pins the honest behavior: the panel
+   name updates, the pill name does not. The plan's checked `[x]` refers to the
+   executed (correct) semantics, not this letter.
+2. **R0's heading names a `mobileContextLine` helper that was deliberately not
+   extracted** — the subject-only context line renders inline in
+   `app-header.tsx`'s mobile panel (one consumer; a helper would be speculative
+   generality). `isCustomSource` was extracted and pinned as planned.

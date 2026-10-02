@@ -27,7 +27,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🔥 | Study Streak + Total XP cards (the reference's gamification column) | `src/components/dashboard/course-dashboard.tsx` |
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course | `/demo` |
-| 🧪 | 65 unit tests + 45 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 69 unit tests + 46 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -112,9 +112,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 65 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path)
+bun run test          # 69 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 45 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 46 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
@@ -179,6 +179,21 @@ name). It also completed the `rounded-[9999px]` sweep for computed-style
 parity with the reference's v3 radii, retimed the typewriter to the exact
 bundle timings (60/50 ms per char, 2000 ms hold, full first topic on load),
 and matched the 21px category chips.
+
+## The session-6 parity-polish pass
+
+A sixth audit ([`docs/remediation-plan-session-6.md`](docs/remediation-plan-session-6.md))
+verified the mobile menu end-to-end against the live (the Switch Course
+section, the Check on the current course, the guest Sign In variant — all
+runtime-confirmed) and closed the remaining icon-level drifts decoded from
+the live DOM and bundle: the /courses Add tile's Plus path (the clone shipped
+a typo'd `M12 5v19`), the CO card's ChevronRight stroke, and the m_ pill
+chevron's two-variant weight (2 with a course, 1.5 without). It also
+extracted the outside-click dismissal into one shared hook
+(`src/components/layout/use-dismiss.ts`) consumed by every dropdown
+including the hub's, named the typewriter timings as constants, and pinned
+the intentional source-predicate split (`isCustomSource` vs the new
+`courseSourceLabel`). 65 → 69 unit, 45 → 46 e2e.
 
 ## Pushing to GitHub
 

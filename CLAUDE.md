@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (65 unit + 45 Playwright
+   bun run test && bun run build && bun run test:e2e` (69 unit + 46 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -86,6 +86,24 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   `x-forwarded-proto`; plain-HTTP production boots (the e2e server) MUST
   still set cookies. Regressing this silently breaks every authenticated
   e2e test — the bug class that cost a full debug cycle.
+- **THE source-predicate split (session-6):** `isCustomSource(s)` (custom‖
+  material — the p_ icon + m_ context line) and `courseSourceLabel(s)` (custom
+  ONLY — the CO card label) are intentionally different predicates; the
+  reference's bundle ships exactly this split. A "material" course shows the
+  BookOpen pill icon but still labels "AI-Generated Course". Pinned in
+  `tests/domain-session6.test.ts` — do not consolidate.
+- **THE icon-stroke invariants (session-6):** CO-card ChevronRight at
+  lucide default strokeWidth 2; the m_ pill chevron is conditional
+  (`student ? 2 : 1.5` — the live ships two trigger components); the
+  /courses Add tile's Plus is the canonical `M12 5v14` at sw 2; Trash2 +
+  subject icons stay 1.5. All decoded from live DOM/bundle — do not
+  "normalize" stroke weights blindly.
+- **Outside-click dismissal is ONE shared hook**
+  (`src/components/layout/use-dismiss.ts`, session-6): CoursePill,
+  UserMenu, AppHeader-mobile AND the hub's course/help menus consume
+  `useDismissOnOutsideClick` with useCallback-memoized callbacks (the hook
+  re-subscribes the document listener on identity change). Never hand-roll
+  another copy.
 - **THE mobile-menu invariant (session-5):** the hamburger dropdown is a
   SEPARATE component from the desktop m_ — decoded straight from the
   reference bundle: items `p-2` (no space-y), a "Switch Course" section
