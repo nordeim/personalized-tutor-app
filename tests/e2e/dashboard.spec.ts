@@ -108,13 +108,34 @@ test.describe("the courses dashboard", () => {
     await expect(page.getByRole("heading", { name: "Demo Learner", exact: true })).toBeVisible();
   });
 
-  test("the setup panel renders onboarding in force mode (Add a Course)", async ({ page }) => {
+  test("Add a Course opens the in-page Q5 modal (session-4)", async ({ page }) => {
     await page.goto("/courses");
-    const add = page.getByRole("link", { name: "Add a Course" });
+    const add = page.getByRole("button", { name: "Add a Course" });
     await expect(add).toHaveCSS("border-top-style", "dashed");
     await add.click();
-    await expect(page).toHaveURL(/\/onboarding\/?$/);
-    await expect(page.getByRole("heading", { name: "Let's get you set up" })).toBeVisible();
+    // The reference's compact modal — NOT an /onboarding navigation.
+    await expect(page).toHaveURL(/\/courses\/?$/);
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("heading", { name: "Add a Course", exact: true })).toBeVisible();
+    // (The component renders the typographic &rsquo; — the dot matches it.)
+    await expect(dialog.getByText(/Choose what you.d like to learn next\./)).toBeVisible();
+    // Build + Material mode cards.
+    await expect(dialog.getByRole("button", { name: /Tell us what you want to learn\./ })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: /Upload files or paste text\./ })).toBeVisible();
+    // Build mode: the topic input + the 6 quick tags.
+    await expect(dialog.getByPlaceholder(/e\.g\. Python programming/)).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "World War II", exact: true })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Genetics", exact: true })).toBeVisible();
+    // Material mode: course-name input + Paste Text/Upload File toggles.
+    await dialog.getByRole("button", { name: /Upload files or paste text\./ }).click();
+    await expect(dialog.getByPlaceholder(/Course name/)).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Paste Text", exact: true })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Upload File", exact: true })).toBeVisible();
+    // The X close returns to the page without navigation.
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page).toHaveURL(/\/courses\/?$/);
   });
 });
 

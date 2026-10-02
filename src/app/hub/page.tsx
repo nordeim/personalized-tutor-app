@@ -21,7 +21,7 @@ export default async function HubPage({
   if (!user) redirect("/login?from_url=%2Fhub");
 
   const { course, lesson } = await searchParams;
-  const [enrollments, chat] = await Promise.all([
+  const [enrollments, chat, student] = await Promise.all([
     db.courseEnrollment.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
@@ -32,6 +32,7 @@ export default async function HubPage({
       orderBy: { createdAt: "asc" },
       take: 40,
     }),
+    db.student.findUnique({ where: { userId: user.id } }),
   ]);
 
   const matched = course ? enrollments.find((e) => e.id === course) : undefined;
@@ -50,6 +51,7 @@ export default async function HubPage({
           ? {
               id: enrollment.id,
               courseName: enrollment.courseName,
+              currentSubject: student?.currentSubject ?? null,
               roadmapSteps: enrollment.roadmapSteps,
               lessonTitles: lessonTitles(parseRoadmap(enrollment.roadmapSteps)),
               lessonProgress: enrollment.lessonProgress.map((p) => ({

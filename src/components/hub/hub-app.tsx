@@ -25,6 +25,8 @@ import type { DashboardUser } from "@/components/dashboard/dashboard-app";
 export type HubCourse = {
   id: string;
   courseName: string;
+  /** The student's current_subject — the hub Course pill's label (live: `(student?.current_subject) || "Course"`). */
+  currentSubject?: string | null;
   roadmapSteps: string;
   lessonTitles: string[];
   lessonProgress: { lessonIndex: number; completed: boolean; correctCount: number; total: number }[];
@@ -90,7 +92,9 @@ export function HubApp({
 
   function switchCourse(id: string) {
     setCourseMenuOpen(false);
-    router.push(`/hub?course=${id}`);
+    // The live's hub pill rows route to the DASHBOARD (`/?course=${id}`),
+    // not to another hub session — the hub is per-course workspace.
+    router.push(`/?course=${id}`);
   }
 
   function selectLesson(index: number) {
@@ -143,8 +147,11 @@ export function HubApp({
             </span>
           </a>
           <div className="flex items-center gap-3">
+            {/* The live's hub header span shows the CURRENT LESSON TITLE
+                (De[q]), not the course name — "Introduction" on the default
+                grid, the roadmap-derived title otherwise. */}
             <span className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-              {course?.courseName ?? "Introduction"}
+              {titles[activeLesson] ?? titles[0]}
             </span>
             <div className="h-4 w-px bg-black/20" />
             <div className="relative" ref={courseMenuRef}>
@@ -156,7 +163,7 @@ export function HubApp({
                 className="flex items-center gap-2 rounded-full border border-black px-4 py-1.5 text-sm font-medium text-black transition-all hover:bg-black/5"
                 style={{ fontFamily: '"Funnel Sans", sans-serif' }}
               >
-                <span>Course</span>
+                <span>{course?.currentSubject || "Course"}</span>
                 <ChevronDown
                   className={cn("h-3.5 w-3.5 text-black transition-transform", courseMenuOpen && "rotate-180")}
                   strokeWidth={2}
@@ -165,31 +172,43 @@ export function HubApp({
               {courseMenuOpen ? (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full z-50 mt-2 overflow-hidden rounded-[16px] bg-white shadow-xl"
+                  aria-label="Course menu"
+                  className="absolute left-0 top-full z-50 mt-2 overflow-hidden rounded-[16px] bg-white shadow-xl"
                   style={{ minWidth: 200 }}
                 >
+                  {/* The live's hub pill panel: plain course-name rows (no
+                      tiles, no current badge) + the border-t All Courses
+                      section; an empty list renders no placeholder text. */}
                   <div className="p-2">
-                    {courses.length === 0 ? (
-                      <p className="px-3 py-2.5 text-sm font-light text-black/40" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-                        No courses yet
-                      </p>
-                    ) : (
-                      courses.map((c) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => switchCourse(c.id)}
-                          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
-                        >
-                          <span className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-                            {c.name}
-                          </span>
-                          {c.current ? (
-                            <span className="ml-auto text-xs text-black/40">current</span>
-                          ) : null}
-                        </button>
-                      ))
-                    )}
+                    {courses.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => switchCourse(c.id)}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
+                      >
+                        <span className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                          {c.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="border-t border-black/10 p-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCourseMenuOpen(false);
+                        router.push("/courses");
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
+                    >
+                      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-black/5">
+                        <List className="h-3.5 w-3.5 text-black/60" strokeWidth={1.5} />
+                      </div>
+                      <span className="text-sm font-medium text-black/60" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                        All Courses
+                      </span>
+                    </button>
                   </div>
                 </div>
               ) : null}

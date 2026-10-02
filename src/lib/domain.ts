@@ -179,6 +179,43 @@ export const DIVE_TOPICS = [
   "Biology",
 ] as const;
 
+/**
+ * The Q5 "Add a Course" modal's quick-tag list (session-4). The reference
+ * renders 6 single-label pills (just the `sub` text) inside the compact
+ * modal; clicking one sets the topic input to `"Subject: Sub"`. It is a
+ * 6-entry subset of the onboarding chips (no Philosophy, no Marketing),
+ * order mined from the live bundle's inline array.
+ */
+export const ADD_COURSE_TAGS = [
+  { subject: "History", sub: "World War II" },
+  { subject: "Economics", sub: "Microeconomics" },
+  { subject: "Psychology", sub: "Social Psychology" },
+  { subject: "Math", sub: "Calculus" },
+  { subject: "Programming", sub: "Python" },
+  { subject: "Biology", sub: "Genetics" },
+] as const;
+
+/** The Q5 tag-click topic format: "Subject: Sub" (the reference's onClick). */
+export function tagTopic(subject: string, sub: string): string {
+  return `${subject}: ${sub}`;
+}
+
+/**
+ * The m_ user-dropdown header's context line (session-4):
+ * "{current_subject} · Default" or "· Custom material" for custom sources;
+ * the guest/null student renders "Default" alone (the live renders the
+ * `·` join against a null subject the same way).
+ */
+export function courseContextLine(
+  subject: string | null | undefined,
+  contentSource: string | null | undefined,
+): string {
+  const isCustom =
+    contentSource === "custom" || contentSource === "material";
+  const suffix = isCustom ? "Custom material" : "Default";
+  return subject ? `${subject} · ${suffix}` : suffix;
+}
+
 /** Initials avatar letter (the reference shows the first character). */
 export function avatarLetter(name: string): string {
   const trimmed = name.trim();

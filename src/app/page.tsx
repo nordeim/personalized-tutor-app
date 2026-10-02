@@ -46,6 +46,7 @@ export default async function HomePage({
           ? {
               name: student.name,
               currentSubject: student.currentSubject,
+              contentSource: student.contentSource,
               quizCompleted: student.quizCompleted,
             }
           : null

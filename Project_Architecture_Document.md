@@ -1,4 +1,4 @@
-# Thinkerwell (Personalized Tutor App Clone) — Master Project Architecture Document (PAD) v1.2
+# Thinkerwell (Personalized Tutor App Clone) — Master Project Architecture Document (PAD) v1.3
 
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
@@ -10,14 +10,15 @@
 
 ---
 
-#### Revision Block — v1.2 (Tracked Changes)
+#### Revision Block — v1.3 (Tracked Changes)
 
-- `[SR]` Full clone build: 7 routes, 15 API handlers, 7 Prisma models, AI seam with fallbacks, measured design system, 49 unit + 36 e2e checks.
+- `[SR]` Full clone build: 7 routes, 15 API handlers, 7 Prisma models, AI seam with fallbacks, measured design system, 55 unit + 41 e2e checks.
 - `[SAN]` Tailwind v4 engine traps pinned in `globals.css` (five documented differences vs the reference's v3 compiled CSS — see the companion trap log).
 - `[AUTH]` Session-cookie `secure` flag derived from request protocol (fixes silent cookie drops on plain-HTTP production boots — the e2e boot caught it).
 - `[RES]` Mobile navigation fix: empty toast container made `pointer-events-none` (the live reference ships the bug; Playwright refuses the covered hamburger tap — pinned by `tests/e2e/mobile-navigation.spec.ts`).
 - `[S2]` Session-2 parity pass (see `docs/remediation-plan-session-2.md`): the reference's exact 99-line content pool + per-load random bubble picks (server-side prop); the lesson-quiz flow ported to the reference semantics (800 ms auto-advance, retry-later re-queue, 8-to-complete, in-pane "Level Up!" interstitial at stage boundaries with live 1200/800 ms timing); the three confetti presets (`src/lib/confetti.ts` + `canvas-confetti`); Study Streak + Total XP cards (days = min(quizScore,7), XP = pct·10 + score·50); the interactive Daily Challenge modal (upgraded `/api/challenge` returning question/hint/options/correctIndex); conditional Course Progress tint; typewriter topics synced to the reference list; identity sweep (package.json, .env, configs de-ORBITAL'd, `personalized-tutor-app_SKILL.md` replaces the stale scaffold skill).
 - `[S3]` Session-3 architecture pass (see `docs/remediation-plan-session-3.md`): the lesson view ported to the reference's decoded gO/yO/xO + Im architecture (subject h2 on level 1 / AI title on 2-3, per-level Core Concept / Real-World Scenario / Final Boss Challenge cards, per-question video + reading content cards, tan 2-column `#E1C8B9` option grid with green/red reveal + CircleCheckBig/CircleX icons, "Next Question" button, 1000 ms reveal → 800 ms advance timing); the hub sidebar's 3-state rows (done/active/locked — the active index drives all three) with the session-scoped "N+1/8" Lesson Progress card (BookOpen icon); per-stage lesson-title suffixes (Basics/In Practice, Fundamentals/Application, Deep Dive/Mastery); the mobile lessons sheet (All Lessons header, black active rows, stage-number-twice labels); subject-icon course cards (keyword-mapped lucide icons, black tiles, Trash2 + ChevronRight, quiz-derived progress); Nori chat question-context prefix (`[Current question: …]` on `/api/chat`); **the quiz-derived progress model** — the reference has no per-lesson entity, so `quizProgressPercent = round(score/5×100)` drives every dashboard/courses number (the demo's 60% = round(3/5·100); the percent clamps at 100, fixing the live's >100% bug); gap_analysis render removed (the live never displays it).
+- `[S4]` Session-4 parity pass (see `docs/remediation-plan-session-4.md`): the **Q5 "Add a Course" in-page modal** (`add-course-modal.tsx`, decoded from the live bundle: overlay blur 6px, #C8AEFF card, Build/Material mode cards, the 6 `ADD_COURSE_TAGS` quick tags that set the topic `"Subject: Sub"`, Paste Text/Upload File tabs, Start Assessment → `POST /api/courses/generate` → `/quiz?course={id}`) replacing the `/onboarding` link on `/courses`; the **two-dropdown header split** — the bordered Course pill (p_) labeled `current_subject` listing the OTHER courses (or "This is your only course") + All Courses + Add-a-Course (opens Q5), beside the m_ user menu (course context line `"{subject} · Custom material|Default"`, inline Update Preferences Name form → `PUT /api/student`, My Courses, Log Out); the hub header's span switched to the CURRENT LESSON TITLE and its pill rows now route to `/?course={id}` (the dashboard) with the "current" badge and "No courses yet" placeholder removed; the `/demo` surface runs the real guest-mode AppHeader (Economics Course pill + Guest m_ menu; writes degrade to sign-up routes). 49 → 55 unit, 36 → 41 e2e.
 
 ---
 
@@ -274,16 +275,16 @@ Prisma, libs never import React.
  ├── 📂 courses/              # courses list + delete + empty state
  ├── 📂 quiz/                 # 7-question diagnostic; error state w/o student
  ├── 📂 hub/                  # learning workspace: ?course= & ?lesson= params
- ├── 📂 demo/                 # stateless guest mirror (demoPercent={60})
- └── 📂 api/                  # 15 route handlers (see §4.2)
+ ├── 📂 demo/                 # stateless guest mirror (guest-mode AppHeader + sample course)
+ └─ 📂 api/                  # 15 route handlers (see §4.2)
 📂 src/components/
  ├── 📄 mascot.tsx            # <Image unoptimized> wrappers for the SVGs
  ├── 📄 toast.tsx             # Sonner-compatible layer; pointer-events FIXED
- ├── 📂 layout/app-header.tsx # yellow chrome; desktop pill + mobile hamburger
+ ├── 📂 layout/app-header.tsx # yellow chrome; Course pill (p_) + m_ user menu + mobile hamburger
  ├── 📂 dashboard/            # dashboard-app (state switch) / onboarding / course / demo
  ├── 📂 hub/                  # hub-app (3-pane + mobile tabs) / nori-chat / lesson-view
  ├── 📂 quiz/quiz-app.tsx     # question cards + preparing overlay
- ├── 📂 courses/courses-app.tsx
+ ├── 📂 courses/              # courses-app.tsx + add-course-modal.tsx (the Q5 port)
  └── 📂 login/login-card.tsx  # sign-in / sign-up / google-degradation
 📂 src/lib/
  ├── 📄 db.ts + db-path.ts    # Prisma singleton + tested path resolution
@@ -528,11 +529,14 @@ per-process (single-node doctrine).
 
 | Layer | Tool | Scope | Count |
 |---|---|---|---|
-| Pure domain | Vitest (`tests/domain.test.ts`, `tests/db-path.test.ts`) | mastery grid, roadmap parsing, titles, progress math, quotes, URL anchors | 33 |
-| E2E — auth surface | Playwright (`auth.spec.ts`, logged-out storageState) | redirects, card structure, bad credentials, signup → onboarding | 6 |
-| E2E — header chrome | `header.spec.ts` (authenticated) | user menu, email, logout, yellow tokens, Eczar wordmark | 3 |
-| E2E — dashboard | `dashboard.spec.ts` | stats grid, 67% honest math, quote bubble tokens, Hub panes, Nori reply + persistence, courses, demo 60% pin | 12 |
+| Pure domain | Vitest (`tests/domain.test.ts`, `tests/db-path.test.ts`, `tests/parity-session2.test.ts`, `tests/domain-session4.test.ts`) | mastery grid, roadmap parsing, titles, progress math, quotes, URL anchors, ADD_COURSE_TAGS, courseContextLine | 55 |
+| E2E — auth surface | Playwright (`auth.spec.ts`, logged-out storageState) | redirects, card structure, bad credentials, signup → onboarding | 5 |
+| E2E — header chrome | `header.spec.ts` (authenticated) | m_ user menu (context line, Update Preferences save), Course pill (p_), logout, yellow tokens, Eczar wordmark | 5 |
+| E2E — dashboard | `dashboard.spec.ts` | stats grid, quiz-derived math, quote bubble tokens, Hub panes, Nori reply + persistence, courses, Q5 modal, demo 60% pin | 12 |
+| E2E — session-4 parity | `session4-parity.spec.ts` | hub pill rows → dashboard, hub header lesson-title span, guest demo two-pill chrome + degraded writes | 3 |
+| E2E — session-2 parity | `session2-parity.spec.ts` | quote bubble, quiz flow timing, challenge modal, streak/XP math | 7 |
 | E2E — mobile nav | `mobile-navigation.spec.ts` (390×844, touch) | **hamburger tappable (the regression pin)**, menu structure, hub tab bar colors, tab switching | 8 |
+| E2E — auth setup (project) | `auth.setup.ts` | one request-level login → shared storageState (dodges the auth rate limiter) | 1 |
 
 **Conventions:**
 

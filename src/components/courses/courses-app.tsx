@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/layout/app-header";
+import { AddCourseModal } from "@/components/courses/add-course-modal";
 import { derivedLessonsCompleted, quizProgressPercent, subjectIconName } from "@/lib/domain";
 import { ToastProvider } from "@/components/toast";
 import {
@@ -65,6 +66,7 @@ export function CoursesApp({ user, courses }: { user: DashboardUser; courses: Co
   const router = useRouter();
   const [list, setList] = useState(courses);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   async function remove(id: string) {
     setDeleting(id);
@@ -198,8 +200,9 @@ export function CoursesApp({ user, courses }: { user: DashboardUser; courses: Co
                 </div>
               )}
 
-              <a
-                href="/onboarding"
+              <button
+                type="button"
+                onClick={() => setModalOpen(true)}
                 className="mt-auto flex w-full items-center justify-center gap-2 rounded-[16px] border-2 border-dashed border-black/15 py-4 text-sm font-medium text-black/40 transition-all hover:border-black/30 hover:text-black/60"
                 style={{ fontFamily: '"Funnel Sans", sans-serif' }}
               >
@@ -208,10 +211,26 @@ export function CoursesApp({ user, courses }: { user: DashboardUser; courses: Co
                   <path d="M12 5v19" />
                 </svg>
                 Add a Course
-              </a>
+              </button>
             </div>
           </div>
         </div>
+
+        {/* The reference's Q5 in-page modal (session-4): "Add a Course" opens
+            the compact mode-picker here instead of navigating away; the submit
+            creates the course and routes straight to the diagnostic quiz. */}
+        {modalOpen ? (
+          <AddCourseModal
+            onClose={() => setModalOpen(false)}
+            onAdded={(courseId) => {
+              setModalOpen(false);
+              if (courseId) {
+                router.push(`/quiz?course=${courseId}`);
+                router.refresh();
+              }
+            }}
+          />
+        ) : null}
       </div>
     </ToastProvider>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { AppHeader } from "@/components/layout/app-header";
 import { CourseDashboard } from "@/components/dashboard/course-dashboard";
 import { ToastProvider } from "@/components/toast";
 
@@ -65,41 +66,19 @@ export function DemoDashboard({
   return (
     <ToastProvider>
       <div className="flex min-h-screen flex-col" style={{ backgroundColor: "rgb(15, 14, 14)" }}>
-        {/* The demo header is the standard chrome with a Guest pill (no
-            dropdown — the demo is stateless; the CTA is to sign up). */}
-        <header
-          className="relative mx-[4px] mt-0 flex items-center justify-between rounded-b-[20px] px-4 py-3 md:px-8"
-          style={{ backgroundColor: "rgb(255, 253, 115)" }}
-        >
-          <a href="/" className="flex items-center gap-2" aria-label="Thinkerwell home">
-            <img src="/logo.svg" alt="" width={33} height={33} />
-            <span style={{ fontFamily: "Eczar, serif", fontWeight: 400, fontSize: "16px", position: "relative", top: "2px" }}>
-              Thinkerwell
-            </span>
-          </a>
-          <div className="hidden items-center gap-3 md:flex">
-            <span className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-              Economics
-            </span>
-            <div className="h-4 w-px bg-black/20" />
-            <div className="flex items-center gap-2 px-3 py-1.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">
-                G
-              </div>
-              <span className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-                Guest
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 md:hidden">
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">
-              G
-            </div>
-            <span className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-              Guest
-            </span>
-          </div>
-        </header>
+        {/* S4-F5: the live /demo header is the real two-pill chrome, not static
+            spans — the bordered Economics Course pill ("This is your only
+            course" + All Courses + Add a Course → the Q5 modal, guest-degraded)
+            beside the Guest user pill (m_ dropdown with the "Economics ·
+            Default" context line + Update Preferences + My Courses + Log Out,
+            the preferences save degraded to a sign-up route in guest mode). */}
+        <AppHeader
+          user={{ name: "Guest", email: "guest@thinkerwell.demo" }}
+          currentSubject="Economics"
+          enrollments={[]}
+          student={{ currentSubject: "Economics", contentSource: null }}
+          guest
+        />
         <CourseDashboard
           user={{ name: "Guest", email: "guest@thinkerwell.demo" }}
           course={course}

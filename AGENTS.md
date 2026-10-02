@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (49 checks) | `bun run test` |
-| Browser E2E (36 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (55 checks) | `bun run test` |
+| Browser E2E (41 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (49) → `bun run build` → `bun run test:e2e` (36 Playwright
+`bun run test` (55) → `bun run build` → `bun run test:e2e` (41 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -47,6 +47,21 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   — it never redirects away, even when the user already has courses. `/`
   shows the course dashboard only when the active course has a completed quiz
   or progress; otherwise the onboarding state.
+- **"Add a Course" opens the in-page Q5 modal** (`add-course-modal.tsx`),
+  never an `/onboarding` navigation: Build/Material mode cards, 6 quick tags
+  (`ADD_COURSE_TAGS`, click sets topic `"Subject: Sub"`), Paste Text/Upload
+  File tabs, submit ("Start Assessment") → `POST /api/courses/generate` →
+  navigate `/quiz?course={id}`. On `/demo` (guest mode) the submit degrades
+  to a sign-up toast + `/login?from_url=%2Fonboarding`.
+- **The with-course header is TWO dropdowns** (`app-header.tsx`): the
+  bordered Course pill (p_) labeled `student.current_subject`, listing the
+  OTHER courses (`course_name !== current_subject`) or "This is your only
+  course", plus All Courses + Add a Course (opens Q5); and the m_ user menu
+  (w-80, yellow header with the `"{subject} · Custom material|Default"`
+  context line, Update Preferences → inline Name form → `PUT /api/student`,
+  My Courses, Log Out — the email only shows with NO course). The hub keeps
+  its own header: the span shows the CURRENT LESSON TITLE (not the course
+  name) and its pill rows route to `/?course={id}` (the dashboard).
 - **Unauthenticated `/` redirects to `/login?from_url=…`**, but `/login`
   renders its card for EVERY visitor (no auth redirect on the login route).
 - **API envelope is `{ ok, data } | { ok, error: { code, message } }`** — build

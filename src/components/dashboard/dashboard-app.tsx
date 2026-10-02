@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AppHeader, type HeaderCourse } from "@/components/layout/app-header";
+import { useRouter } from "next/navigation";
+import { AppHeader } from "@/components/layout/app-header";
 import { OnboardingDashboard } from "@/components/dashboard/onboarding-dashboard";
 import { CourseDashboard } from "@/components/dashboard/course-dashboard";
 import { parseRoadmap, lessonTitles } from "@/lib/domain";
@@ -37,7 +38,14 @@ export function DashboardApp({
   bubbleQuote,
 }: {
   user: DashboardUser;
-  student: { name: string; currentSubject: string | null; quizCompleted: boolean } | null;
+  student:
+    | {
+        name: string;
+        currentSubject: string | null;
+        contentSource?: string | null;
+        quizCompleted: boolean;
+      }
+    | null;
   courses: CourseDto[];
   currentCourseId: string | null;
   currentCourse: CourseDto | null;
@@ -45,6 +53,7 @@ export function DashboardApp({
   /** Server-picked random bubble line (fresh each page load, reference semantics). */
   bubbleQuote?: { raw: string; text: string; author: string | null };
 }) {
+  const router = useRouter();
   const [viewCourseId, setViewCourseId] = useState<string | null>(currentCourseId);
 
   const activeCourse = useMemo(() => {
@@ -53,12 +62,6 @@ export function DashboardApp({
     return currentCourse;
   }, [forceOnboarding, viewCourseId, courses, currentCourse]);
 
-  const headerCourses: HeaderCourse[] = courses.map((c) => ({
-    id: c.id,
-    name: c.courseName,
-    current: c.id === activeCourse?.id,
-  }));
-
   // The with-course dashboard needs a completed quiz (roadmap) to be useful —
   // otherwise the onboarding state renders (the reference's quiz-first flow).
   const showCourseDashboard =
@@ -66,10 +69,35 @@ export function DashboardApp({
     activeCourse !== null &&
     (activeCourse.quizCompleted || activeCourse.lessonProgress.length > 0);
 
+  // The with-course header renders the reference's two-dropdown split: the
+  // CoursePill (labeled with the student's current_subject) + the m_ user
+  // menu (context line + Update Preferences). The pill's enrollment list is
+  // the OTHER courses — the live filters `course_name !== current_subject`.
+  const pillSubject =
+    showCourseDashboard && student?.currentSubject ? student.currentSubject : null;
+  const headerEnrollments = pillSubject
+    ? courses
+        .filter((c) => c.courseName !== pillSubject)
+        .map((c) => ({ id: c.id, name: c.courseName, source: c.contentSource ?? null }))
+    : [];
+
   return (
     <ToastProvider>
       <div className="flex min-h-screen flex-col" style={{ backgroundColor: "rgb(15, 14, 14)" }}>
-        <AppHeader user={user} courses={headerCourses} currentCourseId={activeCourse?.id ?? null} />
+        <AppHeader
+          user={user}
+          currentSubject={pillSubject}
+          enrollments={headerEnrollments}
+          student={
+            showCourseDashboard && student
+              ? {
+                  currentSubject: student.currentSubject,
+                  contentSource: student.contentSource ?? null,
+                }
+              : null
+          }
+          onStudentUpdated={() => router.refresh()}
+        />
         {showCourseDashboard && activeCourse ? (
           <CourseDashboard
             key={activeCourse.id}

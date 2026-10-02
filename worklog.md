@@ -171,3 +171,20 @@ Work Log:
 
 Stage Summary:
 - Session-3 deliverable complete: the clone now reproduces the reference's decoded component architecture and its quiz-derived data model, with the full gate green and pushed to main.
+---
+Task ID: 8
+Agent: main (Super Z)
+Task: Session 4 — header/add-a-course parity pass, guest demo chrome, docs, push
+
+Work Log:
+- git pull → 9729f4e (brought docs/session_4.md, the interrupted session's transcript); re-reviewed the root docs + session_3 + remediation-plan-session-3 + worklog; baseline gate re-confirmed green (49 unit + 36 e2e); unset the stale shell DATABASE_URL export before dev-server work.
+- Live re-audit: decoded the bundle's Q5 (Add-a-Course modal), p_ (Course pill), m_ (user dropdown + preferences sub-panel) and the hub header; drove the live DOM to confirm each (the modal from /courses, the pill on /demo, the user dropdown variants on /, /courses, /demo, /hub; entity writes 403-blocked so the submit's /quiz?course= navigation was confirmed from the onAdded handler).
+- Findings: 7 catalogued in docs/remediation-plan-session-4.md — S4-F1 the Q5 modal, S4-F2 the two-dropdown header split, S4-F3 the hub lesson-title span, S4-F4 the hub pill semantics (left-0, plain rows, dashboard routing), S4-F5 the demo's real two-pill chrome, S4-F6 the live's persisting mobile-nav toaster bug, S4-F7 confirmations.
+- TDD execution: domain seam first (ADD_COURSE_TAGS + courseContextLine, 49→55 unit), then the Q5 modal component (reusing the existing /api/courses/generate semantics), the app-header rework (CoursePill p_ + m_ user menu with the inline preferences form → PUT /api/student), the page wiring (dashboard + hub read the Student row), the hub fixes (lesson-title span, pill label/routing), and the guest-mode AppHeader on /demo (writes degrade to sign-up routes).
+- E2E updated: header.spec (m_ variant + pill structure + preferences save), dashboard.spec (the Q5 modal replaced the /onboarding navigation test), new session4-parity.spec (hub pill rows → /?course=, lesson-title span, guest demo chrome). Tailwind v4 gotcha handled: rounded-full computes to calc(Infinity*1px) — assert the border, not 9999px. 36 → 41 e2e.
+- Gate green: lint ✓ typecheck ✓ 55 unit ✓ build ✓ 41 e2e ✓; screenshots 33–44 captured (two-dropdown header, pill panels, Q5 modal both modes, m_ menu, preferences form, hub header, demo desktop + mobile guest chrome); VLM spot-check rate-limited, verified via a11y snapshots instead.
+- Docs aligned: README, AGENTS (Q5/p_/m_ invariants added), CLAUDE, PAD v1.3 [S4], personalized-tutor-app_SKILL.md v1.3.0, docs/session_4.md (formatted summary), .env.example re-verified (no new env vars).
+- Committed on main and pushed via docs/ssh_git_wrapper_v3.py.
+
+Stage Summary:
+- Session-4 deliverable complete: the chrome surfaces now match the reference (Q5 in-page modal, two-dropdown header, hub pill semantics, guest demo structure) with the full gate green and pushed to main.

@@ -18,6 +18,8 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🎓 | The Hub: desktop three-pane (lessons sidebar / Nori chat / lesson content), mobile Learn·Ask Nori·Lessons tab shell | `/hub` |
 | 💬 | Nori, the Socratic AI tutor — persistent chat history per course | `/api/chat` |
 | 🗛 | The reference's exact 99-line quote pool, random pick per page load | `src/lib/quotes.ts` |
+| 🪟 | The Q5 "Add a Course" in-page modal: Build/Material mode cards, 6 quick tags, Paste Text/Upload File tabs, Start Assessment → `/quiz?course=` | `src/components/courses/add-course-modal.tsx` |
+| 🅿️ | The reference's two-dropdown header: bordered Course pill (p_) + m_ user menu with the course context line and inline Update Preferences (PUT /api/student) | `src/components/layout/app-header.tsx` |
 | ✅ | Lesson quizzes ported to the reference flow: 1000 ms reveal + auto-advance, retry-later re-queue, 8-to-complete | `src/components/hub/lesson-view.tsx` |
 | 🃏 | The reference's tan 2-column option grid, per-level context cards, and per-question video/reading content cards | `src/components/hub/lesson-view.tsx` |
 | 🧭 | The quiz-derived progress model (the live has no per-lesson entity): round(score/5×100) → lessons → stages | `src/lib/domain.ts` |
@@ -25,7 +27,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🔥 | Study Streak + Total XP cards (the reference's gamification column) | `src/components/dashboard/course-dashboard.tsx` |
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course | `/demo` |
-| 🧪 | 46 unit tests + 34 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 55 unit tests + 41 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -61,11 +63,11 @@ flowchart TB
  ├── 📄 globals.css        Tailwind v4 @theme tokens + the five engine-trap pins + toaster fix
  ├── 📄 layout.tsx         Root layout: Google Fonts (Funnel Sans + Eczar)
 📂 src/components
- ├── 📂 layout             app-header.tsx (desktop pill + mobile hamburger menus)
- ├── 📂 dashboard          onboarding / course / demo shells
+ ├── 📂 layout             app-header.tsx (Course pill + user menu dropdowns, mobile hamburger)
+ ├── 📂 dashboard          onboarding / course / demo shells (the demo runs the guest-mode header)
  ├── 📂 hub                hub-app.tsx, nori-chat.tsx, lesson-view.tsx
  ├── 📂 quiz               quiz-app.tsx (7-question diagnostic)
- ├── 📂 courses            courses-app.tsx
+ ├── 📂 courses            courses-app.tsx + add-course-modal.tsx (the Q5 port)
  ├── 📂 login              login-card.tsx (slate surface, sign-in/up modes)
  └── 📄 mascot.tsx         SVG wrappers, toast.tsx (Sonner-compatible, pointer-events fixed)
 📂 src/lib                 api.ts, auth.ts, ai.ts, domain.ts (pure mastery grid), db.ts, db-path.ts, quotes.ts, rate-limit.ts
@@ -110,9 +112,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 49 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path)
+bun run test          # 55 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 36 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 41 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 

@@ -7,11 +7,13 @@ description: >
   the design tokens, the reference-mined behavioral contracts, the five
   Tailwind v4 engine traps, the mobile-nav toaster fix, the quiz-flow
   semantics, the quiz-derived progress model, the lesson-view architecture
-  (gO/yO/xO + Im), the gamification math, the AI fallback doctrine, and the
+  (gO/yO/xO + Im), the two-dropdown header split (Course pill p_ + m_ user
+  menu), the Q5 Add-a-Course modal, the hub pill semantics, the guest demo
+  chrome, the gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.2.0
+version: 1.3.0
 last_updated: 2026-10-02
-project_state: 49 unit tests + 36 e2e checks green; session-3 architecture pass complete
+project_state: 55 unit tests + 41 e2e checks green; session-4 parity pass complete (Q5 modal, two-dropdown header, hub pill semantics, guest demo chrome)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -185,10 +187,14 @@ client shell per route → leaf client components → `@/lib` seams →
 `@/lib/ai` (both are `server-only`); API routes are the only client→server
 channel, always via the `{ ok, data } | { ok, error }` envelope.
 
-**Component inventory (13 client components, 0 server components in
+**Component inventory (14 client components, 0 server components in
 `src/components/`):**
-- `layout/app-header.tsx` — yellow chrome; desktop user pill + dropdown,
-  mobile hamburger + dropdown (the mobile-nav surface).
+- `layout/app-header.tsx` — the reference's TWO-dropdown split: the bordered
+  Course pill (p_) + the m_ user menu (context line, Update Preferences →
+  PUT /api/student), plus the mobile hamburger; guest mode degrades writes.
+- `courses/add-course-modal.tsx` — the Q5 "Add a Course" in-page modal
+  (Build/Material cards, ADD_COURSE_TAGS quick tags, Paste Text/Upload File
+  tabs, Start Assessment → /quiz?course=).
 - `dashboard/dashboard-app.tsx` — the route shell; picks onboarding vs
   course view; receives `bubbleQuote` from the server page.
 - `dashboard/onboarding-dashboard.tsx` — typewriter hero + setup panel.
@@ -395,8 +401,8 @@ exercises this via real 429s). The Daily Challenge returns
 **Live-site verification commands:**
 ```bash
 curl -s localhost:3000/api/health          # {"ok":true,"data":{"status":"ok","db":true}}
-bun run test                              # 49 unit
-bun run build && bun run test:e2e         # 36 e2e on :3100
+bun run test                              # 55 unit
+bun run build && bun run test:e2e         # 41 e2e on :3100
 ```
 
 ## §11 Pre-Ship Checklist
@@ -406,9 +412,9 @@ Run IN ORDER; the local gate is the only gate (no hosted CI):
 ```bash
 bun run lint          # eslint . — zero warnings
 bun run typecheck     # tsc --noEmit — zero errors (build won't catch them!)
-bun run test          # 49 Vitest checks
+bun run test          # 55 Vitest checks
 bun run build         # standalone build (also required for e2e)
-bun run test:e2e      # 36 Playwright checks on :3100
+bun run test:e2e      # 41 Playwright checks on :3100
 ```
 
 Verification categories beyond the gate:
@@ -599,7 +605,7 @@ Tested viewports: 1440×900 (desktop specs), 390×844 (mobile specs).
 |-------|---|-------|
 | Base cards | auto | everything |
 | Header dropdowns | 50 | `app-header.tsx` |
-| Modals / overlays (challenge, generating) | 50 | `course-dashboard.tsx`, `hub-app.tsx` |
+| Modals / overlays (challenge, generating, Q5 add-course) | 50 | `course-dashboard.tsx`, `hub-app.tsx`, `add-course-modal.tsx` |
 | Toast container | 100 (`z-[100]`) | `toast.tsx` — pointer-events-none container (§9 #6) |
 | Dev overlay | — | Next 16 dev tools (dev only) |
 
