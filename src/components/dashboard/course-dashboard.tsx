@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MascotWelcome } from "@/components/mascot";
-import { X, CircleCheckBig, CircleX, Circle } from "lucide-react";
+import { X, CircleCheckBig, Circle } from "lucide-react";
 import {
   derivedLessonsCompleted,
   lessonRowStatus,
@@ -53,21 +53,66 @@ const FLAME_TILE = (
 );
 
 const BOOK_ICON = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-open h-5 w-5 flex-shrink-0">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-open h-6 w-6 flex-shrink-0">
     <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
     <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
   </svg>
 );
 
-const TREND_ICON = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trending-up h-5 w-5 flex-shrink-0">
-    <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-    <polyline points="16 7 22 7 22 13" />
+/** S8-F6: the Course Lessons card header icon decodes at 16px on the
+ * live (the stats-grid Subject tile is the 24px variant above). */
+const BOOK_ICON_SM = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-open h-4 w-4 flex-shrink-0">
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+  </svg>
+);
+
+/** S8-F6: the Course Progress tile renders lucide Trophy at 24px on the
+ * live (the clone shipped TrendingUp — an icon-identity drift). */
+const TROPHY_ICON = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trophy h-6 w-6 flex-shrink-0">
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+    <path d="M4 22h16" />
+    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+  </svg>
+);
+
+/** S8-F6: the Daily Challenge tile + modal header render lucide Brain on
+ * the live (24px tile / 20px modal — the clone shipped Sparkles). */
+const BRAIN_ICON = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-brain h-6 w-6 flex-shrink-0">
+    <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+    <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+    <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" />
+    <path d="M17.599 6.5a3 3 0 0 0 .399-1.375" />
+    <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5" />
+    <path d="M3.477 10.896a4 4 0 0 1 .585-.396" />
+    <path d="M19.938 10.5a4 4 0 0 1 .585.396" />
+    <path d="M6 18a4 4 0 0 1-1.967-.516" />
+    <path d="M19.967 17.484A4 4 0 0 1 18 18" />
+  </svg>
+);
+
+const BRAIN_ICON_SM = (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-brain h-5 w-5 flex-shrink-0">
+    <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+    <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z" />
+    <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4" />
+    <path d="M17.599 6.5a3 3 0 0 0 .399-1.375" />
+    <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5" />
+    <path d="M3.477 10.896a4 4 0 0 1 .585-.396" />
+    <path d="M19.938 10.5a4 4 0 0 1 .585.396" />
+    <path d="M6 18a4 4 0 0 1-1.967-.516" />
+    <path d="M19.967 17.484A4 4 0 0 1 18 18" />
   </svg>
 );
 
 const SPARKLE_ICON = (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sparkles h-5 w-5 flex-shrink-0">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sparkles h-6 w-6 flex-shrink-0">
     <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
     <path d="M20 3v4" />
     <path d="M22 5h-4" />
@@ -238,7 +283,7 @@ export function CourseDashboard({
             className="flex flex-col gap-2 rounded-[20px] p-6"
             style={{ backgroundColor: progressPct > 0 ? "rgb(255, 253, 115)" : "rgb(248, 248, 248)" }}
           >
-            {TREND_ICON}
+            {TROPHY_ICON}
             <p className="text-xs font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
               Course Progress
             </p>
@@ -263,7 +308,7 @@ export function CourseDashboard({
             style={{ backgroundColor: "rgb(248, 248, 248)", cursor: challenge ? "pointer" : "default" }}
             aria-label="Daily challenge — open the challenge card"
           >
-            {SPARKLE_ICON}
+            {BRAIN_ICON}
             <p className="text-xs font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
               Daily Challenge
             </p>
@@ -291,11 +336,17 @@ export function CourseDashboard({
           </button>
         </div>
 
-        {/* daily challenge modal — the reference's interactive card */}
+        {/* daily challenge modal — the reference's interactive card.
+            S8-F6: the overlay is plain black/50 with NO backdrop blur, and
+            the post-reveal state has NO banner — the Submit button swaps
+            in place to "Close" (the reveal colors carry the feedback). */}
         {challengeOpen && challenge ? (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
-            style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            // S8-F7 (Trap 8): the pinned surface uses inline rgba — v4's
+            // bg-black/50 computes to oklab(0 0 0 / 0.5) while the live's
+            // v3 alpha serializes rgba(0, 0, 0, 0.5).
+            style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
             onClick={() => setChallengeOpen(false)}
           >
             <div
@@ -305,7 +356,7 @@ export function CourseDashboard({
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {SPARKLE_ICON}
+                  {BRAIN_ICON_SM}
                   <span className="text-sm font-medium text-black">Daily Challenge</span>
                 </div>
                 <button
@@ -347,38 +398,17 @@ export function CourseDashboard({
                 })}
               </div>
               {challengeRevealed ? (
-                <div className="flex flex-col gap-2">
-                  <div
-                    className="flex items-center justify-center gap-2 rounded-[12px] px-4 py-3 text-center text-sm font-medium"
-                    style={{
-                      backgroundColor:
-                        challengePicked === challenge.correctIndex ? "rgb(188, 252, 175)" : "rgb(255, 208, 208)",
-                    }}
-                  >
-                    {challengePicked === challenge.correctIndex ? (
-                      <>
-                        <CircleCheckBig className="h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
-                        Correct! Well done!
-                      </>
-                    ) : (
-                      <>
-                        <CircleX className="h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
-                        Not quite — the correct answer is highlighted in yellow.
-                      </>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setChallengeOpen(false);
-                      setChallengePicked(null);
-                      setChallengeRevealed(false);
-                    }}
-                    className="w-full rounded-[12px] bg-black py-3 text-sm font-semibold text-white transition-all hover:bg-gray-800"
-                  >
-                    Close
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChallengeOpen(false);
+                    setChallengePicked(null);
+                    setChallengeRevealed(false);
+                  }}
+                  className="w-full rounded-[12px] bg-black py-3 text-sm font-semibold text-white transition-all hover:bg-gray-800"
+                >
+                  Close
+                </button>
               ) : (
                 <button
                   type="button"
@@ -509,7 +539,7 @@ export function CourseDashboard({
       <div className="flex min-h-0 flex-col gap-[4px] overflow-visible lg:flex-[1] lg:overflow-hidden">
         <div className="flex h-full min-h-0 flex-1 flex-col rounded-[20px] p-6" style={{ backgroundColor: "rgb(200, 174, 255)" }}>
           <div className="mb-4 flex items-center gap-2">
-            {BOOK_ICON}
+            {BOOK_ICON_SM}
             <p className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
               Course Lessons
             </p>
@@ -612,7 +642,13 @@ export function CourseDashboard({
                     >
                       {active ? FLAME_TILE : date.getDate()}
                     </div>
-                    <span className="text-xs font-light text-black/40" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                    {/* S8-F7 (Trap 8): inline rgba — v4's text-black/40
+                        serializes as oklab color-mix vs the live's v3
+                        rgba(0,0,0,0.4); the session-7 later-icon precedent. */}
+                    <span
+                      className="text-xs font-light"
+                      style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgba(0, 0, 0, 0.4)" }}
+                    >
                       {label}
                     </span>
                   </div>

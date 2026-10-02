@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { displayName } from "@/lib/domain";
@@ -7,8 +6,9 @@ import { DashboardApp } from "@/components/dashboard/dashboard-app";
 
 // The dashboard — the reference's home. Server-resolves the session and the
 // learner's state (profile + enrollments + current course + progress) and
-// hands ONE serializable snapshot to the client shell. Unauthenticated
-// visitors are redirected to /login (the reference's from_url flow).
+// hands ONE serializable snapshot to the client shell. S8-F1: anonymous
+// visitors get the PUBLIC ONBOARDING (the live's landing surface — Sign In
+// pill, "Your Name" field, pending_student_setup deferral), not a redirect.
 export const dynamic = "force-dynamic";
 
 export default async function HomePage({
@@ -18,7 +18,16 @@ export default async function HomePage({
 }) {
   const user = await getSessionUser();
   if (!user) {
-    redirect("/login?from_url=%2F");
+    return (
+      <DashboardApp
+        bubbleQuote={randomQuote()}
+        user={null}
+        student={null}
+        courses={[]}
+        currentCourseId={null}
+        currentCourse={null}
+      />
+    );
   }
 
   const { course } = await searchParams;

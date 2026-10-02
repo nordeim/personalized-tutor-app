@@ -48,7 +48,7 @@ test.describe("the Daily Challenge modal (the reference's interactive card)", ()
     await page.goto("/");
   });
 
-  test("opens from the tile, answers, and shows the result banner", async ({ page }) => {
+  test("opens from the tile, answers, and swaps Submit to Close (S8-F6 rewrite)", async ({ page }) => {
     // The tile fetches the challenge client-side; wait for it to load.
     const tile = page.getByRole("button", { name: /Daily challenge/i });
     await expect(tile).toBeEnabled({ timeout: 20_000 });
@@ -58,10 +58,13 @@ test.describe("the Daily Challenge modal (the reference's interactive card)", ()
     await expect(dialog).toBeVisible();
     await expect(page.getByText("Submit Answer")).toBeVisible();
 
-    // Pick the first option, submit, and land on one of the two banners.
+    // Pick the first option and submit — the reveal colors carry the
+    // feedback and the SAME button slot swaps to "Close" (S8-F6: the live
+    // ships no result banner; the session-2 banner was scope creep).
     await page.locator("div.rounded-\\[24px\\] button.rounded-\\[12px\\]", { hasText: /.+/ }).first().click();
     await page.getByRole("button", { name: "Submit Answer" }).click();
-    await expect(page.getByText(/Correct! Well done!|Not quite — the correct answer is highlighted/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Close", exact: true })).toBeVisible();
+    await expect(page.getByText(/Correct! Well done!|Not quite/)).toHaveCount(0);
 
     await page.getByRole("button", { name: "Close", exact: true }).click();
     await expect(dialog).not.toBeVisible();

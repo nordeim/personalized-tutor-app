@@ -119,7 +119,10 @@ export function LessonView({
 
   // The 1-based stage level (lessons 0-1 → 1, 2-3 → 2, 4-5 → 3).
   const level = Math.floor(lessonIndex / 2) + 1;
-  const h2 = level === 1 ? (subject || courseName || "General") : (content?.title || lessonTitle);
+  // S8-F4: the live's Y2 renders the SUBJECT prop directly on level 1 (the
+  // hub passes the student's current_subject || "General" — no course-name
+  // fallback) and the generated title on levels 2/3.
+  const h2 = level === 1 ? (subject || "General") : (content?.title || lessonTitle);
   const isFinalLesson = lessonIndex === 5;
   const isStageBoundary = lessonIndex === 1 || lessonIndex === 3;
   const q = content?.questions[qIndex];

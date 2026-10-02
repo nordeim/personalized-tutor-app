@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (73 checks) | `bun run test` |
-| Browser E2E (52 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (82 checks) | `bun run test` |
+| Browser E2E (64 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (73) → `bun run build` → `bun run test:e2e` (52 Playwright
+`bun run test` (82) → `bun run build` → `bun run test:e2e` (64 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -183,6 +183,46 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   (empty container covers the hamburger button; Playwright refuses the
   click). `tests/e2e/mobile-navigation.spec.ts` pins the fix — do not
   remove the pointer-events rules in `globals.css`/`toast.tsx`.
+- **THE public-surface model (session-8):** anonymous `/` and `/onboarding`
+  render the PUBLIC ONBOARDING (the live's landing surface — no login
+  redirect): the AppHeader `signedOut` variant (desktop black **Sign In
+  pill**, mobile items-only menu: My Courses + Sign In, NO yellow name
+  header), the "Your Name" block in the setup panel (anonymous-only —
+  required for Continue; authenticated users never see it), and the
+  deferred setup: Continue stores `pending_student_setup` (sessionStorage,
+  the live's key) then routes `/login?from_url=<current>`; after login the
+  onboarding picks it up and AUTO-SUBMITS through
+  `/api/courses/generate` → `/quiz` (the live's X2: create student →
+  `navigate("/quiz")`; the account name wins — `full_name || pending.name`).
+  `/demo`, `/hub`, `/quiz`, `/courses` remain auth-gated (`/demo` TOO — the
+  live registers it under the auth guard; anonymous →
+  `/login?from_url=%2Fdemo`).
+- **THE Try-it invariant (session-8):** "Try it Sample: Economics Course"
+  NAVIGATES TO `/demo` — it never generates a course (the live's X2:
+  `onTryIt: () => navigate("/demo")`; the is_sample pending path in the
+  bundle is dead code — no writer). Do not "restore" a sample-generation
+  flow.
+- **THE hub h2 subject invariant (session-8):** the LessonView h2 on level
+  1 = `hubLessonSubject(course)` = the STUDENT's `current_subject ||
+  "General"` (the live's `ce`), NEVER the active course name — a student
+  whose current_subject differs from the viewed course still sees the
+  student's subject. Unit-pinned in `tests/domain-session8.test.ts`;
+  behavioral pin in `tests/e2e/session8-parity.spec.ts`. An unowned
+  `?course=` renders the hub with NO course (the default grid —
+  `matched ?? null` when the param was present).
+- **THE daily-challenge modal (session-8):** overlay `rgba(0,0,0,0.5)` via
+  INLINE style (Trap 8 — v4's bg-black/50 computes oklab), NO backdrop
+  blur, and NO result banner — after the reveal the SAME button slot swaps
+  "Submit Answer" → "Close" (`w-full py-3 rounded-[12px] bg-black
+  text-white text-sm font-semibold hover:bg-gray-800`). The reveal colors
+  carry the feedback: correct #FFFD73, wrong-pick #FFD0D0, others #DCDCDC.
+- **THE dashboard card icons (session-8):** Subject = BookOpen h-6 w-6,
+  Course Progress = **Trophy** h-6 w-6, Daily Challenge = **Brain** h-6 w-6,
+  Learning Roadmap = Sparkles h-6 w-6, Course Lessons header = BookOpen
+  h-4 w-4, challenge-modal header = Brain h-5 w-5 (all lucide sw 1.5).
+  Study Streak = CalendarDays w-4 + Total XP = Gem w-4 (already exact).
+  Icon identity was probed from the live's path `d` data — check before
+  "normalizing" (the session-2 TrendingUp/Sparkles picks were drifts).
 - **THE quiz-flow rules (ported from the reference bundle):** a correct
   answer resolves after a **1000 ms reveal** then **auto-advances after
   800 ms**; a wrong answer opens the in-pane retry modal after the same
@@ -208,7 +248,9 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   Fonts: Funnel Sans (UI) + Eczar (brand) via Google Fonts `<link>` in the
   root layout (the `no-page-custom-font` warning is a Pages Router false
   positive — suppressed with a justification comment).
-- **The `/demo` route is a stateless guest mirror** with the reference's
+- **The `/demo` route is an auth-gated sample mirror** (session-8: the live
+  registers /demo under the auth guard — anonymous visitors bounce to
+  `/login?from_url=%2Fdemo`) with the reference's
   sample data — quiz 3/7, which flows through the same quiz-derived math to
   produce the live's exact 60% / 4/6 lessons / 3-day streak / 750 XP. Do not
   "fix" either side.

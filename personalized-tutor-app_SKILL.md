@@ -4,7 +4,7 @@ description: >
   Complete engineering skill for the Thinkerwell codebase — a self-hosted
   clone of the base44 Personalized Tutor App built on Next.js 16 App Router,
   React 19, Prisma/SQLite, Tailwind v4, and a server-side AI seam. Captures
-  the design tokens, the reference-mined behavioral contracts, the seven
+  the design tokens, the reference-mined behavioral contracts, the eight
   Tailwind v4 engine traps, the mobile-nav toaster fix, the quiz-flow
   semantics, the quiz-derived progress model, the lesson-view architecture
   (gO/yO/xO + Im), the two-dropdown header split (Course pill p_ + m_ user
@@ -13,11 +13,14 @@ description: >
   In), the m_ student-vs-user name split, the completed
   rounded-[9999px] computed-radius parity sweep, the session-7 computed-style
   histogram methodology (font-weight distributions + class→radius maps) and
-  the radius/blur scale pins it produced, the gamification math, the AI fallback doctrine, and the
+  the radius/blur scale pins it produced, the session-8 public-surface model
+  (the anonymous onboarding + pending_student_setup deferral + the signedOut
+  header variant + the /demo auth gate + the Try-it navigation), the
+  gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.6.0
+version: 1.7.0
 last_updated: 2026-10-02
-project_state: 73 unit tests + 52 e2e checks green; session-7 computed-style parity pass complete (body font-weight 300, the --radius-lg/--radius-xl 12px pins (Trap 6), the --blur-sm 4px pin (Trap 7), the Course-Lessons CircleCheckBig/Circle icon column, lessonRowStatus domain helper)
+project_state: 82 unit tests + 64 e2e checks green; session-8 public-surface parity pass complete (the public onboarding with pending_student_setup + the signedOut header variant, the /demo auth gate, the Try-it → /demo navigation, the hubLessonSubject h2 decode, the challenge-modal Close swap, the Trophy/Brain card icons, Trap 8 alpha-color serialization)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -294,7 +297,8 @@ Im, ported in session-3):
    burst → **800 ms** → auto-advance into the next lesson.
 6. The final lesson (index 5) fires the dual side cannons and lands on
    the completion card ("LEGENDARY! 🌟").
-7. The h2 shows the SUBJECT on level 1, the AI `title` on levels 2/3; the
+7. The h2 shows the STUDENT'S `current_subject` (never the course name —
+   `hubLessonSubject`, session-8) on level 1, the AI `title` on levels 2/3; the
    level context card is "Core Concept" (#FFFD73, question 0 only),
    "Real-World Scenario" (#E1C8B9), or "Final Boss Challenge" (#D2C0F9);
    each question carries a content card — video (16:9 shimmer + play +
@@ -453,6 +457,39 @@ exercises this via real 429s). The Daily Challenge returns
     approximation. The same sweep surfaced the Course-Lessons icon column
     (lucide CircleCheckBig/Circle per row status — never the scaffold's
     numbered circles; see `lessonRowStatus` in domain.ts).
+
+24. **Alpha-color serialization drift** (session-8, Trap 8): v4 generates
+    alpha-modified colors via `color-mix(in oklab, …)` — `text-black/40`
+    computes `oklab(0 0 0 / 0.4)` while the reference's v3 computes
+    `rgba(0, 0, 0, 0.4)`. Achromatic alpha renders identically (and this
+    app has ZERO chromatic alpha classes — audited), but computed-style
+    pins catch it immediately. Pinned surfaces normalize via inline
+    `rgba()` (the streak weekday letters, the challenge-modal overlay).
+    CHROMATIC alpha (`bg-purple/50`) would mix in oklab vs v3's sRGB — a
+    REAL visual difference; audit before porting.
+25. **The public-surface model** (session-8): anonymous `/` and
+    `/onboarding` render the PUBLIC ONBOARDING — never a login redirect
+    (the live's landing surface). The anonymous header = the signedOut
+    variant (desktop black Sign In pill, mobile items-only menu: My
+    Courses + Sign In, NO yellow name header); the setup panel gains the
+    anonymous-only "Your Name" block (required for Continue); Continue
+    stores `pending_student_setup` (sessionStorage) and routes
+    `/login?from_url=<current>`; after login the onboarding pickup
+    AUTO-SUBMITS through `/api/courses/generate` → `/quiz`. `/demo` is
+    auth-gated like /hub /quiz /courses. And "Try it Sample: Economics
+    Course" NAVIGATES to `/demo` — never a course generation (the
+    bundle's `onTryIt: () => navigate("/demo")`; the is_sample pending
+    path is dead code).
+26. **The hub h2 subject is the STUDENT's** (session-8): the LessonView
+    h2 on level 1 = `hubLessonSubject(course)` = the student's
+    `current_subject || "General"` — NEVER the active course name (a
+    divergent student still sees their saved subject). The dashboard card
+    icons decode from the live's path `d` data: Trophy/Brain/BookOpen/
+    Sparkles at h-6 w-6 (stats + roadmap), BookOpen h-4 w-4 (Course
+    Lessons header), Brain h-5 w-5 (challenge modal) — the session-2
+    TrendingUp/Sparkles picks were drifts. The challenge modal has NO
+    result banner: the Submit button swaps in place to "Close" after the
+    reveal (overlay inline `rgba(0,0,0,0.5)`, no blur).
 
 ## §10 Debugging Guide
 

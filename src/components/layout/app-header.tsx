@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { BrandMark } from "@/components/mascot";
 import { avatarLetter, courseContextLine, isCustomSource } from "@/lib/domain";
 import { AddCourseModal } from "@/components/courses/add-course-modal";
@@ -564,6 +564,7 @@ function MobileMenuBody({
   onLogout: () => void;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   return (
     <div className="p-2">
@@ -613,7 +614,10 @@ function MobileMenuBody({
           type="button"
           onClick={() => {
             onDone();
-            router.push("/login?from_url=%2Fdemo");
+            // S8: the from_url rides the CURRENT path (the live's
+            // navigateToLogin — on /demo this stays %2Fdemo, on the public
+            // onboarding it is the landing URL).
+            router.push(`/login?from_url=${encodeURIComponent(pathname ?? "/")}`);
           }}
           className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
         >
@@ -645,6 +649,7 @@ export function AppHeader({
   student,
   onStudentUpdated,
   guest = false,
+  signedOut = false,
 }: {
   user: HeaderUser;
   /** The student's current subject — non-null renders the CoursePill. */
@@ -658,6 +663,12 @@ export function AppHeader({
   onStudentUpdated?: (name: string) => void;
   /** Guest mode (the /demo surface): writes degrade to sign-up routes. */
   guest?: boolean;
+  /** S8-F1: the PUBLIC onboarding's anonymous variant — the desktop block
+   * renders the black Sign In pill (the live's `bg-black text-white
+   * rounded-full px-4 py-1.5 text-sm font-medium`) instead of the pill pair,
+   * and the mobile menu renders ITEMS-ONLY (no yellow name header — the
+   * live's anonymous panel: My Courses + Sign In). */
+  signedOut?: boolean;
 }) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -701,22 +712,37 @@ export function AppHeader({
         </span>
       </a>
 
-      {/* Desktop: CoursePill (with course) + user pill */}
+      {/* Desktop: CoursePill (with course) + user pill — OR the anonymous
+          Sign In pill (the public onboarding; same hidden md:flex container,
+          the live's desktop-only black pill). */}
       <div className="hidden items-center gap-3 md:flex">
-        {currentSubject != null ? (
-          <CoursePill
-            currentSubject={currentSubject}
-            enrollments={enrollments}
-            guest={guest}
-          />
-        ) : null}
-        <UserMenu
-          user={user}
-          student={student ?? null}
-          guest={guest}
-          onLogout={() => void handleLogout()}
-          onStudentUpdated={onStudentUpdated}
-        />
+        {signedOut ? (
+          <button
+            type="button"
+            onClick={() => router.push("/login")}
+            className="flex items-center gap-2 rounded-[9999px] bg-black px-4 py-1.5 text-sm font-medium text-white transition-all hover:bg-gray-800"
+            style={{ fontFamily: '"Funnel Sans", sans-serif' }}
+          >
+            Sign In
+          </button>
+        ) : (
+          <>
+            {currentSubject != null ? (
+              <CoursePill
+                currentSubject={currentSubject}
+                enrollments={enrollments}
+                guest={guest}
+              />
+            ) : null}
+            <UserMenu
+              user={user}
+              student={student ?? null}
+              guest={guest}
+              onLogout={() => void handleLogout()}
+              onStudentUpdated={onStudentUpdated}
+            />
+          </>
+        )}
       </div>
 
       {/* Mobile hamburger → the reference's separate mobile menu (220px
@@ -755,22 +781,27 @@ export function AppHeader({
             className="absolute right-0 top-full z-50 mt-2 overflow-hidden rounded-[16px] bg-white shadow-xl"
             style={{ minWidth: 220 }}
           >
-            <div className="p-3" style={{ backgroundColor: "rgb(255, 253, 115)" }}>
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-[9999px] bg-black font-semibold text-sm text-white">
-                  {letter}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-black">{user.name}</p>
-                  {student?.currentSubject ? (
-                    <p className="text-xs text-black/60">{student.currentSubject}</p>
-                  ) : null}
+            {/* S8-F1: the anonymous (public onboarding) panel renders
+                ITEMS-ONLY — the live's anonymous menu has no yellow name
+                header (My Courses + Sign In below). */}
+            {signedOut ? null : (
+              <div className="p-3" style={{ backgroundColor: "rgb(255, 253, 115)" }}>
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-[9999px] bg-black font-semibold text-sm text-white">
+                    {letter}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-black">{user.name}</p>
+                    {student?.currentSubject ? (
+                      <p className="text-xs text-black/60">{student.currentSubject}</p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             <MobileMenuBody
               courses={courses}
-              guest={guest}
+              guest={guest || signedOut}
               onDone={() => {
                 if (loggingOut) return;
                 setMobileOpen(false);

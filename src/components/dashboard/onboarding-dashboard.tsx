@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { MascotHero, MascotHeroMobile } from "@/components/mascot";
-import { CATEGORY_TAGS, DIVE_TOPICS } from "@/lib/domain";
+import { CATEGORY_TAGS, DIVE_TOPICS, parsePendingSetup } from "@/lib/domain";
 import { useToast } from "@/components/toast";
 import type { DashboardUser } from "@/components/dashboard/dashboard-app";
 
@@ -11,6 +11,16 @@ import type { DashboardUser } from "@/components/dashboard/dashboard-app";
 // left hero card (mascot + typewriter "Dive into X" + feature pills),
 // right purple setup panel (mode cards, sample course, topic/material
 // inputs, category tags, Continue).
+//
+// S8-F1 (public mode): for ANONYMOUS visitors the reference renders this
+// surface with an extra "Your Name" block (the live requires the name for
+// the anonymous Continue) and defers the setup: Continue stores the form as
+// `pending_student_setup` (the live's key, sessionStorage here) and
+// redirects to /login?from_url=<current>. After login the onboarding picks
+// the pending up and auto-submits through the normal generate flow — the
+// live's X2: create the student, then navigate("/quiz").
+
+const PENDING_SETUP_KEY = "pending_student_setup";
 
 type Mode = "topic" | "material";
 type MaterialTab = "text" | "file";
@@ -102,17 +112,23 @@ export function OnboardingDashboard({
   user,
   studentName,
   currentSubject,
+  publicMode = false,
 }: {
-  user: DashboardUser;
+  user: DashboardUser | null;
   studentName: string;
   currentSubject: string | null;
+  /** S8-F1: the anonymous variant — renders the "Your Name" block and
+   * defers the setup via pending_student_setup + /login. */
+  publicMode?: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { toast } = useToast();
   const typed = useTypewriter(DIVE_TOPICS);
 
   const [mode, setMode] = useState<Mode>("topic");
   const [topic, setTopic] = useState(currentSubject ?? "");
+  const [name, setName] = useState("");
   const [courseName, setCourseName] = useState("");
   const [materialText, setMaterialText] = useState("");
   const [materialTab, setMaterialTab] = useState<MaterialTab>("text");
@@ -120,10 +136,55 @@ export function OnboardingDashboard({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canContinue =
-    mode === "topic"
+  const canContinue = publicMode
+    ? name.trim().length >= 2 &&
+      (mode === "topic"
+        ? topic.trim().length >= 2
+        : courseName.trim().length >= 2 && materialText.trim().length >= 20)
+    : mode === "topic"
       ? topic.trim().length >= 2
       : courseName.trim().length >= 2 && materialText.trim().length >= 20;
+
+  // S8-F1: the post-login pickup — the live's X2 reads
+  // pending_student_setup on the authenticated onboarding, removes it, and
+  // proceeds into the quiz. Here: parse the stored form and auto-submit it
+  // through the normal generate flow (which lands on /quiz?course=…).
+  useEffect(() => {
+    if (publicMode) return;
+    const raw = sessionStorage.getItem(PENDING_SETUP_KEY);
+    const pending = parsePendingSetup(raw);
+    if (!pending) return;
+    sessionStorage.removeItem(PENDING_SETUP_KEY);
+    if (pending.mode === "topic" && pending.topic.trim().length < 2) return;
+    if (
+      pending.mode === "material" &&
+      (pending.courseName.trim().length < 2 || pending.contentText.trim().length < 20)
+    ) {
+      return;
+    }
+    void generate({
+      mode: pending.mode,
+      topic: pending.topic,
+      courseName: pending.courseName,
+      contentText: pending.contentText,
+    });
+  }, [publicMode]);
+
+  /** The anonymous Continue: store the form, then head to login with the
+   * return URL (the live's navigateToLogin: /login?from_url=<current>). */
+  function deferToLogin() {
+    sessionStorage.setItem(
+      PENDING_SETUP_KEY,
+      JSON.stringify({
+        mode,
+        topic,
+        courseName,
+        contentText: materialText,
+        name: name.trim(),
+      }),
+    );
+    router.push(`/login?from_url=${encodeURIComponent(pathname ?? "/")}`);
+  }
 
   async function generate(target: { mode: Mode; topic?: string; courseName?: string; contentText?: string }) {
     setSubmitting(true);
@@ -234,6 +295,31 @@ export function OnboardingDashboard({
               </p>
             </div>
 
+            {/* S8-F1: the anonymous "Your Name" block (the live renders it
+                between the subtitle and the mode cards; authenticated
+                visitors never see it — the account name wins). */}
+            {publicMode ? (
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="onboarding-name"
+                  className="text-sm font-semibold text-black"
+                  style={{ fontFamily: '"Funnel Sans", sans-serif' }}
+                >
+                  Your Name
+                </label>
+                <input
+                  id="onboarding-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Alex Johnson"
+                  className="w-full bg-white px-4 py-3 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-black/20"
+                  style={{ borderRadius: 12, fontFamily: '"Funnel Sans", sans-serif' }}
+                  autoComplete="name"
+                />
+              </div>
+            ) : null}
+
             <div className="space-y-2">
               <label className="text-sm font-semibold text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
                 What would you like to learn?
@@ -294,11 +380,9 @@ export function OnboardingDashboard({
 
               <button
                 type="button"
-                onClick={() => {
-                  setMode("topic");
-                  void generate({ mode: "topic", topic: "Economics" });
-                }}
+                onClick={() => router.push("/demo")}
                 disabled={submitting}
+                aria-label="Try the sample Economics course demo"
                 className="flex w-full items-center justify-between px-4 py-2.5 transition-all"
                 style={{ borderRadius: 12, backgroundColor: "rgba(255, 255, 255, 0.5)" }}
               >
@@ -455,11 +539,13 @@ export function OnboardingDashboard({
               type="button"
               disabled={!canContinue || submitting}
               onClick={() =>
-                void generate(
-                  mode === "topic"
-                    ? { mode, topic: topic.trim() }
-                    : { mode, courseName: courseName.trim(), contentText: materialText },
-                )
+                publicMode
+                  ? deferToLogin()
+                  : void generate(
+                      mode === "topic"
+                        ? { mode, topic: topic.trim() }
+                        : { mode, courseName: courseName.trim(), contentText: materialText },
+                    )
               }
               className="flex w-full items-center justify-center gap-2 bg-black py-3.5 text-sm font-bold text-white transition-all hover:bg-gray-800 disabled:opacity-30"
               style={{ borderRadius: 12, fontFamily: '"Funnel Sans", sans-serif' }}

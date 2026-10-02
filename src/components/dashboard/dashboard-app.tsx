@@ -37,7 +37,9 @@ export function DashboardApp({
   forceOnboarding = false,
   bubbleQuote,
 }: {
-  user: DashboardUser;
+  /** S8-F1: null = the anonymous (public onboarding) render — the header
+   * shows the Sign In pill and the setup panel gains the name field. */
+  user: DashboardUser | null;
   student:
     | {
         name: string;
@@ -92,7 +94,7 @@ export function DashboardApp({
     <ToastProvider>
       <div className="flex min-h-screen flex-col" style={{ backgroundColor: "rgb(15, 14, 14)" }}>
         <AppHeader
-          user={user}
+          user={user ?? { name: "", email: "" }}
           currentSubject={pillSubject}
           enrollments={headerEnrollments}
           courses={mobileCourses}
@@ -106,11 +108,12 @@ export function DashboardApp({
               : null
           }
           onStudentUpdated={() => router.refresh()}
+          signedOut={user === null}
         />
         {showCourseDashboard && activeCourse ? (
           <CourseDashboard
             key={activeCourse.id}
-            user={user}
+            user={user ?? { name: "Guest", email: "guest@thinkerwell.demo" }}
             bubbleQuote={bubbleQuote}
             course={{
               ...activeCourse,
@@ -126,8 +129,9 @@ export function DashboardApp({
         ) : (
           <OnboardingDashboard
             user={user}
-            studentName={student?.name ?? user.name}
+            studentName={student?.name ?? user?.name ?? ""}
             currentSubject={student?.currentSubject ?? null}
+            publicMode={user === null}
           />
         )}
       </div>

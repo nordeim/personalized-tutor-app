@@ -1,17 +1,31 @@
-import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { displayName } from "@/lib/domain";
+import { randomQuote } from "@/lib/quotes";
 import { DashboardApp } from "@/components/dashboard/dashboard-app";
 
 // /onboarding — the reference maps this onto the home dashboard's setup
 // state; it is ALSO the "Add a Course" surface for users who already have
 // courses, so it always renders the setup panel (never redirects away).
+// S8-F1: anonymous visitors get the PUBLIC ONBOARDING (same surface as the
+// root — Sign In pill + "Your Name" field + the pending deferral).
 export const dynamic = "force-dynamic";
 
 export default async function OnboardingPage() {
   const user = await getSessionUser();
-  if (!user) redirect("/login?from_url=%2Fonboarding");
+  if (!user) {
+    return (
+      <DashboardApp
+        bubbleQuote={randomQuote()}
+        user={null}
+        student={null}
+        courses={[]}
+        currentCourseId={null}
+        currentCourse={null}
+        forceOnboarding
+      />
+    );
+  }
 
   const [student, enrollments] = await Promise.all([
     db.student.findUnique({ where: { userId: user.id } }),

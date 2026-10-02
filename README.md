@@ -26,8 +26,9 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🎉 | Confetti moments: level-up burst, dual-cannon course completion, quiz milestones | `src/lib/confetti.ts` |
 | 🔥 | Study Streak + Total XP cards (the reference's gamification column) | `src/components/dashboard/course-dashboard.tsx` |
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
-| 👻 | Guest demo route with the reference's sample Economics course | `/demo` |
-| 🧪 | 73 unit tests + 52 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
+| 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
+| 🧪 | 82 unit tests + 64 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -129,7 +130,7 @@ fixes it and the spec proves it.
 
 ## The Tailwind v4 trap log
 
-This clone pins seven v3→v4 engine differences discovered while porting the
+This clone pins eight v3→v4 engine differences discovered while porting the
 reference's byte-identical class attributes — full report in
 [`docs/Tailwind-V4-Validation-Report.md`](docs/Tailwind-V4-Validation-Report.md):
 
@@ -140,6 +141,9 @@ reference's byte-identical class attributes — full report in
 5. `--shadow-sm` pinned to the v3 geometry (v4 shifted the scale one notch)
 6. `--radius-lg`/`--radius-xl` pinned to 12px (the reference's custom scale; v4 ships 8/14px)
 7. `--blur-sm` pinned to 4px (v4 doubled the scale one notch — the shadow trap's sibling)
+8. Alpha colors on pinned surfaces ship as inline `rgba()` (v4's `bg-black/50`/
+   `text-black/40` compute `oklab(0 0 0 / .5)` vs v3's `rgba(0,0,0,.5)`;
+   achromatic-equivalent — normalize where computed parity is pinned)
 
 Plus the mobile-nav toaster fix: the notifications container is
 `pointer-events-none` (items restore `auto`), so an empty toast layer can
@@ -211,6 +215,25 @@ the `--shadow-sm` pin's sibling) — and the Course-Lessons icon column (lucide
 CircleCheckBig/Circle status icons decoded from the live, replacing the
 scaffold's numbered circles, keyed off a new `lessonRowStatus` domain helper).
 69 → 73 unit, 46 → 52 e2e.
+
+## The session-8 public-surface parity pass
+
+An eighth audit ([`docs/remediation-plan-session-8.md`](docs/remediation-plan-session-8.md))
+probed the live's ANONYMOUS surfaces for the first time and found the
+public-surface model inverted: the live's anonymous `/` and `/onboarding`
+render the onboarding itself (black Sign In pill, items-only mobile menu,
+the "Your Name" block, the `pending_student_setup` deferral → login → the
+post-login pickup auto-generates → `/quiz`), `/demo` is auth-gated, and the
+"Try it Sample" card is a NAVIGATION to `/demo` — never a course generation
+(dead code in the bundle). The same pass decoded the hub LessonView h2
+subject (`student.current_subject || "General"`, never the course name),
+the challenge modal's real contract (black/50 overlay, no blur, no result
+banner — Submit swaps to Close), the dashboard card icons (Trophy/Brain at
+24px where the clone shipped TrendingUp/Sparkles at 20px), and a NEW
+Tailwind v4 engine trap — the alpha-color serialization drift
+(`bg-black/50`/`text-black/40` compute `oklab(...)` vs v3's `rgba(...)`,
+Trap 8; pinned surfaces normalize via inline rgba). 73 → 82 unit,
+52 → 64 e2e.
 
 ## Pushing to GitHub
 

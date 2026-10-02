@@ -35,8 +35,11 @@ export default async function HubPage({
     db.student.findUnique({ where: { userId: user.id } }),
   ]);
 
+  // S8-F8: an explicit ?course= that matches NO enrollment renders the hub
+  // with NO course (the default-grid hub — the live's observed behavior for
+  // unowned ids); the no-param default stays the newest enrollment.
   const matched = course ? enrollments.find((e) => e.id === course) : undefined;
-  const enrollment = matched ?? enrollments[0] ?? null;
+  const enrollment = course ? (matched ?? null) : (enrollments[0] ?? null);
   const lessonParam = Number.parseInt(lesson ?? "0", 10);
   const initialLesson = Number.isInteger(lessonParam) && lessonParam >= 0 && lessonParam <= 5 ? lessonParam : 0;
 

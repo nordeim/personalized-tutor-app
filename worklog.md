@@ -242,3 +242,22 @@ Work Log:
 
 Stage Summary:
 - Session-7 complete and pushed: two new Tailwind v4 engine traps pinned (radius + blur scale shifts), the systemic font-weight decode closed, the Course-Lessons icon column decoded, 73 unit + 52 e2e green, the computed-style-histogram audit doctrine documented.
+
+---
+Task ID: 15
+Agent: main (Super Z)
+Task: Session 8 — public-surface parity pass, anonymous-flow decode, Trap 8, docs, push
+
+Work Log:
+- git pull → 5ca9c4e (docs/session_8.md = session-7 transcript); docs re-reviewed; baseline gate green (73 unit + 52 e2e); stale shell DATABASE_URL handled (env -u for every dev-server/CLI command); the Bash-output [m-ANSI-eating display artifact documented (suspected source corruption is verified with python ord() before panicking — the session-4 "display artifact" phenomenon).
+- Two-axis code review of 9fa7097...b9d02e8 (Standards/Spec parallel sub-agents per skills/code-review): zero hard violations; the judgement-call notes (probe-script duplication, the substituted streak-cell pin, the inline-style later icon) folded into the plan.
+- Live re-audit with the ANONYMOUS surfaces probed for the first time: the public onboarding (black Sign In pill in the hidden md:flex container, items-only mobile menu, the "Your Name" block), /demo auth-gated, the X2 pending_student_setup contract fully decoded (localStorage → navigateToLogin → pickup with full_name || pending.name → navigate("/quiz")), and the Try-it handler = navigate("/demo") (the is_sample path is dead code — no writer). Plus: the hub ce subject formula, the challenge modal contract (black/50, no blur, no banner, Submit→Close — verified by answering the live challenge), the card icons via path-d probes (Trophy/Brain/BookOpen 24px, BookOpen 16px), and the /demo histogram (68 real leaves matching; 7 oklab vs 7 rgba = Trap 8).
+- Mobile navigation re-verified (the prompt's headline): all three menu states + the anonymous items-only variant; the live toaster bug persists; the clone's fix + pins hold.
+- TDD: hubLessonSubject + parsePendingSetup (73→82 unit RED→GREEN); AppHeader signedOut variant + OnboardingDashboard publicMode (name field + pending_student_setup + pickup auto-generate) + the public root//onboarding pages + the Try-it → /demo navigation; the /demo auth gate; the challenge modal (overlay inline rgba, no blur, no banner, Close swap) + the icon swaps; the streak letters inline rgba + the unowned-param hub fix.
+- E2E 52→64: auth.spec rewritten around the public onboarding (+ the full pending-flow e2e: anonymous Continue → login → sign-up → auto-generate → /quiz?course=), new session8-parity.spec (Try-it nav, the h2-subject pin via a fresh user + PUT /api/student, the unowned-param grid, the challenge pins, the icon pins, the rgba letters), the session-2 challenge test rewritten for the Close swap.
+- Gate green: lint ✓ typecheck ✓ 82 unit ✓ build ✓ 64 e2e ✓; runtime re-probes confirmed the public onboarding's computed parity (35 real leaves both sides); screenshots 64-70; .env.example verified (no new env vars — sessionStorage carries the pending setup).
+- Docs: remediation-plan-session-8 (8 findings + 16 TODOs executed), Tailwind report Trap 8, AGENTS/CLAUDE/README (eight-trap log + session-8 section), PAD v1.7 [S8] + the testing table, SKILL v1.7.0 (traps 24-26), docs/session_8.md, worklogs.
+- Conventional commit on main; push via docs/ssh_git_wrapper_v3.py --remote git@github.com:nordeim/personalized-tutor-app.git (paramiko shim; remote verified == HEAD; key shredded).
+
+Stage Summary:
+- Session-8 complete and pushed: the clone's public surface now matches the live's anonymous model (public onboarding + deferred setup + the /demo gate + the Try-it navigation), Trap 8 pinned, three data-semantics decodes closed, 82 unit + 64 e2e green.

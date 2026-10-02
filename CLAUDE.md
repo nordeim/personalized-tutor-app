@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (73 unit + 52 Playwright
+   bun run test && bun run build && bun run test:e2e` (82 unit + 64 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -118,8 +118,26 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   reference bundle: items `p-2` (no space-y), a "Switch Course" section
   when enrollments > 1 (BookOpen rows + a Check on the current course,
   rows route to `/?course={id}`), My Courses, Log Out — or **Sign In** in
-  guest mode. NO Update Preferences on mobile; the header context line
-  is the subject alone in `text-black/60`.
+  guest mode (and for the anonymous public onboarding — items-only, no
+  yellow name header). NO Update Preferences on mobile; the header context
+  line is the subject alone in `text-black/60`.
+- **THE public-surface model (session-8):** anonymous `/` + `/onboarding`
+  render the PUBLIC ONBOARDING (Sign In pill, items-only mobile menu,
+  "Your Name" block, `pending_student_setup` deferral → login → the
+  post-login pickup auto-generates → `/quiz`). `/demo` is auth-gated like
+  `/hub` `/quiz` `/courses` (the live registers them all under the auth
+  guard). "Try it Sample: Economics Course" NAVIGATES to `/demo` — never a
+  course generation (the live's `onTryIt: navigate("/demo")`; the
+  is_sample pending path is dead code).
+- **THE hub h2 + challenge-modal + card-icon invariants (session-8):** the
+  LessonView h2 on level 1 = the STUDENT's `current_subject || "General"`
+  (`hubLessonSubject`, unit-pinned) — NEVER the active course name; an
+  unowned `?course=` renders the default-grid hub. The challenge modal:
+  inline `rgba(0,0,0,0.5)` overlay (Trap 8), NO blur, NO result banner —
+  the Submit button swaps in place to "Close" after the reveal. The card
+  icons: Trophy/Brain/BookOpen/Sparkles at h-6 w-6 (stats + roadmap),
+  BookOpen h-4 w-4 (Course Lessons), Brain h-5 w-5 (modal header) — probed
+  from the live's path `d` data.
 - **THE m_ name split (session-5):** the desktop m_ panel header renders
   the STUDENT's name (the `PUT /api/student` target — renames round-trip
   visibly) while the collapsed pill renders the USER's name; with-course
@@ -182,7 +200,9 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   Playwright locators for "Your AI Tutor" / "Ask Nori anything..." /
   "Lesson Progress" / "Core Concept" match twice — `.first()` is the
   desktop instance, `.last()` the mobile one. Document the order in specs.
-- **The `/demo` route is a stateless guest mirror** with the reference's
+- **The `/demo` route is an auth-gated sample mirror** (session-8: the live
+  registers /demo under the auth guard — anonymous →
+  `/login?from_url=%2Fdemo`) with the reference's
   sample data (quiz 3/7 — the live's 60% / 4/6 / 3 days / 750 XP all fall
   out of the shared quiz-derived math). Do not "fix" the inconsistency —
   it replicates the reference.

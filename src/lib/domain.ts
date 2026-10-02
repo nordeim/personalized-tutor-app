@@ -347,3 +347,50 @@ export type LessonQuestion = {
 export function requeueQuestion<T extends object>(questions: T[], q: T): T[] {
   return [...questions, { ...q }];
 }
+
+/**
+ * S8-F4: the hub LessonView h2 subject — the live computes
+ * ce = (student?.current_subject) || "General" and passes it to the lesson
+ * view as the `subject` prop (level 1 renders it directly; the course NAME is
+ * never a fallback — a student whose current_subject differs from the active
+ * course still sees the student's subject). The clone's HubCourse
+ * .currentSubject is exactly the student's current_subject.
+ */
+export function hubLessonSubject(course: {
+  currentSubject?: string | null;
+  courseName?: string | null;
+} | null): string {
+  return course?.currentSubject?.trim() || "General";
+}
+
+/**
+ * S8-F1: the public onboarding's pending_student_setup payload — the
+ * anonymous Continue stores the form (sessionStorage, the live's key name)
+ * and the post-login pickup parses it back to auto-generate. Defensive like
+ * the live's X2 try/catch: anything unparseable yields null and the normal
+ * onboarding renders.
+ */
+export function parsePendingSetup(raw: string | null): {
+  mode: "topic" | "material";
+  topic: string;
+  courseName: string;
+  contentText: string;
+  name: string;
+} | null {
+  if (!raw) return null;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const p = parsed as Record<string, unknown>;
+    const mode = p.mode === "material" ? "material" : "topic";
+    return {
+      mode,
+      topic: typeof p.topic === "string" ? p.topic : "",
+      courseName: typeof p.courseName === "string" ? p.courseName : "",
+      contentText: typeof p.contentText === "string" ? p.contentText : "",
+      name: typeof p.name === "string" ? p.name.trim() : "",
+    };
+  } catch {
+    return null;
+  }
+}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/mascot";
 import { NoriChat } from "@/components/hub/nori-chat";
 import { LessonView } from "@/components/hub/lesson-view";
-import { stageLevelLabel } from "@/lib/domain";
+import { stageLevelLabel, hubLessonSubject } from "@/lib/domain";
 import { ToastProvider } from "@/components/toast";
 import { cn } from "@/lib/utils";
 import { useDismissOnOutsideClick } from "@/components/layout/use-dismiss";
@@ -127,7 +127,9 @@ export function HubApp({
   const lessonProgressLabel = `${Math.min(sessionAnswered + 1, 8)}/8`;
   const lessonProgressPct = Math.round((Math.min(sessionAnswered, 8) / 8) * 100);
 
-  const subject = course?.courseName ?? "General";
+  // S8-F4: the lesson-view h2 subject = the STUDENT's current_subject (the
+  // live's `ce` — NOT the course name; a blank subject renders "General").
+  const subject = hubLessonSubject(course);
 
   return (
     <ToastProvider>

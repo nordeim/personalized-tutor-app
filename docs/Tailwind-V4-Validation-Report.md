@@ -381,3 +381,39 @@ HISTOGRAM per route (bucket every visible text node by computed weight, diff the
 distributions) is the cheapest audit that surfaces this class of drift; it also
 surfaced the Course-Lessons icon-column drift (six 600-weight "✓" text nodes on
 the clone that have no counterpart on the live).
+
+---
+
+## Appendix: Project Trap Log — Trap 8: The Alpha-Color Serialization Shift (session 8)
+
+**Found by**: the computed-style color histogram (the session-7 doctrine,
+extended to text/overlay colors). Tailwind v4 generates alpha-modified
+colors via `color-mix(in oklab, …)`; v3 emitted plain `rgba()` — the
+COMPUTED serialization differs even when the rendered color is identical.
+
+- **The live reference (v3):** `text-black/40` computes
+  `rgba(0, 0, 0, 0.4)`; the challenge modal's overlay computes
+  `rgba(0, 0, 0, 0.5)`.
+- **v4 (this codebase, pre-fix):** the SAME class strings compute
+  `oklab(0 0 0 / 0.4)` and `oklab(0 0 0 / 0.5)` — invisible on screen for
+  achromatic alpha, but a computed-value mismatch the histogram doctrine
+  flags (and the e2e `toHaveCSS` pins catch immediately).
+
+**Scope**: achromatic alpha (black/white + opacity) renders identically in
+both engines — this app uses ZERO chromatic alpha classes (audited), so the
+drift is serialization-only. The risk family: a CHROMATIC alpha
+(`bg-purple/50`) WOULD mix in oklab (perceptual) on v4 vs sRGB (linear) on
+v3 — a real visual difference. Audit for chromatic alpha before porting.
+
+Fix: pinned surfaces normalize via inline `rgba()` (the session-7
+later-lesson-icon precedent):
+
+```tsx
+style={{ color: "rgba(0, 0, 0, 0.4)" }}        // streak weekday letters
+style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }} // challenge modal overlay
+```
+
+Pinned by `tests/e2e/session8-parity.spec.ts` (the letters compute
+`rgba(0, 0, 0, 0.4)`; the overlay computes `rgba(0, 0, 0, 0.5)` with
+`backdrop-filter: none`). Unpinned surfaces may keep the utility classes —
+the rendering is identical.
