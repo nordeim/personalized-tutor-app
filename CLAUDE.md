@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (69 unit + 46 Playwright
+   bun run test && bun run build && bun run test:e2e` (73 unit + 52 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -92,6 +92,15 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   reference's bundle ships exactly this split. A "material" course shows the
   BookOpen pill icon but still labels "AI-Generated Course". Pinned in
   `tests/domain-session6.test.ts` — do not consolidate.
+- **THE radius/blur/body-weight invariants (session-7):** the reference's
+  custom scale maps `rounded-lg` AND `rounded-xl` to **12px** (v4 ships
+  8/14px — pinned `--radius-lg`/`--radius-xl: 0.75rem`, Trap 6);
+  `--blur-sm: 4px` restores the login card's v3 backdrop blur (Trap 7);
+  and `body { font-weight: 300 }` — the live's app-wide font-light default
+  inherited by every weight-less text node. The dashboard's Course-Lessons
+  rows carry lucide status icons (CircleCheckBig done / Circle next /
+  Circle later at /40 — never numbered circles), derived from
+  `lessonRowStatus` (pinned in `tests/domain-session7.test.ts`).
 - **THE icon-stroke invariants (session-6):** CO-card ChevronRight at
   lucide default strokeWidth 2; the m_ pill chevron is conditional
   (`student ? 2 : 1.5` — the live ships two trigger components); the

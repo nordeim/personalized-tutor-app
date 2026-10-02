@@ -4,18 +4,20 @@ description: >
   Complete engineering skill for the Thinkerwell codebase — a self-hosted
   clone of the base44 Personalized Tutor App built on Next.js 16 App Router,
   React 19, Prisma/SQLite, Tailwind v4, and a server-side AI seam. Captures
-  the design tokens, the reference-mined behavioral contracts, the five
+  the design tokens, the reference-mined behavioral contracts, the seven
   Tailwind v4 engine traps, the mobile-nav toaster fix, the quiz-flow
   semantics, the quiz-derived progress model, the lesson-view architecture
   (gO/yO/xO + Im), the two-dropdown header split (Course pill p_ + m_ user
   menu), the Q5 Add-a-Course modal, the hub pill semantics, the guest demo
   chrome, the session-5 mobile-menu component (Switch Course + guest Sign
-  In), the m_ student-vs-user name split, and the completed
-  rounded-[9999px] computed-radius parity sweep, the gamification math, the AI fallback doctrine, and the
+  In), the m_ student-vs-user name split, the completed
+  rounded-[9999px] computed-radius parity sweep, the session-7 computed-style
+  histogram methodology (font-weight distributions + class→radius maps) and
+  the radius/blur scale pins it produced, the gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.5.0
+version: 1.6.0
 last_updated: 2026-10-02
-project_state: 69 unit tests + 46 e2e checks green; session-6 parity-polish pass complete (icon-stroke parity fixes, courseSourceLabel/isCustomSource predicate split, the shared use-dismiss hook consumed by the hub, Switch Course e2e Check pins)
+project_state: 73 unit tests + 52 e2e checks green; session-7 computed-style parity pass complete (body font-weight 300, the --radius-lg/--radius-xl 12px pins (Trap 6), the --blur-sm 4px pin (Trap 7), the Course-Lessons CircleCheckBig/Circle icon column, lessonRowStatus domain helper)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -432,6 +434,25 @@ exercises this via real 429s). The Daily Challenge returns
     Also: the live /demo roadmap + challenge question are AI-generated PER
     VISIT (titles alternate) — the clone's static sample is an accepted
     divergence, not drift to chase.
+21. **The radius-scale shift** (session-7, Trap 6): the reference's custom
+    v3 config maps `rounded-lg` AND `rounded-xl` to **12px** — v4 ships
+    lg=8px/xl=14px. Both tokens are pinned (`--radius-lg`/
+    `--radius-xl: 0.75rem` in globals.css); 41 usages ride on them. The
+    14px surfaces (quiz options, Next-Question) are `rounded-[14px]`
+    ARBITRARY on both sides — never "round" them to rounded-xl.
+22. **The blur-scale shift** (session-7, Trap 7): v4 moved every named
+    blur level up one notch — the login card's `backdrop-blur-sm`
+    computes blur(8px) on v4 vs the live's blur(4px). `--blur-sm: 4px`
+    restores the v3 geometry (the `--shadow-sm` precedent's sibling; no
+    other blur consumer exists).
+23. **The base font-weight is 300, not 400** (session-7): the live's body
+    computes font-light — every weight-less text node (mode-card
+    descriptions, category tags, "N/6 lessons completed") inherits 300.
+    Audit weight drift with a leaf-text font-weight HISTOGRAM per route;
+    computed styles are the ground truth, class strings are the
+    approximation. The same sweep surfaced the Course-Lessons icon column
+    (lucide CircleCheckBig/Circle per row status — never the scaffold's
+    numbered circles; see `lessonRowStatus` in domain.ts).
 
 ## §10 Debugging Guide
 
@@ -457,8 +478,8 @@ exercises this via real 429s). The Daily Challenge returns
 **Live-site verification commands:**
 ```bash
 curl -s localhost:3000/api/health          # {"ok":true,"data":{"status":"ok","db":true}}
-bun run test                              # 69 unit
-bun run build && bun run test:e2e         # 46 e2e on :3100
+bun run test                              # 73 unit
+bun run build && bun run test:e2e         # 52 e2e on :3100
 ```
 
 ## §11 Pre-Ship Checklist

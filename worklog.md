@@ -223,3 +223,22 @@ Work Log:
 
 Stage Summary:
 - Session-6 complete and pushed: icon-level parity closed (canonical Plus, ChevronRight sw 2, the conditional m_ chevron), the source-predicate split pinned, one shared dismiss hook for every dropdown, 69 unit + 46 e2e green, the mobile menu runtime-verified as the prompt demanded.
+
+---
+Task ID: 14
+Agent: main (Super Z)
+Task: Session 7 — computed-style parity pass, Tailwind v4 trap hunt, docs, push
+
+Work Log:
+- git pull → 9fa7097 (docs/session_7.md = session-6 transcript); docs re-reviewed; baseline gate green (69 unit + 46 e2e); stale shell DATABASE_URL unset (env -u for every dev-server/CLI command); the sandbox process reaper documented — server+probe pairs run as single compound commands.
+- Two-axis code review of 4fe8a2d...HEAD (Standards/Spec parallel sub-agents per skills/code-review): zero hard violations, all R0-R14 verified; scope-creep findings behavior-neutral.
+- Live re-audit + NEW methodology — computed-style histogram diffing (agent-browser for the live, Node Playwright probes scripts/probe-*.mjs for the clone): leaf-text font-weight distributions, class→radius maps, box-shadow/backdrop-filter/typography probes at 1280×800 + 390×844.
+- Mobile navigation re-verified (the prompt's headline): live still ships the toaster cover bug (agent-browser refuses the covered hamburger click); clone's fix holds — real tap works, all 3 menu states match the live's decoded structure + computed values (9999px avatar, 16px panel, 220px min-width, sw-1.5 icons, negative Switch Course pin).
+- Findings (docs/remediation-plan-session-7.md): S7-F1 body font-weight 400 vs live 300 (systemic — every weight-less text node); S7-F2 rounded-xl 14px (v4 + a misdiagnosed 0.875rem @theme pin) vs live 12px (35 usages); S7-F3 rounded-lg 8px vs live 12px (the reference's custom scale maps lg==xl==12px, 6 usages); S7-F4 the Course-Lessons icon column = session-1 scaffold numbered circles vs the live's lucide CircleCheckBig/Circle status icons; S7-F5 backdrop-blur-sm 8px (v4) vs 4px (v3). Confirmed matching: streak card, lesson row states, shadow-xl, arbitrary radii, typography, tags, /courses.
+- TDD execution: lessonRowStatus domain helper RED→GREEN (69→73 unit); CSS pins (body 300, --radius-lg/--radius-xl 0.75rem, --blur-sm 4px); Course-Lessons icon column swap to CircleCheckBig/Circle; e2e +6 tests (session7-parity.spec) + login blur pins (auth.spec) + menu-item radius pin (mobile-navigation.spec) → 46→52 e2e.
+- Gate green: lint ✓ typecheck ✓ 73 unit ✓ build ✓ 52 e2e ✓; runtime re-probes confirmed every fix (radius 12px, weight 300, blur 4px, icons 4+2 with black//40 colors); screenshots 56-63; dev DB reseeded clean (1 user).
+- Docs: remediation-plan-session-7 (5 findings + 12 TODOs executed), Tailwind-V4-Validation-Report Traps 6+7 + methodology corollary, AGENTS/CLAUDE/README invariants + counts (seven traps), PAD v1.6 [S7], SKILL v1.6.0 (traps 21-23), docs/session_7.md formatted summary, probe scripts committed, .env.example re-verified (no new env vars).
+- Conventional commit on main; push via docs/ssh_git_wrapper_v3.py --remote git@github.com:nordeim/personalized-tutor-app.git (paramiko shim; remote verified == HEAD; key shredded).
+
+Stage Summary:
+- Session-7 complete and pushed: two new Tailwind v4 engine traps pinned (radius + blur scale shifts), the systemic font-weight decode closed, the Course-Lessons icon column decoded, 73 unit + 52 e2e green, the computed-style-histogram audit doctrine documented.

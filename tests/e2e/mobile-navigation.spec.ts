@@ -44,6 +44,10 @@ test.describe("mobile navigation (390×844)", () => {
     // Panel tokens: white, 16px radius, min-width 220.
     await expect(menu).toHaveCSS("background-color", "rgb(255, 255, 255)");
     await expect(menu).toHaveCSS("border-radius", "16px");
+    // S7-F2: the menu items (rounded-xl) compute 12px — the reference's
+    // custom radius scale, NOT v4's engine default 14px (Trap 6 pin).
+    const item = menu.getByRole("button", { name: "My Courses" });
+    await expect(item).toHaveCSS("border-radius", "12px");
   });
 
   test("menu navigation reaches /courses and closes the menu", async ({ page }) => {

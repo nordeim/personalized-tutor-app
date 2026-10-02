@@ -126,6 +126,21 @@ export function derivedLessonsCompleted(progressPct: number): number {
   return Math.min(LESSONS_PER_COURSE, Math.round((pct / 100) * LESSONS_PER_COURSE));
 }
 
+/**
+ * The Course Lessons card's row status under the quiz-derived model
+ * (session-7 decode): rows BELOW the derived count are done, the row AT the
+ * count is the next one (the live's white card with the black border), and
+ * rows after are later. The dashboard renders a lucide icon per status —
+ * CircleCheckBig (done, text-black), Circle (next, text-black), Circle
+ * (later, text-black/40) — never a numbered circle.
+ */
+export type LessonRowStatus = "done" | "next" | "later";
+export function lessonRowStatus(index: number, lessonsCompleted: number): LessonRowStatus {
+  if (index < lessonsCompleted) return "done";
+  if (index === lessonsCompleted) return "next";
+  return "later";
+}
+
 /** The roadmap's current (in-progress) stage index — floor(lessons/2).
  * Returns 3 when everything is complete (past the last stage). */
 export function roadmapCurrentStage(lessonsCompleted: number): number {

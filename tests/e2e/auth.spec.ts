@@ -24,6 +24,12 @@ test.describe("unauthenticated routing", () => {
     // The slate login surface (the one page that is NOT the yellow chrome).
     const main = page.locator("main");
     await expect(main).toHaveCSS("background-image", /linear-gradient/);
+    // S7-F5: the card's backdrop-blur-sm must compute the v3 geometry
+    // (4px — v4's engine doubles it to 8px; globals.css Trap 7 pins it)
+    // and the card radius stays 16px.
+    const card = page.locator(".rounded-2xl");
+    await expect(card).toHaveCSS("backdrop-filter", "blur(4px)");
+    await expect(card).toHaveCSS("border-radius", "16px");
   });
 
   test("the Google button explains instead of failing silently", async ({ page }) => {

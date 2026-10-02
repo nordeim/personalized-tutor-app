@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (69 checks) | `bun run test` |
-| Browser E2E (46 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (73 checks) | `bun run test` |
+| Browser E2E (52 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (69) → `bun run build` → `bun run test:e2e` (46 Playwright
+`bun run test` (73) → `bun run build` → `bun run test:e2e` (52 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -156,6 +156,27 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   reference computes 9999px (session-5: the sweep is complete; keep it).
   See `docs/Tailwind-V4-Validation-Report.md` for the full trap log —
   read it before touching styles.
+- **THE radius + blur scale pins (session-7):** the reference's custom v3
+  config maps `rounded-lg` AND `rounded-xl` to **12px** (measured on every
+  live instance) — v4 ships lg=8px/xl=14px, so `globals.css` pins
+  `--radius-lg`/`--radius-xl: 0.75rem` (Trap 6). `--blur-sm: 4px` restores
+  the v3 geometry for the login card's `backdrop-blur-sm` (Trap 7 — v4
+  doubles it to 8px). Never "simplify" these pins: 41 radius usages + the
+  login card ride on them. The 14px surfaces (quiz options, Next-Question)
+  are `rounded-[14px]` ARBITRARY on both sides — NOT rounded-xl.
+- **THE body base weight is 300 (session-7):** the live's app-wide default
+  is font-light — `body { font-weight: 300 }` in globals.css. Every text
+  node without an explicit `font-*` class inherits it (mode-card
+  descriptions, category tags, "N/6 lessons completed"). Do not "normalize"
+  it to 400; audit weight drift with a leaf-text font-weight histogram
+  (computed styles are the ground truth, class strings are the
+  approximation).
+- **THE Course-Lessons icon column (session-7):** the dashboard's lesson
+  rows carry lucide status icons — `CircleCheckBig` (done, text-black),
+  `Circle` (next, text-black), `Circle` (later, text-black/40) at w-4 h-4
+  sw 1.5 — NEVER numbered circles (that was the session-1 scaffold). The
+  row states derive from `lessonRowStatus(i, derivedLessonsCompleted(pct))`
+  in `domain.ts` (pinned in `tests/domain-session7.test.ts`).
 - **THE mobile-nav rule:** the toast layer (`src/components/toast.tsx`)
   renders the Sonner-compatible container as `pointer-events-none` with
   toast items `pointer-events-auto`. The live reference ships this broken

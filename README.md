@@ -27,7 +27,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🔥 | Study Streak + Total XP cards (the reference's gamification column) | `src/components/dashboard/course-dashboard.tsx` |
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course | `/demo` |
-| 🧪 | 69 unit tests + 46 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 73 unit tests + 52 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -112,9 +112,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 69 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split)
+bun run test          # 73 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 46 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 52 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
@@ -129,7 +129,7 @@ fixes it and the spec proves it.
 
 ## The Tailwind v4 trap log
 
-This clone pins five v3→v4 engine differences discovered while porting the
+This clone pins seven v3→v4 engine differences discovered while porting the
 reference's byte-identical class attributes — full report in
 [`docs/Tailwind-V4-Validation-Report.md`](docs/Tailwind-V4-Validation-Report.md):
 
@@ -138,6 +138,8 @@ reference's byte-identical class attributes — full report in
 3. Gradients ship as sRGB-equivalent arbitrary values (v4 interpolates oklab)
 4. `space-y-*` children with explicit margins render differently — avoid the combo
 5. `--shadow-sm` pinned to the v3 geometry (v4 shifted the scale one notch)
+6. `--radius-lg`/`--radius-xl` pinned to 12px (the reference's custom scale; v4 ships 8/14px)
+7. `--blur-sm` pinned to 4px (v4 doubled the scale one notch — the shadow trap's sibling)
 
 Plus the mobile-nav toaster fix: the notifications container is
 `pointer-events-none` (items restore `auto`), so an empty toast layer can
@@ -194,6 +196,21 @@ extracted the outside-click dismissal into one shared hook
 including the hub's, named the typewriter timings as constants, and pinned
 the intentional source-predicate split (`isCustomSource` vs the new
 `courseSourceLabel`). 65 → 69 unit, 45 → 46 e2e.
+
+## The session-7 computed-style parity pass
+
+A seventh audit ([`docs/remediation-plan-session-7.md`](docs/remediation-plan-session-7.md))
+introduced **computed-style histogram diffing** (leaf-text font-weight
+distributions + class-to-radius maps, live vs clone) and closed the drifts it
+surfaced: the app-wide base font-weight (the live defaults to font-light 300,
+inherited by every weight-less text node), TWO new Tailwind v4 engine traps —
+the radius-scale shift (`rounded-lg`/`rounded-xl` both compute 12px on the
+reference's custom v3 config vs v4's 8/14px — Trap 6) and the blur-scale shift
+(the login card's `backdrop-blur-sm` computes 4px on v3 vs 8px on v4 — Trap 7,
+the `--shadow-sm` pin's sibling) — and the Course-Lessons icon column (lucide
+CircleCheckBig/Circle status icons decoded from the live, replacing the
+scaffold's numbered circles, keyed off a new `lessonRowStatus` domain helper).
+69 → 73 unit, 46 → 52 e2e.
 
 ## Pushing to GitHub
 

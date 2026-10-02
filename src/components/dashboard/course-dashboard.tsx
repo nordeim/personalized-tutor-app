@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MascotWelcome } from "@/components/mascot";
-import { X, CircleCheckBig, CircleX } from "lucide-react";
+import { X, CircleCheckBig, CircleX, Circle } from "lucide-react";
 import {
   derivedLessonsCompleted,
+  lessonRowStatus,
   quizProgressPercent,
   roadmapCurrentStage,
   roadmapStageStatus,
@@ -515,8 +516,11 @@ export function CourseDashboard({
           </div>
           <div className="scroll-slim flex-1 min-h-0 space-y-2 overflow-y-auto">
             {course.lessonTitles.map((title, i) => {
-              const isDone = i < completed;
-              const isNext = i === completed;
+              /* S7-F4: the row status (bg/border/bar + the icon column) is
+                 keyed off the quiz-derived count — decoded from the live:
+                 done rows carry CircleCheckBig, the next row a full-black
+                 Circle, later rows a black/40 Circle (w-4 h-4, sw 1.5). */
+              const status = lessonRowStatus(i, completed);
               return (
                 <button
                   key={i}
@@ -524,22 +528,27 @@ export function CourseDashboard({
                   onClick={() => router.push(`/hub?course=${course.id}&lesson=${i}`)}
                   className="w-full rounded-xl px-3 py-2.5 text-left transition-all"
                   style={{
-                    backgroundColor: isDone ? "rgb(245, 245, 245)" : isNext ? "rgb(255, 255, 255)" : "rgb(250, 250, 250)",
-                    border: isNext ? "1px solid rgb(15, 14, 14)" : "1px solid transparent",
+                    backgroundColor:
+                      status === "done"
+                        ? "rgb(245, 245, 245)"
+                        : status === "next"
+                          ? "rgb(255, 255, 255)"
+                          : "rgb(250, 250, 250)",
+                    border: status === "next" ? "1px solid rgb(15, 14, 14)" : "1px solid transparent",
                     cursor: "pointer",
                   }}
                   aria-label={`Open lesson ${i + 1}: ${title}`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span
-                      className="flex h-6 w-6 items-center justify-center rounded-[9999px] text-[10px] font-semibold"
-                      style={{
-                        backgroundColor: isDone ? "rgb(15, 14, 14)" : "rgba(0, 0, 0, 0.1)",
-                        color: isDone ? "white" : "rgb(89, 89, 89)",
-                      }}
-                    >
-                      {isDone ? "✓" : i + 1}
-                    </span>
+                    {status === "done" ? (
+                      <CircleCheckBig className="h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
+                    ) : (
+                      <Circle
+                        className="h-4 w-4 flex-shrink-0 text-black"
+                        strokeWidth={1.5}
+                        style={status === "later" ? { color: "rgba(0, 0, 0, 0.4)" } : undefined}
+                      />
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-light leading-tight" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
                         Lesson {i + 1}
@@ -550,7 +559,7 @@ export function CourseDashboard({
                       <div className="mt-1.5 h-1 overflow-hidden rounded-[9999px] bg-black/10">
                         <div
                           className="h-full rounded-[9999px] bg-black transition-all duration-700"
-                          style={{ width: isDone ? "100%" : "0%" }}
+                          style={{ width: status === "done" ? "100%" : "0%" }}
                         />
                       </div>
                     </div>

@@ -12,6 +12,11 @@
       1-3 sRGB units per channel); slate below carries the v3 hexes.
    5. `--shadow-sm` is pinned to the v3 geometry (v4 shifted the scale:
       its shadow-sm is v3's bare shadow, one notch heavier).
+   6. `--radius-lg`/`--radius-xl` are pinned to 12px — v4 ships 0.5rem/0.875rem
+      while the reference's (v3+base44) config maps BOTH to 12px (session-7
+      computed-style diffing; every rounded-xl/rounded-lg on the live = 12px).
+   7. `--blur-sm` is pinned to the v3 geometry (4px — v4 doubled it to 8px;
+      the login card's backdrop-blur-sm must compute blur(4px)).
    ========================================================================== */
 
 @theme {
@@ -50,9 +55,19 @@
   /* Trap 5: v3's shadow-sm geometry (v4 moved the scale up one notch) */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
+  /* Trap 7: v3's blur-sm geometry (v4 moved the scale up one notch —
+     the login card's backdrop-blur-sm must compute blur(4px)) */
+  --blur-sm: 4px;
+
   /* Card radius scale (measured) */
-  --radius-xl: 0.875rem; /* 12px/14px form controls — unused by cards */
-  --radius-2xl: 1rem; /* 16px menu items */
+  /* Trap 6: the reference's radius scale — rounded-lg AND rounded-xl both
+     compute 12px on the live (base44's custom v3 config). v4 ships
+     lg=0.5rem(8px)/xl=0.875rem(14px); pins restore the reference geometry.
+     The 14px surfaces (quiz options, submit buttons) are rounded-[14px]
+     ARBITRARY classes on both sides — never rounded-xl. */
+  --radius-lg: 0.75rem; /* 12px — p_ icon tiles, hub menu tiles, chat send */
+  --radius-xl: 0.75rem; /* 12px — menu items, streak cells, lesson rows, form controls */
+  --radius-2xl: 1rem; /* 16px menu panels */
   --radius-3xl: 1.25rem; /* 20px cards */
 }
 
@@ -93,7 +108,10 @@
     background-color: var(--color-ink);
     color: var(--color-ink);
     font-family: var(--font-sans);
-    font-weight: 400;
+    /* The live's app-wide default is font-light (300) — every text node
+       without an explicit font-* weight inherits it (mode-card
+       descriptions, category tags, "N/6 lessons completed", …). */
+    font-weight: 300;
     -webkit-font-smoothing: antialiased;
   }
 

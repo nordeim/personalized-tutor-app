@@ -311,3 +311,73 @@ assertions must read the right property per stack. (c) Next 16's dev-origin
 protection silently blocks dev chunks for the `127.0.0.1` origin (unhydrated page,
 native form GET fallbacks) — `allowedDevOrigins: ["127.0.0.1"]` in next.config.ts
 restores both origins.
+
+---
+
+## Appendix: Project Trap Log — Trap 6: The Radius-Scale Shift (session 7)
+
+**Found by**: the session-7 computed-radius map (scan every element per route,
+bucket `class → computed borderRadius`, diff live vs clone). Same blindness class
+as trap 5 — the class strings are byte-identical (`rounded-xl`, `rounded-lg`), only
+the token VALUE differs between engines.
+
+- **The live reference (v3 + base44's custom config):** `rounded-lg` AND
+  `rounded-xl` BOTH compute **12px** (measured on the streak day cells, the mobile
+  menu items, the Course-Lessons rows, the p_ panel's icon tiles, the login inputs
+  — 17 DOM instances across /demo, /courses, /login, the mobile menu).
+- **v4 (this codebase, pre-fix):** `rounded-xl` = `0.875rem` = **14px** (the engine
+  default), `rounded-lg` = `0.5rem` = **8px**. The codebase had even PINNED the
+  wrong value (`--radius-xl: 0.875rem /* 12px/14px form controls */`) — the "14px"
+  half of that comment was a misdiagnosis: the reference's 14px surfaces (the quiz
+  option grid, the Next-Question button) are `rounded-[14px]` ARBITRARY classes on
+  BOTH sides, never `rounded-xl`.
+
+Consequences: 41 usages rendered +2px (xl) or −4px (lg) off the reference — the
+mobile menu items, the p_ tiles, the streak cells, the lesson rows, the login
+form controls, the Nori send button. Visually subtle (a 2px radius delta), which
+is exactly why six sessions of class-string parity never caught it: **computed
+styles are the ground truth, class strings are the approximation.**
+
+Fix: pin BOTH tokens in `globals.css` `@theme` (the ADR-005 token-pin precedent):
+
+```css
+--radius-lg: 0.75rem; /* 12px — p_ icon tiles, hub menu tiles, chat send */
+--radius-xl: 0.75rem; /* 12px — menu items, streak cells, lesson rows, form controls */
+```
+
+Pinned by the session-7 e2e specs (computed border-radius assertions on the
+Course-Lessons rows, the p_ All-Courses tile, and the mobile menu items —
+`tests/e2e/session7-parity.spec.ts` + `mobile-navigation.spec.ts`).
+
+---
+
+## Appendix: Project Trap Log — Trap 7: The Blur-Scale Shift (session 7)
+
+**Found by**: the same computed-style sweep, on `backdrop-filter`. The
+shadow-scale shift (trap 5) has a sibling: v4 renamed `blur` → `blur-sm` and
+`blur-sm` → `blur-xs`, moving every named blur level up one notch.
+
+- **The live reference (v3):** the login card's `backdrop-blur-sm` computes
+  **blur(4px)**.
+- **v4 (this codebase, pre-fix):** `backdrop-blur-sm` computes **blur(8px)** —
+  2× the reference, softening the card's frosted-glass edge over the gradient.
+
+Fix: pin the token (the `--shadow-sm` precedent, one line):
+
+```css
+--blur-sm: 4px;
+```
+
+Pinned by the session-7 e2e spec (`auth.spec.ts`: the login card must compute
+`backdrop-filter: blur(4px)` + `border-radius: 16px`). No other blur consumer
+exists in the codebase, so the pin is collision-free.
+
+**Session-7 methodology corollary (recorded for future audits):** the app-wide
+base `font-weight` is ALSO a computed-style-only signal — the live's `body`
+computes **300** (font-light is the app default, inherited by every weight-less
+text node: mode-card descriptions, category tags, "N/6 lessons completed"),
+while the clone shipped `body { font-weight: 400 }`. A leaf-text font-weight
+HISTOGRAM per route (bucket every visible text node by computed weight, diff the
+distributions) is the cheapest audit that surfaces this class of drift; it also
+surfaced the Course-Lessons icon-column drift (six 600-weight "✓" text nodes on
+the clone that have no counterpart on the live).
