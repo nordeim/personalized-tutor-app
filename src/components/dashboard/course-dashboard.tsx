@@ -244,9 +244,9 @@ export function CourseDashboard({
             <p className="text-3xl font-normal text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
               {progressPct}%
             </p>
-            <div className="h-1.5 overflow-hidden rounded-full bg-black/10">
+            <div className="h-1.5 overflow-hidden rounded-[9999px] bg-black/10">
               <div
-                className="h-full rounded-full bg-black transition-all duration-700"
+                className="h-full rounded-[9999px] bg-black transition-all duration-700"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
@@ -268,7 +268,7 @@ export function CourseDashboard({
             </p>
             {challengeLoading ? (
               <div className="mt-1 flex items-center gap-2">
-                <div className="h-3 w-3 animate-spin rounded-full border-2 border-black/30 border-t-black" />
+                <div className="h-3 w-3 animate-spin rounded-[9999px] border-2 border-black/30 border-t-black" />
                 <p className="text-xs font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
                   Generating challenge...
                 </p>
@@ -310,7 +310,7 @@ export function CourseDashboard({
                 <button
                   type="button"
                   onClick={() => setChallengeOpen(false)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full transition-all hover:bg-black/10"
+                  className="flex h-7 w-7 items-center justify-center rounded-[9999px] transition-all hover:bg-black/10"
                   aria-label="Close the daily challenge"
                 >
                   <X className="h-4 w-4 text-black/50" />
@@ -454,9 +454,9 @@ export function CourseDashboard({
             })}
           </div>
           <div className="mt-5">
-            <div className="h-1.5 overflow-hidden rounded-full bg-black/10">
+            <div className="h-1.5 overflow-hidden rounded-[9999px] bg-black/10">
               <div
-                className="h-full rounded-full bg-black transition-all duration-700"
+                className="h-full rounded-[9999px] bg-black transition-all duration-700"
                 style={{ width: `${roadmapLessonsPct}%` }}
               />
             </div>
@@ -532,7 +532,7 @@ export function CourseDashboard({
                 >
                   <div className="flex items-center gap-2.5">
                     <span
-                      className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold"
+                      className="flex h-6 w-6 items-center justify-center rounded-[9999px] text-[10px] font-semibold"
                       style={{
                         backgroundColor: isDone ? "rgb(15, 14, 14)" : "rgba(0, 0, 0, 0.1)",
                         color: isDone ? "white" : "rgb(89, 89, 89)",
@@ -547,9 +547,9 @@ export function CourseDashboard({
                       <p className="truncate text-xs font-medium leading-tight" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(15, 14, 14)" }}>
                         {title}
                       </p>
-                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-black/10">
+                      <div className="mt-1.5 h-1 overflow-hidden rounded-[9999px] bg-black/10">
                         <div
-                          className="h-full rounded-full bg-black transition-all duration-700"
+                          className="h-full rounded-[9999px] bg-black transition-all duration-700"
                           style={{ width: isDone ? "100%" : "0%" }}
                         />
                       </div>

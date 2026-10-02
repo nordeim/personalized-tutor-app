@@ -61,7 +61,7 @@ export function HubApp({
 }: {
   user: DashboardUser;
   course: HubCourse | null;
-  courses: { id: string; name: string; current: boolean }[];
+  courses: { id: string; name: string }[];
   initialLesson: number;
   initialChat: { role: "user" | "assistant"; content: string }[];
 }) {
@@ -160,7 +160,7 @@ export function HubApp({
                 aria-haspopup="menu"
                 aria-expanded={courseMenuOpen}
                 onClick={() => setCourseMenuOpen((v) => !v)}
-                className="flex items-center gap-2 rounded-full border border-black px-4 py-1.5 text-sm font-medium text-black transition-all hover:bg-black/5"
+                className="flex items-center gap-2 rounded-[9999px] border border-black px-4 py-1.5 text-sm font-medium text-black transition-all hover:bg-black/5"
                 style={{ fontFamily: '"Funnel Sans", sans-serif' }}
               >
                 <span>{course?.currentSubject || "Course"}</span>
@@ -220,9 +220,9 @@ export function HubApp({
                 aria-haspopup="menu"
                 aria-expanded={helpMenuOpen}
                 onClick={() => setHelpMenuOpen((v) => !v)}
-                className="flex items-center gap-2 rounded-full px-3 py-1.5 transition-all hover:bg-black/5"
+                className="flex items-center gap-2 rounded-[9999px] px-3 py-1.5 transition-all hover:bg-black/5"
               >
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">
+                <div className="flex h-7 w-7 items-center justify-center rounded-[9999px] bg-black text-sm font-semibold text-white">
                   ?
                 </div>
                 <span className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }} />
@@ -239,7 +239,7 @@ export function HubApp({
                 >
                   <div className="p-3" style={{ backgroundColor: "rgb(255, 253, 115)" }}>
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black font-semibold text-sm text-white">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-[9999px] bg-black font-semibold text-sm text-white">
                         {user.name.slice(0, 1).toUpperCase()}
                       </div>
                       <div>
@@ -287,7 +287,7 @@ export function HubApp({
           <button
             type="button"
             onClick={() => setTab("lessons")}
-            className="flex items-center gap-1.5 rounded-full border border-black/20 px-3 py-1.5 text-xs font-medium text-black"
+            className="flex items-center gap-1.5 rounded-[9999px] border border-black/20 px-3 py-1.5 text-xs font-medium text-black"
             style={{ fontFamily: '"Funnel Sans", sans-serif' }}
           >
             <List className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -310,9 +310,9 @@ export function HubApp({
                       {lessonProgressLabel}
                     </span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: "rgba(0, 0, 0, 0.12)" }}>
+                  <div className="h-1.5 overflow-hidden rounded-[9999px]" style={{ backgroundColor: "rgba(0, 0, 0, 0.12)" }}>
                     <div
-                      className="h-full rounded-full transition-all duration-500"
+                      className="h-full rounded-[9999px] transition-all duration-500"
                       style={{ width: `${lessonProgressPct}%`, backgroundColor: "rgb(15, 14, 14)" }}
                     />
                   </div>
@@ -341,7 +341,7 @@ export function HubApp({
                       aria-current={isActive ? "true" : undefined}
                     >
                       <span
-                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full"
+                        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[9999px]"
                         style={{
                           backgroundColor: isActive || isDone ? "rgb(15, 14, 14)" : "rgb(208, 208, 208)",
                         }}
@@ -432,7 +432,7 @@ export function HubApp({
                       }}
                     >
                       <span
-                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[9999px] text-xs font-semibold"
                         style={{
                           backgroundColor: isActive ? "rgb(255, 253, 115)" : "rgba(0, 0, 0, 0.1)",
                           color: isActive ? "rgb(15, 14, 14)" : "rgb(89, 89, 89)",
@@ -456,7 +456,7 @@ export function HubApp({
                       </div>
                       {isActive ? (
                         <span
-                          className="flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                          className="flex-shrink-0 rounded-[9999px] px-2 py-0.5 text-[10px] font-semibold"
                           style={{ backgroundColor: "rgb(255, 253, 115)", color: "rgb(15, 14, 14)" }}
                         >
                           Active

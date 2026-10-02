@@ -63,6 +63,58 @@ test.describe("mobile navigation (390×844)", () => {
     ).toBeVisible();
   });
 
+  test("the mobile menu carries the reference's Switch Course section (S5-F1)", async ({ page }) => {
+    // A fresh user with TWO courses (API-driven; the register call shares
+    // the context cookie jar). The reference's `md:hidden` panel renders a
+    // Switch Course section whenever enrollments.length > 1 — ALL courses,
+    // Check on the current one, rows navigate to the dashboard.
+    const email = `s5-mobile-${Date.now()}@parity.test`;
+    await page.request.post("/api/auth/register", {
+      data: { email, password: "Password123!", fullName: "S5 Mobile" },
+    });
+    const gen1 = await page.request.post("/api/courses/generate", {
+      data: { mode: "topic", topic: "Astronomy" },
+    });
+    const gen2 = await page.request.post("/api/courses/generate", {
+      data: { mode: "topic", topic: "Chemistry" },
+    });
+    const first = (await gen1.json()) as { data: { courseId: string } };
+    const second = (await gen2.json()) as { data: { courseId: string } };
+    expect(first.data.courseId).toBeTruthy();
+    expect(second.data.courseId).toBeTruthy();
+
+    await page.goto("/");
+    await page.getByRole("button", { name: "Open menu" }).tap();
+    const menu = page.getByRole("menu");
+
+    // The section label + both rows; NO Update Preferences on mobile.
+    await expect(menu.getByText("Switch Course")).toBeVisible();
+    await expect(menu.getByRole("button", { name: /Astronomy/ })).toBeVisible();
+    await expect(menu.getByRole("button", { name: /Chemistry/ })).toBeVisible();
+    await expect(
+      menu.getByRole("button", { name: "Update Preferences" }),
+    ).toHaveCount(0);
+
+    // A row tap navigates to /?course={id} (the DASHBOARD, not the hub).
+    await menu.getByRole("button", { name: /Astronomy/ }).tap();
+    await expect(page).toHaveURL(new RegExp(`/\\?course=${first.data.courseId}`));
+    await expect(page.getByRole("menu")).toBeHidden();
+  });
+
+  test("the guest demo mobile menu shows Sign In instead of Log Out (S5-F9)", async ({ page }) => {
+    // /demo is a stateless guest surface — its mobile menu renders the
+    // reference's no-user variant (Sign In where Log Out would be).
+    await page.goto("/demo");
+    await page.getByRole("button", { name: "Open menu" }).tap();
+    const menu = page.getByRole("menu");
+    await expect(menu.getByText("Guest")).toBeVisible();
+    // The reference renders Sign In when there is no user (guest mode).
+    await expect(menu.getByRole("button", { name: "Sign In" })).toBeVisible();
+    await expect(menu.getByRole("button", { name: "Log Out" })).toHaveCount(0);
+    await menu.getByRole("button", { name: "Sign In" }).tap();
+    await expect(page).toHaveURL(/\/login\?from_url=%2Fdemo/);
+  });
+
   test("the mobile dashboard stacks hero above the purple setup panel", async ({ page }) => {
     // The demo user already has a course, so the SETUP state lives at
     // /onboarding (the always-available Add-a-Course surface).

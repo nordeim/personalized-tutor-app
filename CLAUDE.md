@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (55 unit + 41 Playwright
+   bun run test && bun run build && bun run test:e2e` (65 unit + 45 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -86,6 +86,18 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   `x-forwarded-proto`; plain-HTTP production boots (the e2e server) MUST
   still set cookies. Regressing this silently breaks every authenticated
   e2e test — the bug class that cost a full debug cycle.
+- **THE mobile-menu invariant (session-5):** the hamburger dropdown is a
+  SEPARATE component from the desktop m_ — decoded straight from the
+  reference bundle: items `p-2` (no space-y), a "Switch Course" section
+  when enrollments > 1 (BookOpen rows + a Check on the current course,
+  rows route to `/?course={id}`), My Courses, Log Out — or **Sign In** in
+  guest mode. NO Update Preferences on mobile; the header context line
+  is the subject alone in `text-black/60`.
+- **THE m_ name split (session-5):** the desktop m_ panel header renders
+  the STUDENT's name (the `PUT /api/student` target — renames round-trip
+  visibly) while the collapsed pill renders the USER's name; with-course
+  panel = `p-4`/`gap-3`/`w-10` avatar at `text-base`, no-course panel =
+  `p-3`/`gap-2.5`/`w-8` with plain `p-2` items.
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in
@@ -133,8 +145,9 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   pins: full-hex `@theme` vars, v3 slate hexes, arbitrary gradient syntax,
   no `space-y-*` + explicit child margins, `--shadow-sm` at v3 geometry.
   Plus the global `button { cursor: pointer }` base rule (v4 preflight sets
-  none) and `rounded-[9999px]` instead of `rounded-full` on pills (v4
-  serializes infinity).
+  none) and the completed `rounded-[9999px]` sweep (session-5 — v4's
+  `rounded-full` serializes as `calc(Infinity*1px)` = 33554400px in
+  computed styles; the reference's v3 computes 9999px).
 - **Mascots/SVG assets are static files** in `public/` (extracted from the
   live app — the animated keyframes run inside `<img>`). Use the wrappers
   in `src/components/mascot.tsx`; never inline the 10 KB SVGs into TSX.

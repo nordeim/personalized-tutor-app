@@ -68,8 +68,8 @@ export function LoginCard({
           <div className="flex flex-col items-center space-y-6 text-center sm:space-y-8">
             {/* logo */}
             <div className="group relative">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 opacity-30 blur-xl transition-opacity duration-300 group-hover:opacity-40" />
-              <span className="relative flex h-20 w-20 shrink-0 overflow-hidden rounded-full shadow-lg ring-4 ring-white/50 transition-all duration-300 group-hover:shadow-xl sm:h-24 sm:w-24">
+              <div className="absolute inset-0 rounded-[9999px] bg-gradient-to-br from-slate-200 to-slate-300 opacity-30 blur-xl transition-opacity duration-300 group-hover:opacity-40" />
+              <span className="relative flex h-20 w-20 shrink-0 overflow-hidden rounded-[9999px] shadow-lg ring-4 ring-white/50 transition-all duration-300 group-hover:shadow-xl sm:h-24 sm:w-24">
                 <img
                   src="/logo.svg"
                   alt="Personalized Tutor App logo"

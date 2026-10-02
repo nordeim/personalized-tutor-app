@@ -27,7 +27,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🔥 | Study Streak + Total XP cards (the reference's gamification column) | `src/components/dashboard/course-dashboard.tsx` |
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course | `/demo` |
-| 🧪 | 55 unit tests + 41 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 65 unit tests + 45 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -112,9 +112,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 55 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path)
+bun run test          # 65 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 41 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 45 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
@@ -167,6 +167,18 @@ lesson-title suffixes, the mobile lessons sheet, and the subject-icon course
 cards — plus the biggest semantic discovery: the reference's dashboard
 progress is QUIZ-DERIVED (`round(score/5×100)`), which is exactly why its
 demo shows 60% with a 3/7 quiz score.
+
+## The session-5 chrome-polish pass
+
+A fifth audit ([`docs/remediation-plan-session-5.md`](docs/remediation-plan-session-5.md))
+decoded the reference's mobile hamburger menu as its OWN component (a Switch
+Course section with a Check on the current course, guest-mode Sign In, no
+Update Preferences) and the m_ panel's name split (the panel header renders
+the student's name — the rename target — while the pill keeps the user's
+name). It also completed the `rounded-[9999px]` sweep for computed-style
+parity with the reference's v3 radii, retimed the typewriter to the exact
+bundle timings (60/50 ms per char, 2000 ms hold, full first topic on load),
+and matched the 21px category chips.
 
 ## Pushing to GitHub
 

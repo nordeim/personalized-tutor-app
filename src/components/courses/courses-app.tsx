@@ -171,7 +171,7 @@ export function CoursesApp({ user, courses }: { user: DashboardUser; courses: Co
                                 }
                               }}
                               aria-label={`Delete ${c.courseName}`}
-                              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-all hover:bg-red-50"
+                              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-[9999px] transition-all hover:bg-red-50"
                             >
                               <Trash2 className="h-4 w-4 text-black/30 hover:text-red-400" strokeWidth={1.5} />
                             </div>
@@ -187,9 +187,9 @@ export function CoursesApp({ user, courses }: { user: DashboardUser; courses: Co
                               {pct}%
                             </span>
                           </div>
-                          <div className="h-1.5 overflow-hidden rounded-full bg-black/10">
+                          <div className="h-1.5 overflow-hidden rounded-[9999px] bg-black/10">
                             <div
-                              className="h-full rounded-full bg-black transition-all duration-700"
+                              className="h-full rounded-[9999px] bg-black transition-all duration-700"
                               style={{ width: `${pct}%` }}
                             />
                           </div>

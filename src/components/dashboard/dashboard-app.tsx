@@ -80,6 +80,13 @@ export function DashboardApp({
         .filter((c) => c.courseName !== pillSubject)
         .map((c) => ({ id: c.id, name: c.courseName, source: c.contentSource ?? null }))
     : [];
+  // The mobile menu's Switch Course list = ALL courses with the current flag
+  // (the reference's `md:hidden` panel keeps the current row visible + checked).
+  const mobileCourses = courses.map((c) => ({
+    id: c.id,
+    name: c.courseName,
+    current: c.id === activeCourse?.id,
+  }));
 
   return (
     <ToastProvider>
@@ -88,9 +95,11 @@ export function DashboardApp({
           user={user}
           currentSubject={pillSubject}
           enrollments={headerEnrollments}
+          courses={mobileCourses}
           student={
             showCourseDashboard && student
               ? {
+                  name: student.name,
                   currentSubject: student.currentSubject,
                   contentSource: student.contentSource ?? null,
                 }

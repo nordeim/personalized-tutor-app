@@ -201,6 +201,18 @@ export function tagTopic(subject: string, sub: string): string {
 }
 
 /**
+ * The shared custom-source predicate (session-5): the m_ context line
+ * ("Custom material") and the CoursePill's BookOpen-vs-Sparkles tile both
+ * branch on "custom" | "material" membership (the live's `p_` uses the
+ * same check).
+ */
+export function isCustomSource(
+  contentSource: string | null | undefined,
+): boolean {
+  return contentSource === "custom" || contentSource === "material";
+}
+
+/**
  * The m_ user-dropdown header's context line (session-4):
  * "{current_subject} · Default" or "· Custom material" for custom sources;
  * the guest/null student renders "Default" alone (the live renders the
@@ -210,9 +222,7 @@ export function courseContextLine(
   subject: string | null | undefined,
   contentSource: string | null | undefined,
 ): string {
-  const isCustom =
-    contentSource === "custom" || contentSource === "material";
-  const suffix = isCustom ? "Custom material" : "Default";
+  const suffix = isCustomSource(contentSource) ? "Custom material" : "Default";
   return subject ? `${subject} · ${suffix}` : suffix;
 }
 

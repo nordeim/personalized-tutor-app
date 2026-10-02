@@ -11,7 +11,7 @@ import { useToast } from "@/components/toast";
 //             bg rgba(0,0,0,0.75) + backdrop-blur(6px)
 //   card      w-full max-w-md rounded-[24px] p-6 flex flex-col gap-5 relative,
 //             bg #C8AEFF, maxHeight 90vh, overflowY auto
-//   close     absolute top-4 right-4 w-8 h-8 rounded-full bg-black/10 (X)
+//   close     absolute top-4 right-4 w-8 h-8 rounded-[9999px] bg-black/10 (X)
 //   modes     2 cards, radius 12, selected #FFFD73 / white
 //   tags      6 single-label pills; click sets the topic "Subject: Sub"
 //             (selected pill = bg #0F0E0E text white)
@@ -154,7 +154,7 @@ export function AddCourseModal({
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/10 transition-all hover:bg-black/20"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-[9999px] bg-black/10 transition-all hover:bg-black/20"
         >
           <X className="h-4 w-4 text-black" strokeWidth={1.5} />
         </button>
@@ -229,7 +229,7 @@ export function AddCourseModal({
                     key={tag.sub}
                     type="button"
                     onClick={() => setTopic(selected ? "" : full)}
-                    className="rounded-full px-3 py-1 text-xs transition-all"
+                    className="rounded-[9999px] px-3 py-1 text-xs transition-all"
                     style={{
                       backgroundColor: selected ? "rgb(15, 14, 14)" : "rgba(255, 255, 255, 0.5)",
                       color: selected ? "white" : "rgb(15, 14, 14)",
@@ -295,7 +295,7 @@ export function AddCourseModal({
               >
                 {extracting ? (
                   <>
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                    <div className="h-5 w-5 animate-spin rounded-[9999px] border-2 border-black border-t-transparent" />
                     <p className="text-xs" style={{ color: "rgb(89, 89, 89)" }}>
                       Extracting...
                     </p>
@@ -333,7 +333,7 @@ export function AddCourseModal({
           style={{ borderRadius: "12px" }}
         >
           {submitting ? (
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-[9999px] border-2 border-white border-t-transparent" />
           ) : (
             <span className="flex items-center gap-2">
               Start Assessment

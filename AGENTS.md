@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (55 checks) | `bun run test` |
-| Browser E2E (41 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (65 checks) | `bun run test` |
+| Browser E2E (45 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (55) → `bun run build` → `bun run test:e2e` (41 Playwright
+`bun run test` (65) → `bun run build` → `bun run test:e2e` (45 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -53,6 +53,20 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   File tabs, submit ("Start Assessment") → `POST /api/courses/generate` →
   navigate `/quiz?course={id}`. On `/demo` (guest mode) the submit degrades
   to a sign-up toast + `/login?from_url=%2Fonboarding`.
+- **THE mobile hamburger menu is its own component** (session-5 bundle
+  decode — NOT the desktop m_ reused): items container `p-2` (no
+  space-y), a "Switch Course" section when enrollments > 1 (label
+  `text-[10px] font-light`, BookOpen rows, a Check on the CURRENT course,
+  rows route to `/?course={id}`, divider `h-px bg-black/10 my-1`), My
+  Courses, and Log Out — or **Sign In in guest mode**. There is NO Update
+  Preferences on mobile; the header context line is the subject ALONE in
+  `text-xs text-black/60`.
+- **THE m_ name split:** the desktop m_ PANEL header renders the STUDENT's
+  name (`e.name` in the bundle — the `PUT /api/student` save target, so the
+  rename round-trips visibly) while the collapsed PILL renders the USER's
+  name (`full_name`). The with-course panel header is `p-4`/`gap-3`/`w-10`
+  avatar at `text-base`; the no-course panel is `p-3`/`gap-2.5`/`w-8` with
+  `p-2` (no space-y) items.
 - **The with-course header is TWO dropdowns** (`app-header.tsx`): the
   bordered Course pill (p_) labeled `student.current_subject`, listing the
   OTHER courses (`course_name !== current_subject`) or "This is your only
@@ -115,9 +129,12 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
 - **Tailwind 4 is CSS-first** — no `tailwind.config.js`. Tokens live in
   `src/app/globals.css` `@theme` as FULL hex colors (never bare HSL
   triplets), the v3 slate hexes are pinned (v4's oklch drifts), and
-  `--shadow-sm` is pinned to the v3 geometry. See
-  `docs/Tailwind-V4-Validation-Report.md` for the full trap log — read it
-  before touching styles.
+  `--shadow-sm` is pinned to the v3 geometry. Circular radii use
+  `rounded-[9999px]` — v4's `rounded-full` compiles to
+  `calc(Infinity*1px)` = 33554400px in computed styles while the v3
+  reference computes 9999px (session-5: the sweep is complete; keep it).
+  See `docs/Tailwind-V4-Validation-Report.md` for the full trap log —
+  read it before touching styles.
 - **THE mobile-nav rule:** the toast layer (`src/components/toast.tsx`)
   renders the Sonner-compatible container as `pointer-events-none` with
   toast items `pointer-events-auto`. The live reference ships this broken

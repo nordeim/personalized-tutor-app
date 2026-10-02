@@ -167,9 +167,9 @@ export function QuizApp({
                     {current + 1} / {questions.length}
                   </p>
                 </div>
-                <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-black/10">
+                <div className="mb-6 h-1.5 overflow-hidden rounded-[9999px] bg-black/10">
                   <div
-                    className="h-full rounded-full bg-black transition-all duration-500"
+                    className="h-full rounded-[9999px] bg-black transition-all duration-500"
                     style={{ width: `${((current + (revealed ? 1 : 0)) / questions.length) * 100}%` }}
                   />
                 </div>
@@ -205,7 +205,7 @@ export function QuizApp({
                           }}
                           aria-pressed={isPicked}
                         >
-                          <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold" style={{ backgroundColor: "rgba(0, 0, 0, 0.08)" }}>
+                          <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-[9999px] text-xs font-semibold" style={{ backgroundColor: "rgba(0, 0, 0, 0.08)" }}>
                             {String.fromCharCode(65 + i)}
                           </span>
                           {opt}

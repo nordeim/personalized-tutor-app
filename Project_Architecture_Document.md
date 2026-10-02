@@ -1,4 +1,4 @@
-# Thinkerwell (Personalized Tutor App Clone) — Master Project Architecture Document (PAD) v1.3
+# Thinkerwell (Personalized Tutor App Clone) — Master Project Architecture Document (PAD) v1.4
 
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
@@ -10,15 +10,16 @@
 
 ---
 
-#### Revision Block — v1.3 (Tracked Changes)
+#### Revision Block — v1.4 (Tracked Changes)
 
-- `[SR]` Full clone build: 7 routes, 15 API handlers, 7 Prisma models, AI seam with fallbacks, measured design system, 55 unit + 41 e2e checks.
+- `[SR]` Full clone build: 7 routes, 15 API handlers, 7 Prisma models, AI seam with fallbacks, measured design system, 65 unit + 45 e2e checks.
 - `[SAN]` Tailwind v4 engine traps pinned in `globals.css` (five documented differences vs the reference's v3 compiled CSS — see the companion trap log).
 - `[AUTH]` Session-cookie `secure` flag derived from request protocol (fixes silent cookie drops on plain-HTTP production boots — the e2e boot caught it).
 - `[RES]` Mobile navigation fix: empty toast container made `pointer-events-none` (the live reference ships the bug; Playwright refuses the covered hamburger tap — pinned by `tests/e2e/mobile-navigation.spec.ts`).
 - `[S2]` Session-2 parity pass (see `docs/remediation-plan-session-2.md`): the reference's exact 99-line content pool + per-load random bubble picks (server-side prop); the lesson-quiz flow ported to the reference semantics (800 ms auto-advance, retry-later re-queue, 8-to-complete, in-pane "Level Up!" interstitial at stage boundaries with live 1200/800 ms timing); the three confetti presets (`src/lib/confetti.ts` + `canvas-confetti`); Study Streak + Total XP cards (days = min(quizScore,7), XP = pct·10 + score·50); the interactive Daily Challenge modal (upgraded `/api/challenge` returning question/hint/options/correctIndex); conditional Course Progress tint; typewriter topics synced to the reference list; identity sweep (package.json, .env, configs de-ORBITAL'd, `personalized-tutor-app_SKILL.md` replaces the stale scaffold skill).
 - `[S3]` Session-3 architecture pass (see `docs/remediation-plan-session-3.md`): the lesson view ported to the reference's decoded gO/yO/xO + Im architecture (subject h2 on level 1 / AI title on 2-3, per-level Core Concept / Real-World Scenario / Final Boss Challenge cards, per-question video + reading content cards, tan 2-column `#E1C8B9` option grid with green/red reveal + CircleCheckBig/CircleX icons, "Next Question" button, 1000 ms reveal → 800 ms advance timing); the hub sidebar's 3-state rows (done/active/locked — the active index drives all three) with the session-scoped "N+1/8" Lesson Progress card (BookOpen icon); per-stage lesson-title suffixes (Basics/In Practice, Fundamentals/Application, Deep Dive/Mastery); the mobile lessons sheet (All Lessons header, black active rows, stage-number-twice labels); subject-icon course cards (keyword-mapped lucide icons, black tiles, Trash2 + ChevronRight, quiz-derived progress); Nori chat question-context prefix (`[Current question: …]` on `/api/chat`); **the quiz-derived progress model** — the reference has no per-lesson entity, so `quizProgressPercent = round(score/5×100)` drives every dashboard/courses number (the demo's 60% = round(3/5·100); the percent clamps at 100, fixing the live's >100% bug); gap_analysis render removed (the live never displays it).
 - `[S4]` Session-4 parity pass (see `docs/remediation-plan-session-4.md`): the **Q5 "Add a Course" in-page modal** (`add-course-modal.tsx`, decoded from the live bundle: overlay blur 6px, #C8AEFF card, Build/Material mode cards, the 6 `ADD_COURSE_TAGS` quick tags that set the topic `"Subject: Sub"`, Paste Text/Upload File tabs, Start Assessment → `POST /api/courses/generate` → `/quiz?course={id}`) replacing the `/onboarding` link on `/courses`; the **two-dropdown header split** — the bordered Course pill (p_) labeled `current_subject` listing the OTHER courses (or "This is your only course") + All Courses + Add-a-Course (opens Q5), beside the m_ user menu (course context line `"{subject} · Custom material|Default"`, inline Update Preferences Name form → `PUT /api/student`, My Courses, Log Out); the hub header's span switched to the CURRENT LESSON TITLE and its pill rows now route to `/?course={id}` (the dashboard) with the "current" badge and "No courses yet" placeholder removed; the `/demo` surface runs the real guest-mode AppHeader (Economics Course pill + Guest m_ menu; writes degrade to sign-up routes). 49 → 55 unit, 36 → 41 e2e.
+- `[S5]` Session-5 chrome-polish pass (see `docs/remediation-plan-session-5.md`): the **mobile hamburger menu reworked to its own reference component** (items `p-2` without space-y; a Switch Course section when enrollments > 1 — label `text-[10px] font-light`, BookOpen rows, a Check on the CURRENT course, rows route to `/?course={id}`, `h-px bg-black/10 my-1` divider; My Courses; Log Out — or guest-mode **Sign In**; NO Update Preferences on mobile; the header context line renders the subject alone in `text-xs text-black/60`); the **m_ name split** — the desktop panel header renders the STUDENT's name (the `PUT /api/student` target, so renames round-trip) while the collapsed pill keeps the USER's name, with the with-course panel header re-metriced to `p-4`/`gap-3`/`w-10` avatar at `text-base` (no-course stays `p-3`/`gap-2.5`/`w-8` with plain `p-2` items); the **`rounded-[9999px]` sweep** (49 usages — v4's `rounded-full` computes to `calc(Infinity*1px)` = 33554400px vs the reference v3's 9999px); typewriter retimed to the bundle's `o_` machine (60 ms type / 50 ms delete / 2000 ms hold, full first topic on load); the 21px category chips (py-1, text-[13px], leading-none, bg 0.5); `isCustomSource` extracted to `domain.ts`; `saveName` now honors the `{ok,error}` envelope + failure toast; the duplicated outside-click effect extracted to `useDismissOnOutsideClick`; the hub's dead `courses[].current` field dropped; p_ panel icons at strokeWidth 2; the guest pill hover `bg-black/5`. 55 → 65 unit, 41 → 45 e2e.
 
 ---
 
@@ -529,13 +530,14 @@ per-process (single-node doctrine).
 
 | Layer | Tool | Scope | Count |
 |---|---|---|---|
-| Pure domain | Vitest (`tests/domain.test.ts`, `tests/db-path.test.ts`, `tests/parity-session2.test.ts`, `tests/domain-session4.test.ts`) | mastery grid, roadmap parsing, titles, progress math, quotes, URL anchors, ADD_COURSE_TAGS, courseContextLine | 55 |
+| Pure domain | Vitest (`tests/domain.test.ts`, `tests/db-path.test.ts`, `tests/parity-session2.test.ts`, `tests/domain-session4.test.ts`, `tests/domain-session5.test.ts`) | mastery grid, roadmap parsing, titles, progress math, quotes, URL anchors, ADD_COURSE_TAGS, courseContextLine, isCustomSource, avatarLetter | 65 |
 | E2E — auth surface | Playwright (`auth.spec.ts`, logged-out storageState) | redirects, card structure, bad credentials, signup → onboarding | 5 |
 | E2E — header chrome | `header.spec.ts` (authenticated) | m_ user menu (context line, Update Preferences save), Course pill (p_), logout, yellow tokens, Eczar wordmark | 5 |
 | E2E — dashboard | `dashboard.spec.ts` | stats grid, quiz-derived math, quote bubble tokens, Hub panes, Nori reply + persistence, courses, Q5 modal, demo 60% pin | 12 |
 | E2E — session-4 parity | `session4-parity.spec.ts` | hub pill rows → dashboard, hub header lesson-title span, guest demo two-pill chrome + degraded writes | 3 |
+| E2E — session-5 parity | `session5-parity.spec.ts` (fresh registered users via `page.request`) | the authenticated Q5 submit flow (tag → topic → /quiz?course=), the preferences rename round-trip (m_ panel = student name, pill = user name) | 2 |
 | E2E — session-2 parity | `session2-parity.spec.ts` | quote bubble, quiz flow timing, challenge modal, streak/XP math | 7 |
-| E2E — mobile nav | `mobile-navigation.spec.ts` (390×844, touch) | **hamburger tappable (the regression pin)**, menu structure, hub tab bar colors, tab switching | 8 |
+| E2E — mobile nav | `mobile-navigation.spec.ts` (390×844, touch) | **hamburger tappable (the regression pin)**, menu structure, the Switch Course section + guest Sign In, hub tab bar colors, tab switching | 10 |
 | E2E — auth setup (project) | `auth.setup.ts` | one request-level login → shared storageState (dodges the auth rate limiter) | 1 |
 
 **Conventions:**

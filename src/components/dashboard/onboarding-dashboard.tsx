@@ -43,10 +43,17 @@ const FEATURE_ICONS = {
   ),
 };
 
-/** The h1 typewriter — types a topic, holds, deletes, cycles. */
+/**
+ * The h1 typewriter — the reference's `o_` state machine (session-5 decode):
+ * idle 2000 ms → deleting 50 ms/char → typing 60 ms/char → idle… The initial
+ * state renders the FULL first topic (it starts held, then deletes), exactly
+ * like the live ("Dive into Economics" on first paint).
+ */
 function useTypewriter(topics: readonly string[]): string {
-  const [text, setText] = useState("");
-  const state = useRef({ topic: 0, pos: 0, deleting: false });
+  const [text, setText] = useState(topics[0] ?? "");
+  // "deleting: true" at mount = the reference's post-idle state: the full
+  // first topic is held for the initial 2000 ms, then the delete begins.
+  const state = useRef({ topic: 0, pos: topics[0]?.length ?? 0, deleting: true });
 
   useEffect(() => {
     let timer: number;
@@ -58,23 +65,25 @@ function useTypewriter(topics: readonly string[]): string {
         setText(current.slice(0, s.pos));
         if (s.pos >= current.length) {
           s.deleting = true;
-          timer = window.setTimeout(tick, 2400);
+          timer = window.setTimeout(tick, 2000);
           return;
         }
-        timer = window.setTimeout(tick, 90);
+        timer = window.setTimeout(tick, 60);
       } else {
         s.pos -= 1;
         setText(current.slice(0, s.pos));
         if (s.pos <= 0) {
           s.deleting = false;
           s.topic = (s.topic + 1) % topics.length;
-          timer = window.setTimeout(tick, 420);
+          timer = window.setTimeout(tick, 0);
           return;
         }
-        timer = window.setTimeout(tick, 45);
+        timer = window.setTimeout(tick, 50);
       }
     };
-    timer = window.setTimeout(tick, 600);
+    // The first cycle holds the full first topic for the idle period, then
+    // deletes — matching the live's initial mount state.
+    timer = window.setTimeout(tick, 2000);
     return () => window.clearTimeout(timer);
   }, [topics]);
 
@@ -190,7 +199,7 @@ export function OnboardingDashboard({
             ).map(([icon, label]) => (
               <div
                 key={label}
-                className="flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs"
+                className="flex items-center gap-1.5 rounded-[9999px] bg-white px-3 py-1.5 text-xs"
                 style={{ fontFamily: '"Funnel Sans", sans-serif', fontWeight: 400 }}
               >
                 {FEATURE_ICONS[icon]}
@@ -286,7 +295,7 @@ export function OnboardingDashboard({
                 style={{ borderRadius: 12, backgroundColor: "rgba(255, 255, 255, 0.5)" }}
               >
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-black px-2 py-0.5 text-xs text-white" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                  <span className="rounded-[9999px] bg-black px-2 py-0.5 text-xs text-white" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
                     Try it
                   </span>
                   <span className="text-sm text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
@@ -317,14 +326,27 @@ export function OnboardingDashboard({
                       key={tag.topic}
                       type="button"
                       onClick={() => setTopic(`${tag.subject}: ${tag.topic}`)}
-                      className="tag-btn rounded-full px-3 py-1.5 text-xs transition-all"
+                      // The reference's tag chip (session-5 decode): py-1,
+                      // text-[13px], leading-none, overflow-hidden — computed
+                      // height 21px at bg rgba(255,255,255,0.5).
+                      className="tag-btn flex items-center overflow-hidden rounded-[9999px] px-3 py-1 text-[13px] leading-none"
                       style={{
-                        backgroundColor: "rgba(255, 255, 255, 0.6)",
+                        backgroundColor: "rgba(255, 255, 255, 0.5)",
                         fontFamily: '"Funnel Sans", sans-serif',
                       }}
                     >
-                      <span className="tag-subject text-black/50">{tag.subject} </span>
-                      <span className="text-black">{tag.topic}</span>
+                      <span
+                        className="tag-subject"
+                        style={{
+                          fontWeight: 600,
+                          overflow: "hidden",
+                          whiteSpace: "nowrap",
+                          display: "inline-block",
+                        }}
+                      >
+                        {tag.subject}
+                      </span>
+                      <span style={{ fontWeight: 300 }}>{tag.topic}</span>
                     </button>
                   ))}
                 </div>

@@ -66,7 +66,6 @@ export default async function HubPage({
       courses={enrollments.map((e) => ({
         id: e.id,
         name: e.courseName,
-        current: e.id === enrollment?.id,
       }))}
       initialLesson={initialLesson}
       initialChat={currentChat.map((m) => ({

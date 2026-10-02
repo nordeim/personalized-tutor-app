@@ -85,7 +85,7 @@ export function NoriChat({
         <div>
           <p className="text-sm font-medium text-black">Nori</p>
           <div className="flex items-center gap-1.5">
-            <div className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "rgb(76, 175, 80)" }} />
+            <div className="h-1.5 w-1.5 rounded-[9999px]" style={{ backgroundColor: "rgb(76, 175, 80)" }} />
             <span className="text-xs font-light" style={{ color: "rgb(89, 89, 89)" }}>
               Your AI Tutor
             </span>

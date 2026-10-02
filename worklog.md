@@ -188,3 +188,21 @@ Work Log:
 
 Stage Summary:
 - Session-4 deliverable complete: the chrome surfaces now match the reference (Q5 in-page modal, two-dropdown header, hub pill semantics, guest demo structure) with the full gate green and pushed to main.
+
+---
+Task ID: 10
+Agent: main (Super Z)
+Task: Session 5 — mobile-menu decode, chrome polish, code-quality pass, docs, push
+
+Work Log:
+- git pull → 25856bb (brought docs/session_5.md, the previous transcript); re-reviewed the root docs + session_4 + remediation-plan-session-4 + worklogs; baseline gate green (55 unit + 41 e2e); unset the stale shell DATABASE_URL export.
+- Two-axis code review of the session-4 diff (c375a26...HEAD) as parallel sub-agents per the code-review skill: Spec PASS (two e2e coverage gaps: the authenticated Q5 flow, the preferences header-name assertion); Standards findings (rounded-full vs the documented 9999px pin, triplicated outside-click effect, saveName ignoring the envelope, duplicated custom-source predicate, dead current field).
+- Live re-audit (login + 788KB bundle decode + DOM probes at 1280/390): decoded the MOBILE menu as its own component (p-2 items, Switch Course section with Check on current + rows → /?course=, My Courses, Log Out / guest Sign In, no Update Preferences, subject-only context in text-black/60); the m_ name split (panel = student.name e.name, pill = user full_name); the m_ with-course header metrics (p-4/gap-3/w-10 text-base); the typewriter o_ machine (60/50ms, 2000ms hold, full first topic); the 21px tag geometry; p_ icon strokeWidth 2; the guest pill hover bg-black/5; computed radius 9999px vs 33554400px; live toaster bug re-confirmed.
+- Findings catalogue: docs/remediation-plan-session-5.md (S5-F1..F15 + confirmed list + accepted divergences); plan validated against the code before execution.
+- TDD execution: domain seam first (isCustomSource + avatarLetter pins, 55→65 unit RED→GREEN), the MobileMenuBody rework (AppHeader courses prop; dashboard/demo wiring; mobile preferences threading removed), the m_ rework (student name in the panel header, p-4/gap-3/w-10 metrics, no-course p-2 items, envelope-aware saveName + failure toast, guest pill hover), the typewriter retime, the 21px tag fix, the 49-usage rounded-[9999px] sweep, useDismissOnOutsideClick extraction, hub dead-field drop, p_ icon strokes.
+- E2E: new session5-parity.spec (fresh page.request users: authenticated Q5 flow → /quiz?course=, preferences rename round-trip pinning the name split); mobile-navigation.spec gains Switch Course + guest Sign In tests. Fixed the one failure the round-trip exposed (the m_ panel was rendering user.name — now the student's name per the bundle decode). 41 → 45 e2e.
+- Gate green: lint ✓ typecheck ✓ 65 unit ✓ build ✓ 45 e2e ✓; screenshots 45–50 captured (m_ header, mobile menu, guest Sign In, typewriter/tags, tag hover, Switch Course); dev DB reseeded after the capture.
+- Docs aligned: README (counts + session-5 section), AGENTS (mobile-menu + name-split + sweep invariants), CLAUDE, PAD v1.4 [S5] + testing table, personalized-tutor-app_SKILL.md v1.4.0 (§5/§6/§9 traps 16–18/§10 rows, Phase-5 spot-verified), docs/session_5.md formatted summary, .env.example re-verified (no new env vars).
+
+Stage Summary:
+- Session-5 deliverable complete: the mobile chrome now matches the decoded reference component (not an m_ reuse), the m_ name split is honest, computed radii match v3, and the full gate is green — ready to commit + push via the SSH wrapper.

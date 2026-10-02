@@ -9,11 +9,13 @@ description: >
   semantics, the quiz-derived progress model, the lesson-view architecture
   (gO/yO/xO + Im), the two-dropdown header split (Course pill p_ + m_ user
   menu), the Q5 Add-a-Course modal, the hub pill semantics, the guest demo
-  chrome, the gamification math, the AI fallback doctrine, and the
+  chrome, the session-5 mobile-menu component (Switch Course + guest Sign
+  In), the m_ student-vs-user name split, and the completed
+  rounded-[9999px] computed-radius parity sweep, the gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.3.0
+version: 1.4.0
 last_updated: 2026-10-02
-project_state: 55 unit tests + 41 e2e checks green; session-4 parity pass complete (Q5 modal, two-dropdown header, hub pill semantics, guest demo chrome)
+project_state: 65 unit tests + 45 e2e checks green; session-5 chrome-polish pass complete (mobile menu as its own component, m_ name split, rounded-[9999px] sweep, exact typewriter/chip timings)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -191,7 +193,17 @@ channel, always via the `{ ok, data } | { ok, error }` envelope.
 `src/components/`):**
 - `layout/app-header.tsx` — the reference's TWO-dropdown split: the bordered
   Course pill (p_) + the m_ user menu (context line, Update Preferences →
-  PUT /api/student), plus the mobile hamburger; guest mode degrades writes.
+  PUT /api/student). The mobile hamburger opens its OWN component
+  (session-5 decode — `MobileMenuBody`): items `p-2` (no space-y), a
+  Switch Course section when enrollments > 1 (BookOpen rows + a Check on
+  the current course, rows → `/?course={id}`), My Courses, Log Out — or
+  guest **Sign In**; NO Update Preferences on mobile; the header context
+  line is the subject alone in `text-black/60`. The m_ PANEL header
+  renders the STUDENT's name (the rename target) while the pill renders
+  the USER's name; with-course panel = `p-4`/`gap-3`/`w-10` avatar at
+  `text-base`, no-course = `p-3`/`gap-2.5`/`w-8` with plain `p-2` items.
+  The triplicated outside-click effect lives in ONE hook
+  (`useDismissOnOutsideClick`).
 - `courses/add-course-modal.tsx` — the Q5 "Add a Course" in-page modal
   (Build/Material cards, ADD_COURSE_TAGS quick tags, Paste Text/Upload File
   tabs, Start Assessment → /quiz?course=).
@@ -227,6 +239,11 @@ channel, always via the `{ ok, data } | { ok, error }` envelope.
   (desktop) / `.last()` (mobile) — Playwright strict mode otherwise fails.
 
 ## §6 Custom "Hooks" Deep Dive
+
+**`useDismissOnOutsideClick(ref, onDismiss)`** (session-5, defined in
+`app-header.tsx`) — the one shared outside-click dismissal for the
+CoursePill, the UserMenu, and the mobile hamburger. It replaced three
+copy-pasted effects (the Standards review's Duplicated Code finding).
 
 - `useTypewriter(topics)` (`onboarding-dashboard.tsx`) — types a topic char
   by char (90 ms), holds 2400 ms, deletes (45 ms), cycles; cleans its timer
@@ -378,6 +395,21 @@ exercises this via real 429s). The Daily Challenge returns
     create components during render") — extract inner cards to module-level
     components with props (the ContentCard/ContextCard pattern in
     lesson-view.tsx).
+16. **`rounded-full` computes to 33554400px in v4** (session-5):
+    `calc(Infinity*1px)` serializes as `3.35544e+07px` in computed styles
+    while the reference's v3 computes `9999px`. The sweep is COMPLETE —
+    every circular element uses `rounded-[9999px]`. Visually identical,
+    computed-style different; e2e specs assert borders, not radii.
+17. **The mobile menu is NOT the m_ reused** (session-5): reusing the
+    desktop menu body on mobile reintroduces Update Preferences, the
+    `space-y-0.5` gap, and the full context line — all absent from the
+    reference's `md:hidden` panel. Mobile renders `MobileMenuBody`
+    (Switch Course + My Courses + Log Out/Sign In).
+18. **The m_ panel name vs the pill name** (session-5): the panel header
+    must render the STUDENT's name (`e.name` — what `PUT /api/student`
+    writes) or the preferences rename visibly round-trips nowhere; the
+    pill renders the USER's `full_name`. Same-name seeds hide this bug —
+    test with a rename.
 
 ## §10 Debugging Guide
 
@@ -397,12 +429,14 @@ exercises this via real 429s). The Daily Challenge returns
 | "Cannot create components during render" lint error | trap 15 (nested components) | extract the card to a module-level component |
 | Options render white/single-column | the tan 2-col grid regressed | `button.rounded-[14px]` grid + `#E1C8B9` (§4) |
 | Bubble quote changes on every render / hydration warning | random pick moved client-side | move the pick back to the server page (§5) |
+| Preferences rename doesn't show in the m_ header | trap 18 (panel renders user.name) | render `student.name` in the panel, `user.name` in the pill |
+| Computed border-radius shows 3.35544e+07px | trap 16 (`rounded-full` returned) | grep `rounded-full` in `src/` — must be zero; use `rounded-[9999px]` |
 
 **Live-site verification commands:**
 ```bash
 curl -s localhost:3000/api/health          # {"ok":true,"data":{"status":"ok","db":true}}
-bun run test                              # 55 unit
-bun run build && bun run test:e2e         # 41 e2e on :3100
+bun run test                              # 65 unit
+bun run build && bun run test:e2e         # 45 e2e on :3100
 ```
 
 ## §11 Pre-Ship Checklist
@@ -412,9 +446,9 @@ Run IN ORDER; the local gate is the only gate (no hosted CI):
 ```bash
 bun run lint          # eslint . — zero warnings
 bun run typecheck     # tsc --noEmit — zero errors (build won't catch them!)
-bun run test          # 55 Vitest checks
+bun run test          # 65 Vitest checks
 bun run build         # standalone build (also required for e2e)
-bun run test:e2e      # 41 Playwright checks on :3100
+bun run test:e2e      # 45 Playwright checks on :3100
 ```
 
 Verification categories beyond the gate:

@@ -76,7 +76,8 @@ export function DemoDashboard({
           user={{ name: "Guest", email: "guest@thinkerwell.demo" }}
           currentSubject="Economics"
           enrollments={[]}
-          student={{ currentSubject: "Economics", contentSource: null }}
+          courses={[{ id: "demo-enrollment", name: "Economics", current: true }]}
+          student={{ name: "Guest", currentSubject: "Economics", contentSource: null }}
           guest
         />
         <CourseDashboard

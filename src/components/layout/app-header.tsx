@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/mascot";
-import { avatarLetter, courseContextLine } from "@/lib/domain";
+import { avatarLetter, courseContextLine, isCustomSource } from "@/lib/domain";
 import { AddCourseModal } from "@/components/courses/add-course-modal";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/utils";
@@ -19,13 +19,18 @@ import {
 } from "lucide-react";
 
 // AppHeader — the shared yellow chrome (session-4 rework: the reference's
-// two-dropdown split).
+// two-dropdown split; session-5: the mobile menu decoded as its own
+// component).
 //
 //   Desktop (with course):  brand · CoursePill (p_) · UserMenu (m_)
 //   Desktop (no course):    brand · UserMenu (My Courses + Log Out only)
-//   Mobile:                 brand · hamburger → the UserMenu content in a
-//                           name-only dropdown panel (the pills are hidden
-//                           behind the hamburger at 390px on the live too)
+//   Mobile:                 brand · hamburger → the MOBILE menu (a separate
+//                           reference component — NOT the m_ reused): a
+//                           "Switch Course" section (all enrollments, Check
+//                           on the current, rows → /?course={id}), My Courses,
+//                           and Log Out — or Sign In in guest mode. No
+//                           Update Preferences on mobile; the header context
+//                           line is the subject alone in text-black/60.
 //
 // The CoursePill (the reference's p_) is the bordered pill labeled with the
 // student's current_subject; its w-64 panel lists the OTHER courses (the
@@ -39,11 +44,14 @@ import {
 // Measured parity notes:
 //   header: px-4 md:px-8 py-3 mx-[4px] rounded-b-[20px], bg #FFFD73
 //   brand: Eczar 16px/400, mark 33px, top offset 2px
-//   user pill: px-3 py-1.5 rounded-full, avatar w-7 h-7 bg-black
-//   course pill: px-4 py-1.5 rounded-full border border-black
+//   user pill: px-3 py-1.5 rounded-[9999px] (hover:bg-black/5 guest, /10 auth),
+//              avatar w-7 h-7 bg-black
+//   course pill: px-4 py-1.5 rounded-[9999px] border border-black
 //   panels: absolute top-full mt-2 bg-white rounded-[16px] shadow-xl,
 //           overflow-hidden, border border-black/10 (the pill panel),
 //           w-64 (pill) / w-80 (user, with-course) / min-w 200-220 (simple)
+//   m_ with-course header: p-4 gap-3, avatar w-10 h-10 text-base (session-5)
+//   m_ items: p-2 space-y-0.5 (with-course) / p-2 (no-course, session-5)
 
 export type HeaderUser = {
   name: string;
@@ -58,8 +66,37 @@ export type PillCourse = {
   source?: string | null;
 };
 
+/** A course row inside the MOBILE menu's Switch Course section (ALL courses). */
+export type MobileCourse = {
+  id: string;
+  name: string;
+  /** Marks the current course (the reference renders a Check on it). */
+  current: boolean;
+};
+
+/* ------------------------------------------------------------------ */
+/* useDismissOnOutsideClick — the shared outside-click dismissal (the   */
+/* effect was triplicated across CoursePill/UserMenu/AppHeader before).  */
+/* ------------------------------------------------------------------ */
+
+function useDismissOnOutsideClick(
+  ref: React.RefObject<HTMLDivElement | null>,
+  onDismiss: () => void,
+) {
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onDismiss();
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [ref, onDismiss]);
+}
+
 /** The student context that switches the user menu to the m_ variant. */
 export type HeaderStudent = {
+  /** The STUDENT's display name — the m_ panel header renders THIS (the
+   *  reference's `e.name`), so the preferences save round-trips visibly. */
+  name: string;
   currentSubject: string | null;
   contentSource: string | null;
 };
@@ -82,13 +119,7 @@ function CoursePill({
   const [modalOpen, setModalOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, []);
+  useDismissOnOutsideClick(ref, () => setOpen(false));
 
   return (
     <div className="relative" ref={ref}>
@@ -97,7 +128,7 @@ function CoursePill({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-full border border-black px-4 py-1.5 text-sm font-medium text-black transition-all hover:bg-black/5"
+        className="flex items-center gap-2 rounded-[9999px] border border-black px-4 py-1.5 text-sm font-medium text-black transition-all hover:bg-black/5"
         style={{ fontFamily: '"Funnel Sans", sans-serif' }}
       >
         <span>{currentSubject}</span>
@@ -133,7 +164,7 @@ function CoursePill({
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
                 >
                   <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-black">
-                    {c.source === "material" || c.source === "custom" ? (
+                    {isCustomSource(c.source) ? (
                       <BookOpen className="h-3.5 w-3.5 text-white" strokeWidth={1.5} />
                     ) : (
                       <Sparkles className="h-3.5 w-3.5 text-white" strokeWidth={1.5} />
@@ -160,7 +191,7 @@ function CoursePill({
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
             >
               <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-black/5">
-                <LayoutGrid className="h-3.5 w-3.5 text-black/60" strokeWidth={1.5} />
+                <LayoutGrid className="h-3.5 w-3.5 text-black/60" strokeWidth={2} />
               </div>
               <span className="text-sm font-medium" style={{ color: "rgb(89, 89, 89)" }}>
                 All Courses
@@ -175,7 +206,7 @@ function CoursePill({
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
             >
               <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border-2 border-dashed border-black/20">
-                <Plus className="h-3.5 w-3.5 text-black/40" strokeWidth={1.5} />
+                <Plus className="h-3.5 w-3.5 text-black/40" strokeWidth={2} />
               </div>
               <span className="text-sm font-medium" style={{ color: "rgb(89, 89, 89)" }}>
                 Add a Course
@@ -235,7 +266,7 @@ function MenuBody({
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const [name, setName] = useState(user.name);
+  const [name, setName] = useState(student?.name ?? user.name);
   const [saving, setSaving] = useState(false);
 
   async function saveName() {
@@ -258,10 +289,26 @@ function MenuBody({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name: trimmed }),
       });
-      if (res.ok) {
+      // The API envelope is { ok, data } | { ok: false, error } — parse it
+      // (the session-4 version checked res.ok only and silently no-oped on
+      // domain failures).
+      const body = (await res.json().catch(() => null)) as
+        | { ok?: boolean }
+        | null;
+      if (res.ok && body?.ok) {
         onStudentUpdated?.(trimmed);
         setView("items");
+      } else {
+        toast({
+          title: "Couldn't save your preferences",
+          description: "Please try again in a moment.",
+        });
       }
+    } catch {
+      toast({
+        title: "Couldn't save your preferences",
+        description: "Please try again in a moment.",
+      });
     } finally {
       setSaving(false);
     }
@@ -276,7 +323,7 @@ function MenuBody({
             type="button"
             onClick={() => setView("items")}
             aria-label="Back to menu"
-            className="flex h-6 w-6 items-center justify-center rounded-full transition-all hover:bg-gray-100"
+            className="flex h-6 w-6 items-center justify-center rounded-[9999px] transition-all hover:bg-gray-100"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -320,7 +367,7 @@ function MenuBody({
           style={{ fontFamily: '"Funnel Sans", sans-serif' }}
         >
           {saving ? (
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+            <div className="h-4 w-4 animate-spin rounded-[9999px] border-2 border-white border-t-transparent" />
           ) : (
             <>
               <Check className="h-4 w-4" strokeWidth={1.5} />
@@ -332,8 +379,10 @@ function MenuBody({
     );
   }
 
+  // The with-course (w-80) panel items carry space-y-0.5; the no-course
+  // (200px) variant renders p-2 alone — both decoded from the live bundle.
   return (
-    <div className="space-y-0.5 p-2">
+    <div className={student ? "space-y-0.5 p-2" : "p-2"}>
       {student ? (
         <button
           type="button"
@@ -377,7 +426,6 @@ function UserMenu({
   onLogout,
   onStudentUpdated,
   guest = false,
-  variant,
 }: {
   user: HeaderUser;
   student: HeaderStudent | null;
@@ -385,23 +433,16 @@ function UserMenu({
   onStudentUpdated?: (name: string) => void;
   /** Guest mode (the /demo surface): the preferences save degrades to sign-up. */
   guest?: boolean;
-  /** "desktop" shows name + email (or the course context line); "mobile" the name only. */
-  variant: "desktop" | "mobile";
 }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<MenuView>("items");
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-        setView("items");
-      }
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
+  const dismiss = useCallback(() => {
+    setOpen(false);
+    setView("items");
   }, []);
+  useDismissOnOutsideClick(ref, dismiss);
 
   const letter = avatarLetter(user.name);
   const context = student
@@ -418,14 +459,15 @@ function UserMenu({
           setOpen((v) => !v);
           setView("items");
         }}
-        className="flex items-center gap-2 rounded-full px-3 py-1.5 transition-all hover:bg-black/10"
+        className={cn(
+          "flex items-center gap-2 rounded-[9999px] px-3 py-1.5 transition-all",
+          guest ? "hover:bg-black/5" : "hover:bg-black/10",
+        )}
       >
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-sm font-semibold text-white">
+        <div className="flex h-7 w-7 items-center justify-center rounded-[9999px] bg-black text-sm font-semibold text-white">
           {letter}
         </div>
-        {variant === "desktop" ? (
-          <span className="text-sm font-medium text-black">{user.name}</span>
-        ) : null}
+        <span className="text-sm font-medium text-black">{user.name}</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"
@@ -450,32 +492,38 @@ function UserMenu({
           role="menu"
           className={cn(
             "absolute right-0 top-full z-50 mt-2 overflow-hidden rounded-[16px] bg-white shadow-xl",
-            variant === "desktop" ? (student ? "w-80" : "") : "",
+            student ? "w-80" : "",
           )}
-          style={{ minWidth: variant === "desktop" ? 200 : 220 }}
+          style={{ minWidth: 200 }}
         >
+          {/* The with-course m_ header is p-4/gap-3 with the w-10 avatar at
+              text-base and renders the STUDENT's name (the reference's
+              e.name — the preferences-save target); the no-course variant
+              is p-3/gap-2.5/w-8 with the user's name + email. */}
           <div
-            className="p-3"
+            className={student ? "p-4" : "p-3"}
             style={{ backgroundColor: "rgb(255, 253, 115)" }}
           >
-            <div className="flex items-center gap-2.5">
+            <div className={cn("flex items-center", student ? "gap-3" : "gap-2.5")}>
               <div
                 className={cn(
-                  "flex items-center justify-center rounded-full bg-black font-semibold text-sm text-white",
-                  student ? "h-10 w-10" : "h-8 w-8",
+                  "flex items-center justify-center rounded-[9999px] bg-black font-semibold text-white",
+                  student ? "h-10 w-10 text-base" : "h-8 w-8 text-sm",
                 )}
               >
-                {letter}
+                {student ? avatarLetter(student.name) : letter}
               </div>
               <div>
-                <p className="text-sm font-semibold text-black">{user.name}</p>
+                <p className="text-sm font-semibold text-black">
+                  {student ? student.name : user.name}
+                </p>
                 {student && context ? (
                   <p className="text-xs" style={{ color: "rgb(89, 89, 89)" }}>
                     {context}
                   </p>
-                ) : variant === "desktop" ? (
+                ) : (
                   <p className="text-xs text-black/50">{user.email}</p>
-                ) : null}
+                )}
               </div>
             </div>
           </div>
@@ -485,10 +533,7 @@ function UserMenu({
             guest={guest}
             view={view}
             setView={setView}
-            onDone={() => {
-              setOpen(false);
-              setView("items");
-            }}
+            onDone={dismiss}
             onLogout={() => void onLogout()}
             onStudentUpdated={(name) => {
               // Stay open in the items view after a save (the reference's
@@ -505,6 +550,96 @@ function UserMenu({
 }
 
 /* ------------------------------------------------------------------ */
+/* MobileMenuBody — the reference's SEPARATE mobile menu items (the    */
+/* `md:hidden` panel decoded from the bundle: no Update Preferences,   */
+/* a Switch Course section listing ALL courses with a Check on the     */
+/* current one, and Sign In instead of Log Out in guest mode).         */
+/* ------------------------------------------------------------------ */
+
+function MobileMenuBody({
+  courses,
+  guest = false,
+  onDone,
+  onLogout,
+}: {
+  /** ALL enrollments with current flags (the switcher keeps the current). */
+  courses: MobileCourse[];
+  guest?: boolean;
+  /** closes the surrounding panel after a navigation action */
+  onDone: () => void;
+  onLogout: () => void;
+}) {
+  const router = useRouter();
+
+  return (
+    <div className="p-2">
+      {courses.length > 1 ? (
+        <div className="mb-1">
+          <p
+            className="px-3 py-1 text-[10px] font-light"
+            style={{ color: "rgb(89, 89, 89)" }}
+          >
+            Switch Course
+          </p>
+          {courses.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => {
+                onDone();
+                router.push(`/?course=${c.id}`);
+              }}
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
+            >
+              <BookOpen className="h-4 w-4 text-black" strokeWidth={1.5} />
+              <span className="flex-1 truncate text-sm font-medium text-black">
+                {c.name}
+              </span>
+              {c.current ? (
+                <Check className="h-3.5 w-3.5 flex-shrink-0 text-black" strokeWidth={2} />
+              ) : null}
+            </button>
+          ))}
+          <div className="my-1 h-px bg-black/10" />
+        </div>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => {
+          onDone();
+          router.push("/courses");
+        }}
+        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
+      >
+        <LayoutGrid className="h-4 w-4 text-black" strokeWidth={1.5} />
+        <span className="text-sm font-medium text-black">My Courses</span>
+      </button>
+      {guest ? (
+        <button
+          type="button"
+          onClick={() => {
+            onDone();
+            router.push("/login?from_url=%2Fdemo");
+          }}
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
+        >
+          <span className="text-sm font-medium text-black">Sign In</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onLogout}
+          className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
+        >
+          <LogOut className="h-4 w-4 text-black" strokeWidth={1.5} />
+          <span className="text-sm font-medium text-black">Log Out</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* AppHeader                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -512,6 +647,7 @@ export function AppHeader({
   user,
   currentSubject,
   enrollments = [],
+  courses = [],
   student,
   onStudentUpdated,
   guest = false,
@@ -521,6 +657,8 @@ export function AppHeader({
   currentSubject?: string | null;
   /** The OTHER courses (the live filters out the current subject). */
   enrollments?: PillCourse[];
+  /** ALL courses with current flags — the mobile menu's Switch Course list. */
+  courses?: MobileCourse[];
   /** Student context for the m_ user-menu variant (context line + preferences). */
   student?: HeaderStudent | null;
   onStudentUpdated?: (name: string) => void;
@@ -529,20 +667,10 @@ export function AppHeader({
 }) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileView, setMobileView] = useState<MenuView>("items");
   const [loggingOut, setLoggingOut] = useState(false);
   const mobileRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onDocClick(e: MouseEvent) {
-      if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) {
-        setMobileOpen(false);
-        setMobileView("items");
-      }
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, []);
+  useDismissOnOutsideClick(mobileRef, () => setMobileOpen(false));
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -553,14 +681,10 @@ export function AppHeader({
     } finally {
       setLoggingOut(false);
       setMobileOpen(false);
-      setMobileView("items");
     }
   }
 
   const letter = avatarLetter(user.name);
-  const context = student
-    ? courseContextLine(student.currentSubject, student.contentSource)
-    : null;
 
   return (
     <header
@@ -597,22 +721,20 @@ export function AppHeader({
           guest={guest}
           onLogout={() => void handleLogout()}
           onStudentUpdated={onStudentUpdated}
-          variant="desktop"
         />
       </div>
 
-      {/* Mobile hamburger + dropdown (name-only header, min-width 220px) */}
+      {/* Mobile hamburger → the reference's separate mobile menu (220px
+          panel, name + subject-only context in text-black/60, Switch Course
+          section, My Courses, Log Out / guest Sign In). */}
       <div className="relative md:hidden" ref={mobileRef}>
         <button
           type="button"
           aria-label="Open menu"
           aria-haspopup="menu"
           aria-expanded={mobileOpen}
-          onClick={() => {
-            setMobileOpen((v) => !v);
-            setMobileView("items");
-          }}
-          className="flex h-9 w-9 items-center justify-center rounded-full transition-all hover:bg-black/10"
+          onClick={() => setMobileOpen((v) => !v)}
+          className="flex h-9 w-9 items-center justify-center rounded-[9999px] transition-all hover:bg-black/10"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -640,35 +762,25 @@ export function AppHeader({
           >
             <div className="p-3" style={{ backgroundColor: "rgb(255, 253, 115)" }}>
               <div className="flex items-center gap-2.5">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-black font-semibold text-sm text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-[9999px] bg-black font-semibold text-sm text-white">
                   {letter}
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-black">{user.name}</p>
-                  {student && context ? (
-                    <p className="text-xs" style={{ color: "rgb(89, 89, 89)" }}>
-                      {context}
-                    </p>
+                  {student?.currentSubject ? (
+                    <p className="text-xs text-black/60">{student.currentSubject}</p>
                   ) : null}
                 </div>
               </div>
             </div>
-            <MenuBody
-              user={user}
-              student={student ?? null}
+            <MobileMenuBody
+              courses={courses}
               guest={guest}
-              view={mobileView}
-              setView={setMobileView}
               onDone={() => {
                 if (loggingOut) return;
                 setMobileOpen(false);
-                setMobileView("items");
               }}
               onLogout={() => void handleLogout()}
-              onStudentUpdated={(name) => {
-                setMobileView("items");
-                onStudentUpdated?.(name);
-              }}
             />
           </div>
         ) : null}

@@ -401,9 +401,9 @@ export function LessonView({
             <p className="mb-1 text-xs font-light" style={{ color: "rgb(89, 89, 89)" }}>
               {correctCount}/{content.questions.length} correct
             </p>
-            <div className="h-1.5 w-24 overflow-hidden rounded-full" style={{ backgroundColor: "rgb(224, 224, 224)" }}>
+            <div className="h-1.5 w-24 overflow-hidden rounded-[9999px]" style={{ backgroundColor: "rgb(224, 224, 224)" }}>
               <div
-                className="h-full rounded-full transition-all duration-500"
+                className="h-full rounded-[9999px] transition-all duration-500"
                 style={{
                   width: `${(correctCount / content.questions.length) * 100}%`,
                   backgroundColor: "rgb(15, 14, 14)",
@@ -535,7 +535,7 @@ export function ContentCard({ question }: { question: LessonQuestion }) {
         <div className="video-shimmer relative w-full" style={{ aspectRatio: "16 / 9" }} aria-hidden="true">
           <div className="absolute inset-0 z-[1] flex items-center justify-center">
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-full"
+              className="flex h-12 w-12 items-center justify-center rounded-[9999px]"
               style={{ backgroundColor: "rgba(0, 0, 0, 0.25)" }}
             >
               <Play className="h-5 w-5 text-white" strokeWidth={1.5} fill="white" />
