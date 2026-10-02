@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BrandMark } from "@/components/mascot";
 import { avatarLetter, courseContextLine, isCustomSource, loginRedirectUrl } from "@/lib/domain";
@@ -653,6 +653,7 @@ export function AppHeader({
   onStudentUpdated,
   guest = false,
   signedOut = false,
+  headerChildren,
 }: {
   /** S9-F6d: nullable for the PUBLIC onboarding (the anonymous variant
    * renders no user chrome — the Sign In pill / items-only menu); every
@@ -675,6 +676,11 @@ export function AppHeader({
    * and the mobile menu renders ITEMS-ONLY (no yellow name header — the
    * live's anonymous panel: My Courses + Sign In). */
   signedOut?: boolean;
+  /** S11-F1.2: the live's Ha `children` contract — when present the desktop
+   * container renders the children INSTEAD of the CoursePill/UserMenu
+   * cluster (the quiz surface's "{subject} · Knowledge Assessment" span +
+   * the X close button); the mobile hamburger keeps its standard render. */
+  headerChildren?: ReactNode;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -726,7 +732,9 @@ export function AppHeader({
           Sign In pill (the public onboarding; same hidden md:flex container,
           the live's desktop-only black pill). */}
       <div className="hidden items-center gap-3 md:flex">
-        {signedOut || !user ? (
+        {headerChildren != null ? (
+          headerChildren
+        ) : signedOut || !user ? (
           <button
             type="button"
             // S9-F2/S10-F1: the live's pill calls navigateToLogin() =

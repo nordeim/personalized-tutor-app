@@ -18,9 +18,9 @@ description: >
   header variant + the /demo auth gate + the Try-it navigation), the
   gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.9.0
+version: 1.10.0
 last_updated: 2026-10-03
-project_state: 108 unit tests + 76 e2e checks green; session-10 chat-surface parity pass complete (the BLACK user bubble + Send paper-plane icon, the query-carrying from_url contract with the open-redirect fix, the hub back-links + empty-name "?" menu, the R5 threshold consolidation)
+project_state: 125 unit tests + 82 e2e checks green; session-11 quiz-surface parity pass complete (the diagnostic-quiz E3 port — 5 questions, the star progress row, tan options, the client-computed score semantics, the /-route $P model, the skip/close paths)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -304,6 +304,29 @@ Im, ported in session-3):
    each question carries a content card — video (16:9 shimmer + play +
    "Example video — …" caption) or "Reading" (#F0F0F0, FileText).
 
+**The diagnostic-quiz surface (session-11, the E3 port — `quiz-app.tsx`):**
+FIVE questions (the live's prompt: "exactly 5", 2 easy / 2 medium / 1
+harder, ≤ 20 words, material-context preamble for custom courses). The
+surface: the Ha-with-children header (`{subject} · Knowledge Assessment` +
+the X close button REPLACING the desktop user menu — AppHeader's
+`headerChildren` prop; mobile keeps the standard hamburger), the star
+progress row (h-1 `#4A4A4A` track + `#FFFD73` fill at
+`quizMarkerPct(current, total)` — the CURRENT question counts — with the
+42px `public/quiz-star.svg` riding the fill edge + the `#C0C0C0` counter),
+the lilac `#D2C0F9` w-9 rounded-[10px] number tile + h3, TAN `#E1C8B9`
+rounded-[14px] p-4 options with inline `A.`-prefixes (picked =
+`#0F0E0E` border; reveal: correct `#BCFCAF` + CircleCheckBig, wrong-pick
+`#FFD0D0` + CircleX, others opacity .4), NO feedback-text row, the
+`ml-auto px-5 py-2.5 rounded-[14px]` buttons ("Confirm" → "Next
+Question" / "Submit Assessment" + ChevronRight w-4), the dot strip
+(24px/6px, `#FFFD73`/`#C0C0C0`/`#4A4A4A`), the fixed "Skip quiz →" pill
+(`#2A2A2A`/`#C0C0C0`), and the dark W overlays ("Preparing your
+assessment…" / "Analyzing your results…" / "Preparing your course…").
+The score is the CLIENT-computed correct count (`diagnosticScore`) — the
+submit payload's validated score is stored, never re-derived. The skip
+(`POST /api/quiz/skip`) resets the enrollment → the 0% dashboard; the X
+close routes `/?course={id}`.
+
 **The lesson-content contract** (`/api/lessons/content`):
 `{title, concept, scenario, challenge, questions[8] ×
 {question, options[4], correctIndex, contentType "video"|"text",
@@ -536,6 +559,27 @@ exercises this via real 429s). The Daily Challenge returns
     `?course={id}` and the hub "?" menu is the EMPTY-NAME m_ variant
     ("?" avatar, empty lines, LayoutGrid icon) — the clone's
     user-identity header there was an invention, not parity.
+32. **The diagnostic quiz asks FIVE questions** (session-11, S11-F1):
+    the live's E3 prompt demands "exactly 5" ("2 easy, 2 medium, 1
+    harder", ≤ 20 words, `q`/`opts`/`ans` fields, a material-context
+    preamble for custom courses). The clone's session-1 "7-question"
+    quiz was an invention — and its `round(score/5×100)` progress formula
+    (decoded session-3) was ALWAYS the 5-question divisor, exposing the
+    mismatch: a 7/7 clone quiz computed 140% → clamped 100%. The fallback
+    quiz ships 5 questions; `generateDiagnosticQuiz(subject, material?)`
+    pins the live's prompt.
+33. **The quiz score is the CLIENT-computed correct count**
+    (session-11, S11-F2): the live's E3 counts the CORRECT picks
+    client-side (`diagnosticScore(picked, correct)` — unit-pinned) and
+    the entity write stores it. The clone's server-side derivation
+    (`answers.reduce(a >= 0 …)`) scored every ANSWERED question correct —
+    a fully-answered quiz ALWAYS scored 100% regardless of correctness
+    (the seeded demo's 60% worked only because the seed writes
+    quizScore directly). The submit route now stores the validated
+    payload score; the / route renders the course dashboard whenever an
+    enrollment EXISTS (the live's $P model — the skip/close paths land on
+    the 0% dashboard; `POST /api/quiz/skip` resets the enrollment minus
+    the LLM call the live itself discards).
 
 ## §10 Debugging Guide
 
@@ -572,9 +616,9 @@ Run IN ORDER; the local gate is the only gate (no hosted CI):
 ```bash
 bun run lint          # eslint . — zero warnings
 bun run typecheck     # tsc --noEmit — zero errors (build won't catch them!)
-bun run test          # 91 Vitest checks
+bun run test          # 125 Vitest checks
 bun run build         # standalone build (also required for e2e)
-bun run test:e2e      # 76 Playwright checks on :3100
+bun run test:e2e      # 82 Playwright checks on :3100
 ```
 
 Verification categories beyond the gate:

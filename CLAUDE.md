@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (108 unit + 76 Playwright
+   bun run test && bun run build && bun run test:e2e` (125 unit + 82 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -175,6 +175,24 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   onboarding 2/2/20 thresholds live in ONE domain predicate
   (`onboardingInputsValid`). The live's demo-course chat is ephemeral
   across reloads; the clone's persistence is the documented divergence.
+- **THE session-11 invariants (the diagnostic-quiz E3 port):** the quiz
+  asks FIVE questions (the live's "exactly 5" prompt with the material
+  context for custom courses), and the surface is the decoded E3 — the
+  Ha-with-children header ("{subject} · Knowledge Assessment" + the X
+  close REPLACING the desktop user menu; AppHeader's `headerChildren`
+  prop), the star progress row (#4A4A4A track + #FFFD73 fill at
+  `quizMarkerPct` + the 42px /quiz-star.svg + the #C0C0C0 counter), the
+  lilac number tile, TAN #E1C8B9 options with inline A. prefixes and the
+  border-picked reveal colors (#BCFCAF/#FFD0D0/0.4), the Confirm → Next
+  Question/Submit Assessment buttons, the dot strip, the "Skip quiz →"
+  pill, and the dark W overlays. The score is the CLIENT-computed correct
+  count (`diagnosticScore` — unit-pinned; the API stores the validated
+  payload score, never re-derives it). The / route renders the course
+  dashboard whenever an enrollment EXISTS (the $P model — the skip/close
+  paths land on the 0% dashboard; `POST /api/quiz/skip` resets the
+  enrollment). The submit upserts the DiagnosticQuiz by (user, subject).
+  The login page's origin construction is the pinned `headerOrigin`
+  helper (comma-list proto normalization + localhost http heuristic).
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in

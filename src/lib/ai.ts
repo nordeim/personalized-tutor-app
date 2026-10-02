@@ -88,9 +88,23 @@ export type StageDraft = { title: string; description: string };
 
 export async function generateCourseStages(
   courseName: string,
+  opts?: { pct?: number; material?: string | null },
 ): Promise<{ stages: StageDraft[]; aiGenerated: boolean }> {
+  // S11-F4c: the live's E3 submit-time roadmap prompt is pct-aware ("Based
+  // on someone scoring {pct}% on a diagnostic quiz about {subject}, create
+  // exactly 3 progressive learning focus areas… (one per arena level)") and
+  // material-aware; the generate-time call (no pct) keeps the baseline
+  // shape (the live's wO-skip/roadmap variant).
+  const about =
+    opts?.material && opts.material.trim().length > 0
+      ? "their uploaded material"
+      : courseName;
+  const lead =
+    typeof opts?.pct === "number"
+      ? `Based on someone scoring ${opts.pct}% on a diagnostic quiz about ${about}, `
+      : "";
   const raw = await complete(
-    `Create exactly 3 progressive learning stages for the course "${courseName}". ` +
+    `${lead}create exactly 3 progressive learning focus areas for the subject "${opts?.material ? "Custom Material" : courseName}" (one per arena level). ` +
       `Return ONLY a JSON array of 3 objects with keys "title" and "description". ` +
       `Titles are short (max 4 words). Descriptions are 1-2 sentences about what the learner covers.`,
   );
@@ -122,21 +136,56 @@ function fallbackStages(courseName: string): StageDraft[] {
 }
 
 /* ------------------------------------------------------------------ */
-/* 2. Diagnostic quiz — 7 questions, 4 options each                     */
+/* 2. Diagnostic quiz — 5 questions, 4 options each (S11-F4: the live's  */
+/*    E3 asks for "exactly 5" — 2 easy, 2 medium, 1 harder, ≤ 20 words, */
+/*    with a custom-material context variant)                           */
 /* ------------------------------------------------------------------ */
 
 export async function generateDiagnosticQuiz(
   subject: string,
+  material?: string | null,
 ): Promise<{ questions: QuizQuestion[]; aiGenerated: boolean }> {
+  // The live's O() preamble: the material rides when the enrollment is
+  // custom-sourced, otherwise the topic line (bundle: E3's O async).
+  const context =
+    material && material.trim().length > 0
+      ? `The learner has provided this material to study:\n\n${material.slice(0, 3000)}`
+      : `The topic is: ${subject}.`;
   const raw = await complete(
-    `Create a 7-question multiple-choice diagnostic quiz assessing general knowledge of "${subject}". ` +
-      `Return ONLY a JSON array of 7 objects with keys "question", "options" (array of exactly 4 strings), "correctIndex" (0-3). ` +
-      `Questions must span difficulty from foundational to advanced.`,
+    `Generate exactly 5 diagnostic multiple-choice questions for an adult learner.\n${context}\n\n` +
+      `Requirements:\n- Questions should assess baseline knowledge across different areas of the topic\n` +
+      `- Each question should have exactly 4 answer options\n- Vary difficulty (2 easy, 2 medium, 1 harder)\n` +
+      `- Keep question text concise (max 20 words)\n\n` +
+      `Return JSON with a "questions" array of 5 objects, each with:\n` +
+      `- "q": question text\n- "opts": array of 4 strings\n- "ans": index (0-3) of the correct answer`,
   );
-  const parsed = extractJson<QuizQuestion[]>(raw);
+  // The LLM returns the live's {q, opts, ans} field names inside either a
+  // bare array or the live's {questions: [...]} wrapper (its
+  // response_json_schema) — accept BOTH, plus the clone's historical
+  // {question, options, correctIndex} (the validation gate is identical).
+  const rawParsed = extractJson<
+    | Array<QuizQuestion | { q: string; opts: string[]; ans: number }>
+    | { questions: Array<QuizQuestion | { q: string; opts: string[]; ans: number }> }
+  >(raw);
+  const rawList = Array.isArray(rawParsed)
+    ? rawParsed
+    : rawParsed && Array.isArray(rawParsed.questions)
+      ? rawParsed.questions
+      : null;
+  const parsed = rawList
+    ? rawList.map((item) =>
+        "question" in item
+          ? (item as QuizQuestion)
+          : {
+              question: item.q,
+              options: item.opts,
+              correctIndex: item.ans,
+            },
+      )
+    : null;
   if (
     parsed &&
-    parsed.length >= 5 &&
+    parsed.length === 5 &&
     parsed.every(
       (q) =>
         typeof q.question === "string" &&
@@ -147,7 +196,7 @@ export async function generateDiagnosticQuiz(
         q.correctIndex <= 3,
     )
   ) {
-    return { questions: parsed.slice(0, 7), aiGenerated: true };
+    return { questions: parsed, aiGenerated: true };
   }
   return { questions: fallbackQuiz(subject), aiGenerated: false };
 }
@@ -189,18 +238,8 @@ function fallbackQuiz(subject: string): QuizQuestion[] {
       "Self-testing with varied problems",
       "Watching videos at increased speed",
     ], 2),
-    mk(`Applying ${subject} concepts to unfamiliar problems requires:`, [
-      "Copying solved examples exactly",
-      "Abstracting principles from specifics",
-      "Avoiding estimation and approximation",
-      "Repeating the same exercise type",
-    ], 1),
-    mk(`Long-term retention of ${subject} material is strongest when review is:`, [
-      "Crammed into a single session",
-      "Spaced out over increasing intervals",
-      "Done only when feeling motivated",
-      "Limited to the night before tests",
-    ], 1),
+    // S11-F4: the live asks exactly 5 — the 6th/7th fallback questions were
+    // the session-1 7-question invention's padding.
   ];
 }
 
@@ -381,21 +420,38 @@ export async function chatWithNori(
 /* 6. Gap analysis                                                      */
 /* ------------------------------------------------------------------ */
 
-export async function generateGapAnalysis(
-  subject: string,
-  score: number,
-): Promise<{ analysis: string; aiGenerated: boolean }> {
+export async function generateGapAnalysis(input: {
+  subject: string;
+  score: number;
+  total?: number;
+  name?: string;
+  material?: string | null;
+}): Promise<{ analysis: string; aiGenerated: boolean }> {
+  const total = input.total && input.total > 0 ? input.total : 5;
+  const pct = Math.round((input.score / total) * 100);
+  // S11-F4b: the live's E3 prompt shape — "A professional named {name}
+  // scored {score}/{total} ({pct}%) on a diagnostic quiz on {subject}…"
+  // (the /7 hardcode and the name-less phrasing were session-1 drift).
+  const context =
+    input.material && input.material.trim().length > 0
+      ? `based on their uploaded material: ${input.material.slice(0, 1000)}`
+      : `on ${input.subject}`;
   const raw = await complete(
-    `Write a 2-3 sentence gap analysis for a learner who scored ${score}/7 on a ${subject} diagnostic quiz. ` +
-      `Note what the score suggests about their current level and what to focus on. Plain text only.`,
+    `A professional named ${input.name || "the learner"} scored ${input.score}/${total} (${pct}%) on a diagnostic quiz ${context}. ` +
+      `Write a brief 2-3 sentence gap analysis highlighting what they need to work on and what they already understand well. ` +
+      `Keep language professional and encouraging. Plain text only.`,
   );
   if (raw && raw.trim()) {
     return { analysis: raw.trim(), aiGenerated: true };
   }
   const level =
-    score >= 6 ? "strong" : score >= 3 ? "developing" : "foundational";
+    input.score >= total - 1
+      ? "strong"
+      : input.score >= Math.ceil(total / 2)
+        ? "developing"
+        : "foundational";
   return {
-    analysis: `Your ${score}/7 score suggests a ${level} grasp of ${subject}. The personalized roadmap below balances your learning path, covering core areas progressively.`,
+    analysis: `Your ${input.score}/${total} score suggests a ${level} grasp of ${input.subject}. The personalized roadmap below balances your learning path, covering core areas progressively.`,
     aiGenerated: false,
   };
 }

@@ -46,7 +46,6 @@ export default async function QuizPage({
           ? { id: enrollment.id, courseName: enrollment.courseName }
           : null
       }
-      studentName={student.name}
     />
   );
 }

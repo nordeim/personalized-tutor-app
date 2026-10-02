@@ -64,12 +64,15 @@ export function DashboardApp({
     return currentCourse;
   }, [forceOnboarding, viewCourseId, courses, currentCourse]);
 
-  // The with-course dashboard needs a completed quiz (roadmap) to be useful —
-  // otherwise the onboarding state renders (the reference's quiz-first flow).
-  const showCourseDashboard =
-    !forceOnboarding &&
-    activeCourse !== null &&
-    (activeCourse.quizCompleted || activeCourse.lessonProgress.length > 0);
+  // S11-F3: the live's $P model — the with-course dashboard renders
+  // whenever the enrollment EXISTS (the $P resolver sets the enrollment and
+  // renders G5 unconditionally; quiz-incomplete courses show the 0% state,
+  // which is where the quiz Skip/close paths land). The onboarding state
+  // renders only with NO enrollment at all. (The session-1
+  // quizCompleted-or-progress guard was drift — it re-rendered the
+  // onboarding after a skipped/abandoned quiz where the live shows the 0%
+  // dashboard.)
+  const showCourseDashboard = !forceOnboarding && activeCourse !== null;
 
   // The with-course header renders the reference's two-dropdown split: the
   // CoursePill (labeled with the student's current_subject) + the m_ user

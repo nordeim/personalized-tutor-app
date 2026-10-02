@@ -59,16 +59,31 @@ test.describe("the chat send button (S10-F3)", () => {
 
 test.describe("the hub back-links carry the course (S10-F4)", () => {
   test("the desktop logo and mobile Dashboard link both href /?course={id}", async ({ page }) => {
+    // S11-F9 (the spec-axis review): pin the EXACT course — the seeded
+    // demo user's Economics enrollment (the hub's default at /hub). The
+    // prior /^\/\?course=.+$/ regex accepted any id.
+    const res = await page.request.get("/api/courses");
+    expect(res.ok()).toBeTruthy();
+    const courses = (await res.json()) as {
+      ok: boolean;
+      data: { id: string; courseName: string }[];
+    };
+    expect(courses.ok).toBeTruthy();
+    // The hub at bare /hub resolves the NEWEST enrollment — the seeded
+    // list is createdAt-desc so the first row is the target.
+    const target = courses.data[0]?.id;
+    expect(target).toBeTruthy();
+
     await page.goto("/hub");
     await expect(page.getByText("Lesson 1 · Now").first()).toBeVisible({ timeout: 45_000 });
 
     // Both headers render in one DOM (CSS-hidden per breakpoint) — the
     // href is present regardless of visibility.
     const desktopLogo = page.locator('a[aria-label="Thinkerwell home"]');
-    await expect(desktopLogo).toHaveAttribute("href", /^\/\?course=.+$/, { timeout: 45_000 });
+    await expect(desktopLogo).toHaveAttribute("href", `/?course=${target}`, { timeout: 45_000 });
 
     const mobileDashboard = page.locator('a[aria-label="Dashboard"]');
-    await expect(mobileDashboard).toHaveAttribute("href", /^\/\?course=.+$/);
+    await expect(mobileDashboard).toHaveAttribute("href", `/?course=${target}`);
   });
 });
 

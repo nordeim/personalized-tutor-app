@@ -2,16 +2,27 @@ import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { fail, ok, readJson } from "@/lib/api";
 import { generateCourseStages, generateGapAnalysis } from "@/lib/ai";
+import { displayName } from "@/lib/domain";
 
 // POST /api/quiz/submit — diagnostic results.
-// Body: { courseId, answers: number[] (indices), total: number } →
-// marks quiz completed, derives the roadmap + gap analysis, returns
-// the navigation target (the reference lands on /?course=<id>).
+// Body: { courseId, answers: number[] (indices), total: number, score: number }
+// → marks quiz completed, derives the roadmap + gap analysis, returns the
+// navigation target (the reference lands on /?course=<id>).
+// S11-F2: the score is the CLIENT-computed correct count (the live's
+// E3 computes `filter((G, re) => G === c[re].ans).length` client-side and
+// the entity write stores it) — validated here (0 ≤ score ≤ total), never
+// re-derived from the answered count (the session-1 derivation scored
+// every answered question correct).
 export async function POST(req: Request) {
   const user = await requireSession();
   if (!user) return fail("UNAUTHORIZED", "Sign in required", 401);
 
-  const body = await readJson<{ courseId?: string; answers?: number[]; total?: number }>(req);
+  const body = await readJson<{
+    courseId?: string;
+    answers?: number[];
+    total?: number;
+    score?: number;
+  }>(req);
   const courseId = body?.courseId;
   const answers = Array.isArray(body?.answers) ? body.answers : [];
   if (!courseId) return fail("VALIDATION", "courseId is required", 422);
@@ -21,14 +32,28 @@ export async function POST(req: Request) {
     return fail("NOT_FOUND", "Course not found", 404);
   }
 
-  const total = body?.total && body.total > 0 ? body.total : answers.length || 7;
-  const score = answers.reduce((acc, a) => (a >= 0 ? acc + 1 : acc), 0);
+  const total = body?.total && body.total > 0 ? body.total : answers.length || 5;
+  const score =
+    typeof body?.score === "number" && Number.isInteger(body.score) && body.score >= 0 && body.score <= total
+      ? body.score
+      : 0;
+  const pct = Math.round((score / total) * 100);
+  const material =
+    enrollment.contentSource === "custom" ? enrollment.contentText : null;
 
-  // Fresh roadmap + gap analysis for the measured level.
+  // S11-F4: the live's submit-time prompts — the pct-aware roadmap
+  // ("Based on someone scoring {pct}%…") + the named gap analysis
+  // ("A professional named {name} scored {score}/{total} ({pct}%)…").
   const [{ stages, aiGenerated: stagesAi }, { analysis, aiGenerated: gapAi }] =
     await Promise.all([
-      generateCourseStages(enrollment.courseName),
-      generateGapAnalysis(enrollment.courseName, score),
+      generateCourseStages(enrollment.courseName, { pct, material }),
+      generateGapAnalysis({
+        subject: enrollment.courseName,
+        score,
+        total,
+        name: displayName(user.email, user.fullName),
+        material,
+      }),
     ]);
 
   await db.courseEnrollment.update({
@@ -44,16 +69,24 @@ export async function POST(req: Request) {
     where: { userId: user.id },
     data: { quizCompleted: true },
   });
-  // DiagnosticQuiz row (audit trail, the reference's entity).
-  await db.diagnosticQuiz.create({
-    data: {
-      userId: user.id,
-      subject: enrollment.courseName,
-      score,
-      gapAnalysis: analysis,
-      roadmapSteps: JSON.stringify(stages),
-    },
+  // DiagnosticQuiz row (audit trail, the reference's entity) — S11-F6: the
+  // live UPSERTS by (user, subject) so retakes update in place instead of
+  // accumulating rows.
+  const existing = await db.diagnosticQuiz.findFirst({
+    where: { userId: user.id, subject: enrollment.courseName },
   });
+  const quizData = {
+    userId: user.id,
+    subject: enrollment.courseName,
+    score,
+    gapAnalysis: analysis,
+    roadmapSteps: JSON.stringify(stages),
+  };
+  if (existing) {
+    await db.diagnosticQuiz.update({ where: { id: existing.id }, data: quizData });
+  } else {
+    await db.diagnosticQuiz.create({ data: quizData });
+  }
 
   return ok({
     courseId,

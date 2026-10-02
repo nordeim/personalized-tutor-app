@@ -13,7 +13,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🔐 | Email/password auth (scrypt + HMAC cookie sessions, rate-limited) | `src/lib/auth.ts` + `/api/auth/*` |
 | 🧭 | Onboarding dashboard: typewriter hero (reference topic list), mode cards, category tags | `/` + `/onboarding` |
 | 🤖 | AI course generation: 3-stage roadmap from any topic or pasted material | `/api/courses/generate` |
-| 📝 | Diagnostic quiz: 7 AI questions → gap analysis → roadmap, confetti at 3/7 correct | `/quiz` |
+| 📝 | Diagnostic quiz: 5 AI questions (the live's E3 port — star progress, tan options, skip + close paths) → gap analysis → roadmap, confetti at 3/7 correct | `/quiz` |
 | 📚 | Course dashboard: welcome hero, progress stats, daily challenge modal, learning roadmap | `/?course=<id>` |
 | 🎓 | The Hub: desktop three-pane (lessons sidebar / Nori chat / lesson content), mobile Learn·Ask Nori·Lessons tab shell | `/hub` |
 | 💬 | Nori, the Socratic AI tutor — persistent chat history per course | `/api/chat` |
@@ -28,7 +28,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 108 unit tests + 76 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 125 unit tests + 82 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -113,9 +113,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 108 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds)
+bun run test          # 125 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 76 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 82 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
@@ -274,6 +274,25 @@ the "?" menu renders the empty-name header with a LayoutGrid icon). The
 mobile-nav headline was re-verified with the toaster-cover mechanism
 precisely measured (the live's menu still cannot be tapped open; the
 clone's fix + pins hold). 91 → 108 unit, 69 → 76 e2e.
+
+## The session-11 quiz-surface parity pass
+
+An eleventh audit ([`docs/remediation-plan-session-11.md`](docs/remediation-plan-session-11.md))
+decoded the diagnostic quiz's component (E3) straight from the live bundle
+(the entity-write 403s block a live drive, so the bundle is the ground
+truth) and found the session-1 quiz surface was almost entirely invention:
+the live asks **5 questions** (not 7), renders a minimal
+"{subject} · Knowledge Assessment" header with an X close button
+(replacing the user menu), a **star-icon progress row** on a `#4A4A4A`
+track, a lilac number tile, **tan options with inline A./B. prefixes**,
+"Submit Assessment" as the final action, a dot strip, and a fixed
+"Skip quiz →" pill. The pass also fixed the score semantics (the live
+computes the CORRECT count client-side — the clone's server derivation
+scored every answered question correct, so every completed quiz scored
+100%), aligned the /-route model (the course dashboard renders whenever an
+enrollment exists — the skip/close paths land on the 0% dashboard), and
+aligned the AI prompts (the named/pct-aware gap analysis, the material
+context, the pct-based roadmap). 108 → 125 unit, 76 → 82 e2e.
 
 ## Pushing to GitHub
 

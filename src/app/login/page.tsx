@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { getSessionUser } from "@/lib/auth";
-import { sameOriginRedirectTarget } from "@/lib/domain";
+import { headerOrigin, sameOriginRedirectTarget } from "@/lib/domain";
 import { LoginCard } from "@/components/login/login-card";
 
 export const metadata: Metadata = { title: "Login" };
@@ -24,10 +24,16 @@ export default async function LoginPage({
   // foreign origins and protocol-relative "//" collapse to "/"). Relative
   // same-app paths (the clone's own writer format, and the live's
   // server-side auth-guard format) pass through untouched.
-  const h = await headers();
-  const host = h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https");
-  const origin = `${proto}://${host}`;
+  // S11-F8a: the origin construction lives in ONE pinned helper
+  // (headerOrigin — the comma-list proto normalization + the localhost
+  // http heuristic; the session-10 inline re-implementation drifted from
+  // auth.ts's protocol semantics).
+  const headerBag = await headers();
+  const host = headerBag.get("host") ?? "localhost:3000";
+  const localProto =
+    host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : null;
+  const origin =
+    headerOrigin(host, headerBag.get("x-forwarded-proto") ?? localProto);
   const safeFrom = sameOriginRedirectTarget(from_url, origin);
 
   return (

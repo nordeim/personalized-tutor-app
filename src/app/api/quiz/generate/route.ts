@@ -20,6 +20,13 @@ export async function POST(req: Request) {
     return fail("NOT_FOUND", "Course not found", 404);
   }
 
-  const { questions, aiGenerated } = await generateDiagnosticQuiz(enrollment.courseName);
+  // S11-F4: the live's material-context preamble — custom-sourced courses
+  // embed the learner's material (sliced to 3000 chars) in the prompt.
+  const material =
+    enrollment.contentSource === "custom" ? enrollment.contentText : null;
+  const { questions, aiGenerated } = await generateDiagnosticQuiz(
+    enrollment.courseName,
+    material,
+  );
   return ok({ questions: questions satisfies QuizQuestion[], aiGenerated });
 }

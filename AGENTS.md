@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (108 checks) | `bun run test` |
-| Browser E2E (76 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (125 checks) | `bun run test` |
+| Browser E2E (82 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (108) → `bun run build` → `bun run test:e2e` (76 Playwright
+`bun run test` (125) → `bun run build` → `bun run test:e2e` (82 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -284,6 +284,44 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   `domain.ts` (unit-pinned) — consumed by BOTH the Continue gate and the
   pending-setup pickup. The component maps its `materialText` state onto
   `contentText`; do not re-inline the ≥2/≥2/≥20 literals.
+- **THE diagnostic quiz is the E3 port (session-11, S11-F1):** FIVE
+  questions, not seven (the live's prompt: "exactly 5… 2 easy, 2 medium,
+  1 harder… max 20 words" with a material-context preamble for custom
+  courses — `generateDiagnosticQuiz(subject, material?)`). The surface:
+  the Ha-with-children header (`{subject} · Knowledge Assessment` + the X
+  close button REPLACING the desktop user menu — AppHeader's
+  `headerChildren` prop; mobile keeps the standard hamburger), the star
+  progress row (`h-1` track `#4A4A4A` + `#FFFD73` fill at
+  `quizMarkerPct(current, total)` — the CURRENT question counts, no
+  reveal bump — with the 42px `/quiz-star.svg` riding the fill edge and
+  the `#C0C0C0` counter), the lilac `#D2C0F9` `w-9` `rounded-[10px]`
+  number tile, TAN `#E1C8B9` `rounded-[14px] p-4` options with inline
+  `A.`-`font-medium` prefixes (NO letter circles; picked = border
+  `#0F0E0E`, revealed correct `#BCFCAF` + CircleCheckBig, wrong-pick
+  `#FFD0D0` + CircleX, others opacity .4), NO feedback-text row, the
+  `ml-auto px-5 py-2.5 rounded-[14px]` action buttons ("Confirm" →
+  "Next Question" / "Submit Assessment" + ChevronRight), the dot strip
+  (24px/6px, `#FFFD73`/`#C0C0C0`/`#4A4A4A`), the fixed "Skip quiz →" pill
+  (`#2A2A2A`/`#C0C0C0`), and the dark W overlays ("Preparing your
+  assessment…" / "Analyzing your results…" / "Preparing your course…")
+  on `#0F0E0E` with the mascot + `#C0C0C0` text.
+- **THE quiz score is CLIENT-computed (session-11, S11-F2):** the live's
+  E3 counts the CORRECT picks (`diagnosticScore(picked, correct)` in
+  `domain.ts`, unit-pinned) and the API stores the payload's validated
+  score — the server NEVER re-derives it from the answered count (the
+  session-1 derivation scored every answered question correct → a
+  completed quiz always scored 100%).
+- **THE / route model (session-11, S11-F3):** the with-course dashboard
+  renders whenever the enrollment EXISTS (the live's $P resolver → G5
+  unconditionally; quiz-incomplete → the 0% state). The onboarding renders
+  only with NO enrollment. The quiz Skip (`POST /api/quiz/skip` — the
+  enrollment reset + `/?course=` navigation) and the X close both land on
+  the 0% dashboard. The live's skip ALSO fires an LLM roadmap call it
+  discards — the clone skips the wasted call (the fix-and-pin doctrine).
+- **THE quiz submit upserts the DiagnosticQuiz (session-11, S11-F6):**
+  find by (user, subject) → update | create — retakes no longer
+  accumulate rows. The gap-analysis prompt is the live's named/pct-aware
+  shape; the submit-time roadmap prompt carries the pct.
 - **THE daily-challenge modal (session-8):** overlay `rgba(0,0,0,0.5)` via
   INLINE style (Trap 8 — v4's bg-black/50 computes oklab), NO backdrop
   blur, and NO result banner — after the reveal the SAME button slot swaps

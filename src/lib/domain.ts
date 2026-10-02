@@ -469,3 +469,58 @@ export function onboardingInputsValid(input: {
     ? input.topic.trim().length >= 2
     : input.courseName.trim().length >= 2 && input.contentText.trim().length >= 20;
 }
+
+// ---- Session-11: the diagnostic-quiz surface (E3 + wO, bundle-decoded) ----
+
+/**
+ * The live's client-side diagnostic score (S11-F2): the count of picks that
+ * match the correct index — NOT the count of answered questions (the
+ * session-1 server-side derivation scored every answered question correct,
+ * so a completed quiz always scored "perfect"). E3 computes
+ * `Z.filter((G, re) => G === c[re].ans).length` before submitting.
+ */
+export function diagnosticScore(picked: number[], correct: number[]): number {
+  let n = 0;
+  for (let i = 0; i < picked.length && i < correct.length; i++) {
+    if (picked[i] >= 0 && picked[i] === correct[i]) n++;
+  }
+  return n;
+}
+
+/**
+ * The quiz progress row's fill/star position (S11-F1.3): the live computes
+ * width `${(g + 1) / c.length * 100}%` — the CURRENT question counts, with
+ * no reveal bump.
+ */
+export function quizMarkerPct(current: number, total: number): number {
+  if (total <= 0) return 0;
+  return ((current + 1) / total) * 100;
+}
+
+/**
+ * The quiz dot strip (S11-F1.8): the active dot is 24px yellow, done dots
+ * 6px #C0C0C0, future dots 6px #4A4A4A.
+ */
+export function quizDotState(
+  i: number,
+  current: number,
+): { w: number; bg: string } {
+  if (i === current) return { w: 24, bg: "#FFFD73" };
+  if (i < current) return { w: 6, bg: "#C0C0C0" };
+  return { w: 6, bg: "#4A4A4A" };
+}
+
+/**
+ * The login page's origin construction (S11-F8): headers() gives a host and
+ * possibly a comma-list `x-forwarded-proto`; normalize to the first token,
+ * default https. Empty host → empty origin (the same-origin guard collapses
+ * absolute from_urls to "/" — fail-closed).
+ */
+export function headerOrigin(
+  host: string | null | undefined,
+  forwardedProto: string | null | undefined,
+): string {
+  if (!host) return "";
+  const proto = forwardedProto?.split(",")[0]?.trim() || "https";
+  return `${proto}://${host}`;
+}
