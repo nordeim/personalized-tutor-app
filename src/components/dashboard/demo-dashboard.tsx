@@ -33,7 +33,12 @@ const DEMO_LESSONS = [
   "Global Economic Systems: Mastery",
 ];
 
-export function DemoDashboard() {
+export function DemoDashboard({
+  bubbleQuote,
+}: {
+  /** Server-picked random bubble line (fresh each page load). */
+  bubbleQuote?: { raw: string; text: string; author: string | null };
+}) {
   const course = useMemo(
     () => ({
       id: "demo-enrollment",
@@ -97,6 +102,7 @@ export function DemoDashboard() {
           user={{ name: "Guest", email: "guest@thinkerwell.demo" }}
           course={course}
           demoPercent={60}
+          bubbleQuote={bubbleQuote}
           courses={[{ id: "demo-enrollment", name: "Economics", current: true }]}
         />
       </div>

@@ -13,7 +13,7 @@ import {
   avatarLetter,
   displayName,
 } from "@/lib/domain";
-import { quoteOfTheDay, encouragementFor } from "@/lib/quotes";
+import { encouragementFor } from "@/lib/quotes";
 
 describe("lessonMeta — the 3-stage × 2-level grid", () => {
   it("maps all six lesson indexes onto the grid", () => {
@@ -123,20 +123,9 @@ describe("identity helpers", () => {
   });
 });
 
-describe("quote rotation", () => {
-  it("returns the same quote for the same day", () => {
-    const date = new Date("2026-10-02T12:00:00Z");
-    expect(quoteOfTheDay(date)).toEqual(quoteOfTheDay(date));
-  });
-
-  it("rotates across days deterministically", () => {
-    const day1 = quoteOfTheDay(new Date("2026-10-02T00:00:00Z"));
-    const day2 = quoteOfTheDay(new Date("2026-10-03T00:00:00Z"));
-    expect(day1).not.toEqual(day2);
-  });
-
-  it("encouragements cycle per lesson number", () => {
-    expect(encouragementFor(1)).toBe(encouragementFor(5));
+describe("encouragement picks (the 99-line pool lives in tests/parity-session2.test.ts)", () => {
+  it("encouragements are deterministic per lesson number", () => {
+    expect(encouragementFor(1)).toBe(encouragementFor(51));
     expect(encouragementFor(1)).not.toBe(encouragementFor(2));
   });
 });

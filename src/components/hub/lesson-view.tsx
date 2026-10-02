@@ -1,17 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MascotGenerating } from "@/components/mascot";
 import { encouragementFor } from "@/lib/quotes";
-import { QUESTIONS_PER_LESSON } from "@/lib/domain";
+import { QUESTIONS_PER_LESSON, requeueQuestion } from "@/lib/domain";
+import { confettiCourseComplete, confettiLevelUp } from "@/lib/confetti";
+import { Zap, RotateCcw } from "lucide-react";
 
 type QuizQuestion = { question: string; options: string[]; correctIndex: number };
 type LessonContent = { coreConcept: string; questions: QuizQuestion[]; aiGenerated: boolean };
 
-// LessonView — the lesson content pane: header (lesson number, title,
-// N/8 correct + progress), Core Concept yellow card, video placeholder,
-// then the 8-question quiz with immediate feedback. Completing all
-// questions posts /api/progress and unlocks the next lesson.
+// LessonView — the lesson content pane, ported to the reference's exact quiz
+// flow (mined from the live bundle's Y2 component):
+//   * Submit → CORRECT: auto-advance after 800 ms (score = correct count / 8).
+//   * Submit → WRONG: 800 ms later the in-pane retry modal — "Retry later"
+//     re-queues the question at the end of the list, "Skip it" just advances.
+//   * A lesson completes at 8 correct (or when the queue is exhausted — the
+//     graceful fallback for an edge the reference leaves broken).
+//   * Completing a stage-boundary lesson (index 1 or 3) shows the in-pane
+//     "Level Up!" interstitial after 1200 ms (Zap tile + "Preparing Lesson
+//     N…"), fires the level-up confetti burst, then advances after 800 ms.
+//   * Completing the final lesson fires the dual side cannons and lands on
+//     the celebration card.
+//
+// All state resets happen via remount — the parent keys this component on
+// the active lesson.
+
+const LEVEL_UP_DELAY_MS = 1200; // live: onCorrect → setTimeout(..., 1200)
+const LEVEL_UP_HOLD_MS = 800; // live: interstitial → setTimeout(..., 800)
+const ANSWER_FEEDBACK_MS = 800; // live: reveal → advance/retry-modal delay
 
 export function LessonView({
   courseId,
@@ -20,6 +37,7 @@ export function LessonView({
   lessonTitle,
   progress,
   onComplete,
+  onLessonChange,
 }: {
   courseId: string | null;
   courseName: string | null;
@@ -37,15 +55,104 @@ export function LessonView({
   const [correctCount, setCorrectCount] = useState(0);
   const [finished, setFinished] = useState(false);
   const [levelingUp, setLevelingUp] = useState(false);
+  const [retryQ, setRetryQ] = useState<QuizQuestion | null>(null);
+  const timers = useRef<number[]>([]);
 
-  const lessonState = progress.find((p) => p.lessonIndex === lessonIndex);
-  const prevBest = lessonState?.correctCount ?? 0;
+  const later = (fn: () => void, ms: number) => {
+    timers.current.push(window.setTimeout(fn, ms));
+  };
+  useEffect(
+    () => () => {
+      for (const t of timers.current) window.clearTimeout(t);
+      timers.current = [];
+    },
+    []
+  );
+
+  const isFinalLesson = lessonIndex === 5;
+  const isStageBoundary = lessonIndex === 1 || lessonIndex === 3;
+
+  function completeLesson(finalScore: number, total: number) {
+    setFinished(true);
+    if (courseId) {
+      void fetch("/api/progress", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          courseId,
+          lessonIndex,
+          correct: finalScore,
+          total,
+        }),
+      }).then(() => onComplete(lessonIndex, finalScore, total));
+    } else {
+      onComplete(lessonIndex, finalScore, total);
+    }
+    if (isFinalLesson) {
+      confettiCourseComplete();
+    } else if (isStageBoundary) {
+      // live: 1200 ms → interstitial + burst → 800 ms → next lesson
+      later(() => {
+        setLevelingUp(true);
+        confettiLevelUp();
+        later(() => {
+          setLevelingUp(false);
+          onComplete(lessonIndex, finalScore, total);
+          onLessonChange(lessonIndex + 1); // the live auto-advances into the next level
+        }, LEVEL_UP_HOLD_MS);
+      }, LEVEL_UP_DELAY_MS);
+    }
+  }
+
+  function advance(score: number, total: number) {
+    if (!content) return;
+    if (score >= QUESTIONS_PER_LESSON) {
+      completeLesson(score, total);
+      return;
+    }
+    const nextIndex = qIndex + 1;
+    if (nextIndex < content.questions.length) {
+      setQIndex(nextIndex);
+      setPicked(null);
+      setRevealed(false);
+    } else {
+      // Queue exhausted below mastery (everything skipped) — the graceful
+      // fallback: complete with the achieved score.
+      completeLesson(score, total);
+    }
+  }
+
+  function confirm() {
+    if (picked === null || revealed || !q || !content) return;
+    setRevealed(true);
+    if (picked === q.correctIndex) {
+      const nextScore = correctCount + 1;
+      setCorrectCount(nextScore);
+      later(() => advance(nextScore, content.questions.length), ANSWER_FEEDBACK_MS);
+    } else {
+      later(() => setRetryQ(q), ANSWER_FEEDBACK_MS);
+    }
+  }
+
+  function retry(requeue: boolean) {
+    if (!content || !retryQ) return;
+    // live: "Retry later" appends a copy at the END of the queue; either way
+    // the current position advances past the failed question.
+    const questions = requeue ? requeueQuestion(content.questions, retryQ) : content.questions;
+    setContent({ ...content, questions });
+    setRetryQ(null);
+    const nextIndex = qIndex + 1;
+    if (nextIndex < questions.length) {
+      setQIndex(nextIndex);
+      setPicked(null);
+      setRevealed(false);
+    } else {
+      advance(correctCount, questions.length);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
-    // NOTE: per-lesson state resets happen via remount — the parent keys
-    // this component on the active lesson, so the initial useState values
-    // (loading, qIndex, picked, ...) are already fresh here.
     void (async () => {
       if (!courseId) {
         // No course (fresh account): render the default grid lesson.
@@ -94,43 +201,6 @@ export function LessonView({
 
   const q = content?.questions[qIndex];
 
-  function confirm() {
-    if (picked === null || revealed || !q) return;
-    setRevealed(true);
-    if (picked === q.correctIndex) {
-      setCorrectCount((c) => c + 1);
-    }
-  }
-
-  function next() {
-    if (!content) return;
-    if (qIndex + 1 < content.questions.length) {
-      setQIndex((i) => i + 1);
-      setPicked(null);
-      setRevealed(false);
-    } else {
-      setFinished(true);
-      if (courseId) {
-        void fetch("/api/progress", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            courseId,
-            lessonIndex,
-            correct: correctCount,
-            total: content.questions.length,
-          }),
-        }).then(() => onComplete(lessonIndex, correctCount, content.questions.length));
-      } else {
-        onComplete(lessonIndex, correctCount, content.questions.length);
-      }
-      if (correctCount > prevBest && lessonIndex % 2 === 1) {
-        setLevelingUp(true);
-        window.setTimeout(() => setLevelingUp(false), 2600);
-      }
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
@@ -160,6 +230,77 @@ export function LessonView({
     );
   }
 
+  // The level-up interstitial replaces the pane (live: if(l) return …).
+  if (levelingUp) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="animate-fade-in-up space-y-4 text-center" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+          <div
+            className="mx-auto flex h-14 w-14 items-center justify-center rounded-[18px]"
+            style={{ backgroundColor: "rgb(255, 253, 115)" }}
+          >
+            <Zap className="h-6 w-6 text-black" strokeWidth={1.5} />
+          </div>
+          <h2 className="text-3xl font-normal text-black" style={{ letterSpacing: "-0.03em" }}>
+            Level Up!
+          </h2>
+          <p className="text-sm font-light" style={{ color: "rgb(89, 89, 89)" }}>
+            Preparing Lesson {(lessonIndex + 1) / 2 + 1}...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // The retry modal replaces the pane (live: if(N) return …).
+  if (retryQ) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div
+          className="animate-fade-in-up w-full max-w-md space-y-5 rounded-[20px] p-8 text-center"
+          style={{ backgroundColor: "rgb(248, 248, 248)", fontFamily: '"Funnel Sans", sans-serif' }}
+        >
+          <div
+            className="mx-auto flex h-12 w-12 items-center justify-center rounded-[14px]"
+            style={{ backgroundColor: "rgb(255, 208, 208)" }}
+          >
+            <RotateCcw className="h-5 w-5 text-black" strokeWidth={1.5} />
+          </div>
+          <div>
+            <h3 className="mb-2 text-xl font-normal text-black" style={{ letterSpacing: "-0.02em" }}>
+              Not quite!
+            </h3>
+            <p className="text-sm font-light leading-relaxed" style={{ color: "rgb(89, 89, 89)" }}>
+              Would you like to retry this question later?
+            </p>
+            <div className="mt-3 rounded-[12px] p-3" style={{ backgroundColor: "rgb(240, 240, 240)" }}>
+              <p className="text-sm font-light text-black">&ldquo;{retryQ.question}&rdquo;</p>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => retry(true)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-[14px] py-3 text-sm font-medium text-white transition-all"
+              style={{ backgroundColor: "rgb(15, 14, 14)" }}
+            >
+              <RotateCcw className="h-3.5 w-3.5" strokeWidth={1.5} />
+              Retry later
+            </button>
+            <button
+              type="button"
+              onClick={() => retry(false)}
+              className="flex-1 rounded-[14px] py-3 text-sm font-medium transition-all"
+              style={{ backgroundColor: "rgb(224, 224, 224)", color: "rgb(89, 89, 89)" }}
+            >
+              Skip it
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-in-up">
       <div className="space-y-5" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
@@ -175,13 +316,13 @@ export function LessonView({
           </div>
           <div className="text-right">
             <p className="mb-1 text-xs font-light" style={{ color: "rgb(89, 89, 89)" }}>
-              {finished ? `${correctCount}/${content.questions.length} correct` : `${correctCount}/${content.questions.length} correct`}
+              {correctCount}/{content.questions.length} correct
             </p>
             <div className="h-1.5 w-24 overflow-hidden rounded-full" style={{ backgroundColor: "rgb(224, 224, 224)" }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
-                  width: `${((finished ? correctCount : qIndex) / content.questions.length) * 100}%`,
+                  width: `${(correctCount / content.questions.length) * 100}%`,
                   backgroundColor: "rgb(15, 14, 14)",
                 }}
               />
@@ -214,6 +355,11 @@ export function LessonView({
             <p className="mt-1 text-sm font-light" style={{ color: "rgb(89, 89, 89)" }}>
               You scored {correctCount}/{content.questions.length} — {encouragementFor(lessonIndex + 1)}
             </p>
+            {isFinalLesson ? (
+              <p className="mt-3 text-2xl font-normal text-black" style={{ letterSpacing: "-0.03em" }}>
+                LEGENDARY! 🌟
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={() => {
@@ -231,7 +377,7 @@ export function LessonView({
         ) : q ? (
           <div className="rounded-[16px] p-5" style={{ backgroundColor: "rgb(245, 245, 245)" }}>
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wider" style={{ color: "rgb(89, 89, 89)" }}>
-              Question {qIndex + 1} of {content.questions.length}
+              Question {qIndex + 1}
             </p>
             <h3 className="mb-4 text-base font-medium leading-snug text-black">{q.question}</h3>
             <div className="space-y-2">
@@ -252,10 +398,8 @@ export function LessonView({
                       backgroundColor: isCorrect
                         ? "rgb(255, 253, 115)"
                         : isWrong
-                          ? "rgb(240, 224, 224)"
-                          : isPicked
-                            ? "white"
-                            : "white",
+                          ? "rgb(255, 208, 208)"
+                          : "white",
                       color: "rgb(15, 14, 14)",
                       border: "1px solid rgba(0, 0, 0, 0.06)",
                     }}
@@ -275,7 +419,7 @@ export function LessonView({
               <p className="text-xs font-light" style={{ color: "rgb(89, 89, 89)" }}>
                 {revealed
                   ? picked === q.correctIndex
-                    ? "Correct!"
+                    ? "Nailed it! ⚡ Your brain is on fire right now. Keep that momentum going!"
                     : "Not quite — the highlighted answer is correct."
                   : "Pick the best answer."}
               </p>
@@ -286,31 +430,9 @@ export function LessonView({
                   onClick={confirm}
                   className="rounded-[12px] bg-black px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-gray-800 disabled:opacity-30"
                 >
-                  Check
+                  Submit Answer
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={next}
-                  className="rounded-[12px] bg-black px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-gray-800"
-                >
-                  {qIndex + 1 < content.questions.length ? "Next" : "Finish lesson"}
-                </button>
-              )}
-            </div>
-          </div>
-        ) : null}
-
-        {/* level-up flash */}
-        {levelingUp ? (
-          <div className="fixed inset-0 z-[90] flex items-center justify-center" style={{ backgroundColor: "rgba(15, 14, 14, 0.85)" }}>
-            <div className="text-center">
-              <p className="text-3xl font-normal" style={{ color: "rgb(255, 253, 115)" }}>
-                Level up!
-              </p>
-              <p className="mt-2 text-sm font-light text-white/70" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-                {encouragementFor(lessonIndex + 1)}
-              </p>
+              ) : null}
             </div>
           </div>
         ) : null}

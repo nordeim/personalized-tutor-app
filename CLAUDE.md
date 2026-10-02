@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (33 unit + 29 Playwright
+   bun run test && bun run build && bun run test:e2e` (46 unit + 34 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -93,6 +93,20 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   notifications layer covers the hamburger button and Playwright refuses
   the tap. `tests/e2e/mobile-navigation.spec.ts` pins the fix with a REAL
   `.tap()`; do not weaken either rule or that spec.
+- **THE quiz-flow invariants (session-2 port):** correct answers
+  AUTO-ADVANCE after 800 ms (never require a manual Next click); wrong
+  answers open the in-pane retry modal after 800 ms ("Retry later" =
+  `requeueQuestion` appends the question at the END; "Skip it" advances);
+  a lesson completes at 8 correct; stage-boundary lessons (index 1, 3)
+  render the in-pane "Level Up!" interstitial (1200 ms → `confettiLevelUp`
+  → 800 ms → auto-advance); the final lesson fires the dual cannons.
+  `tests/parity-session2.test.ts` + `tests/e2e/session2-parity.spec.ts`
+  pin all of it.
+- **THE content pool:** `src/lib/quotes.ts` is the reference's exact
+  99-line array (49 quotes + 50 encouragements). The bubble pick is
+  SERVER-side (page → `bubbleQuote` prop) so hydration never mismatches;
+  `randomLine(rng)` is injectable for tests. Regenerate only via
+  `scripts/extract-live-quotes.mjs` + `scripts/generate-quotes-ts.mjs`.
 - **The visual system is flat, token-driven, and measured** (not
   neumorphic): app gutter `#0F0E0E`; yellow `#FFFD73` (header
   `rounded-b-[20px] px-4 md:px-8 py-3 mx-[4px]`, accent cards, active

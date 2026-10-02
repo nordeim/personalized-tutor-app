@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { randomQuote } from "@/lib/quotes";
 import { DemoDashboard } from "@/components/dashboard/demo-dashboard";
 
 export const metadata: Metadata = { title: "Demo Page" };
@@ -7,5 +8,5 @@ export const metadata: Metadata = { title: "Demo Page" };
 // virtual "Guest" user with the sample Economics enrollment (no auth, no
 // persistence). It is the try-before-signup surface.
 export default function DemoPage() {
-  return <DemoDashboard />;
+  return <DemoDashboard bubbleQuote={randomQuote()} />;
 }

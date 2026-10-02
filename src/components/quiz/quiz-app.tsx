@@ -6,6 +6,8 @@ import { AppHeader } from "@/components/layout/app-header";
 import { MascotGenerating } from "@/components/mascot";
 import { ToastProvider } from "@/components/toast";
 import type { DashboardUser } from "@/components/dashboard/dashboard-app";
+import { confettiAt } from "@/lib/domain";
+import { confettiQuizMilestone } from "@/lib/confetti";
 
 type QuizQuestion = { question: string; options: string[]; correctIndex: number };
 
@@ -74,6 +76,14 @@ export function QuizApp({
       next[current] = picked;
       return next;
     });
+    // The reference's confetti guard: fire when the running correct count
+    // CROSSES 3 or 7 (upward only, first observation just initializes).
+    const wasCorrect = picked === q.correctIndex;
+    if (wasCorrect) {
+      const prevCount = answers.filter((a, i) => a >= 0 && questions[i] && a === questions[i].correctIndex).length;
+      const nextCount = prevCount + 1;
+      if (confettiAt(prevCount, nextCount)) confettiQuizMilestone();
+    }
   }
 
   function next() {

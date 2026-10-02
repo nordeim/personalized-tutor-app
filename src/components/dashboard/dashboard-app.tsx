@@ -34,6 +34,7 @@ export function DashboardApp({
   currentCourseId,
   currentCourse,
   forceOnboarding = false,
+  bubbleQuote,
 }: {
   user: DashboardUser;
   student: { name: string; currentSubject: string | null; quizCompleted: boolean } | null;
@@ -41,6 +42,8 @@ export function DashboardApp({
   currentCourseId: string | null;
   currentCourse: CourseDto | null;
   forceOnboarding?: boolean;
+  /** Server-picked random bubble line (fresh each page load, reference semantics). */
+  bubbleQuote?: { raw: string; text: string; author: string | null };
 }) {
   const [viewCourseId, setViewCourseId] = useState<string | null>(currentCourseId);
 
@@ -71,6 +74,7 @@ export function DashboardApp({
           <CourseDashboard
             key={activeCourse.id}
             user={user}
+            bubbleQuote={bubbleQuote}
             course={{
               ...activeCourse,
               roadmap: parseRoadmap(activeCourse.roadmapSteps),

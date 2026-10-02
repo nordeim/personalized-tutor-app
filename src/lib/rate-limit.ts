@@ -1,5 +1,5 @@
-// Fixed-window in-memory rate limiter (per-process — the ORBITAL doctrine,
-// single-node deploy). Auth routes use 10 attempts / 15 min / IP.
+// Fixed-window in-memory rate limiter (per-process, single-node deploy).
+// Auth routes use 10 attempts / 15 min / IP.
 type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();

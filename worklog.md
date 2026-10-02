@@ -87,3 +87,70 @@ Work Log:
 
 Stage Summary:
 - Deliverable complete: production-grade clone pushed to GitHub with full test gate, docs, and screenshots.
+
+---
+Task ID: 4
+Agent: main (Super Z)
+Task: Session-2 refresh, doc review, parity audit → remediation plan
+
+Work Log:
+- git pull → 7b68ab4 (new: docs/session_1.md, repo worklog.md, prompt-to-review tweak).
+- Re-reviewed AGENTS.md / CLAUDE.md / README.md / Project_Architecture_Document.md + docs/session_1.md — alignment confirmed; no contradictions with the code.
+- DB requirement validated end-to-end: .env DATABASE_URL="file:../db/custom.db" + db/ at repo root works for CLI (schema-relative), runtime client, and the app seam (db-path.ts). Earlier confusion traced to a stale shell-exported DATABASE_URL in the sandbox (dotenv precedence), not a repo bug; unset it locally.
+- Logged into the live app again (dashboard onboarding state) and re-mined the saved 788KB bundle for data-driven parity deltas:
+  * DIVE_TOPICS: live = Literature, Finance, History, Psychology, Marketing, Philosophy, Economics, Biology (clone wrong: no Psychology, extra Music Theory, wrong order).
+  * Quote pool: live = ONE 99-item array (49 authored quotes + 50 encouragement lines), picked RANDOMLY per dashboard mount. Clone ships 7 curated quotes (3 not in live) with daily rotation.
+  * Hub quiz flow (live): Submit → correct auto-advances after 800ms; wrong → 800ms → in-pane retry modal (bg #F8F8F8, red #FFD0D0 RotateCcw tile, "Not quite!", "Would you like to retry this question later?", question card #F0F0F0, Retry later [re-queues at end] / Skip it). Level completes at 8 correct → 1200ms → level-up interstitial IN-PANE (Zap in w-14 h-14 rounded-[18px] #FFFD73 tile, "Level Up!" text-3xl ls -0.03em, "Preparing Lesson N..." #595959) + confetti burst (70 particles, spread 60, origin .5/.3, colors #8b5cf6/#06b6d4/#f59e0b) → 800ms → next level. Level 3 complete → dual side cannons (120 particles, angle 60/120, spread 70, origins x:0/x:1) + "LEGENDARY!" (chat feedback props are DEAD CODE in the live bundle — not rendered).
+  * Diagnostic-quiz confetti (dashboard right card): fires when quizScore crosses 3 or 7 — particleCount 80, spread 55, origin .85/.4, colors #FFFD73/#C8AEFF/#0F0E0E. Plus a rank-change confetti (90/60/.85/.3) — rank itself never renders (dead UI).
+  * Dashboard right column: THREE cards — Course Lessons (#C8AEFF, rows clickable, bg states #F5F5F5/#FFFFFF-next/#FAFAFA, footer "N / 6 lessons · P% complete"), Study Streak (#C8AEFF, CalendarDays icon, days = min(quizScore,7) text-4xl + weekday strip: active tiles bg #0F0E0E with white flame SVG, inactive #F5F5F5 + date, labels M-S), Total XP (#FFFFFF, Gem icon, value = scorePercent*10 + quizScore*50 text-3xl, "Keep learning to earn more XP!").
+  * Daily Challenge: live is an interactive modal (Brain icon tile, question + hint italic + 4 answer buttons colored #E1C8B9→picked-border/#FFD0D0-wrong/#FFFD73-correct/#DCDCDC, result banner #BCFCAF "Correct! Well done!" / #FFD0D0 "Not quite — the correct answer is highlighted in yellow.", Close button) with a "Generating challenge..." spinner state. Clone currently links to the Hub.
+  * Course Progress tile: yellow only when progress > 0 (clone always yellow).
+  * Icons mined: RotateCcw (retry), Gem (XP), CalendarDays (streak), Library (lessons), Brain (challenge), Zap (level up), CircleCheckBig, Circle, X, CircleX, Trophy.
+- Repo hygiene findings: package.json still "orbital"/ORBITAL description; .env header "ORBITAL"; vitest.config.ts comment lists ORBITAL-era seams; stale root project-management_SKILL.md (42KB); lib comments cite "the ORBITAL doctrine".
+- Wrote docs/remediation-plan-session-2.md (the detailed TODO list below) and validated each item against the code.
+
+Stage Summary:
+- 13 findings catalogued; remediation plan R1–R16 drafted with TDD steps and acceptance criteria.
+- Next: execute the plan (data layer first), then gate, screenshots, SKILL.md, docs, push.
+
+---
+Task ID: 5
+Agent: main (Super Z)
+Task: Execute the session-2 remediation plan (R1–R16)
+
+Work Log:
+- R1 DIVE_TOPICS → exact live list (Literature first; Psychology in; Music Theory out).
+- R2 quotes.ts regenerated from the mined 99-line pool (49 quotes + 50 encouragements, exact order); randomQuote/randomLine helpers; bubble picks a random line per page load (server-side pick in page.tsx + demo/page.tsx → prop, hydration-safe); encouragementFor cycles the 50-line pool.
+- R3/R4 domain.ts: studyStreakDays, totalXp, confettiAt (3/7 crossing), requeueQuestion — all unit-pinned.
+- R5 canvas-confetti + @types added; src/lib/confetti.ts wrapper with the three live presets (quizMilestone 80/55/.85/.4 yellow-purple-black; levelUp 70/60/.5/.3 purple-cyan-amber; courseComplete dual cannons 120/60-120°/x:0-x:1).
+- R6 QuizApp: ref-guarded crossing detection fires confettiQuizMilestone at 3 and 7 correct.
+- R7 LessonView ported to the live flow: Submit → correct auto-advances after 800ms; wrong → 800ms → in-pane retry modal (RotateCcw tile #FFD0D0, "Not quite!", question card, Retry later = re-queue / Skip it); lesson completes at 8 correct (or queue exhaustion fallback); "Submit Answer" label matches live.
+- R8 Level-up interstitial: in-pane light card (Zap in #FFFD73 w-14 h-14 rounded-[18px] tile, "Level Up!" text-3xl ls -0.03em, "Preparing Lesson N...") with live timing 1200ms → burst → 800ms → auto-advance; final lesson fires the dual cannons + "LEGENDARY!" line.
+- R9 hub-app unchanged contract; onLessonChange drives the boundary auto-advance.
+- R10 Right column now stacks Course Lessons (live row states #F5F5F5/#FFFFFF+border/#FAFAFA + "N / 6 lessons · P% complete" footer) + Study Streak (CalendarDays, days=min(quizScore,7), M–S flame/date tiles) + Total XP (Gem, pct*10+score*50, white card).
+- R11 Daily Challenge: /api/challenge + ai.ts upgraded to {question, hint, options, correctIndex} (AI + fallback); tile opens the reference's modal (spinner "Generating challenge..." while fetching; tan/yellow/red/gray answer states; #BCFCAF "Correct! Well done!" / #FFD0D0 "Not quite — the correct answer is highlighted in yellow."; Close).
+- R12 Course Progress tile yellow only when progress > 0.
+- R13 Identity sweep: package.json → personalized-tutor-app/Thinkerwell; .env + .env.example rebranded w/ dotenv-precedence note; vitest.config.ts comment fixed; project-management_SKILL.md removed; lib comments de-ORBITAL'd.
+- R14 New specs: tests/e2e/session2-parity.spec.ts (5 tests: streak, XP, footer, challenge modal, lesson-quiz flow).
+- GATE GREEN: lint ✓ typecheck ✓ 46 unit ✓ build ✓ 34 e2e ✓ (429 rate-limits during e2e exercised the fallbacks — by design).
+- Verified in-browser: level-up interstitial fired at the lesson-2 boundary and auto-advanced; retry modal on wrong answers; challenge modal result banner; mobile menu still tappable (toaster fix intact).
+- Screenshots 16–22 captured: dashboard gamification column, hub level-up, retry modal, challenge modal (open + answered), mobile dashboard + open menu.
+
+Stage Summary:
+- All 13 findings remediated; parity deltas closed (typewriter topics, quote pool, quiz flow, confetti, streak/XP, challenge modal, conditional yellow).
+- Next: docs alignment + personalized-tutor-app_SKILL.md + commit/push.
+
+---
+Task ID: 6
+Agent: main (Super Z)
+Task: Docs alignment, personalized-tutor-app_SKILL.md, final gate + push
+
+Work Log:
+- Docs aligned with the remediated codebase: AGENTS.md (test counts 46/34, quiz-flow rules, content-pool rules, dotenv-precedence note, route count 15), CLAUDE.md (same invariants in the working-agreements style), README.md (feature table + session-2 parity section), Project_Architecture_Document.md (Revision Block v1.1 [S2]).
+- Removed unused zustand dep (scaffold leftover — the client is intentionally store-free); corrected the API route count (15, not 14).
+- Created personalized-tutor-app_SKILL.md (646 lines, 20 sections + 2 appendices) following skills/to-distill-project-into-skill: identity/philosophy, exact stack versions, bootstrap, code-first design system, component architecture, hooks, content/AI contracts, a11y, the 12-entry anti-pattern log (5 Tailwind v4 traps + toaster + cookie + strict-mode + storageState + hydration + sync-setState + dotenv), debugging guide, pre-ship checklist, 8 lessons, pitfalls, best practices, coding patterns/anti-patterns, breakpoints, z-index map, complete color reference, TS interfaces, the 6-phase workflow, quick-reference card. Phase-5 verification: 12/12 file paths exist, versions match package.json, counts match the gate, no placeholder text.
+- FINAL GATE GREEN: lint ✓ typecheck ✓ 46 unit ✓ build ✓ 34 e2e ✓.
+- Committed on main and pushed via docs/ssh_git_wrapper_v3.py (paramiko shim on PATH from /home/z/my-project/bin/ssh; operator key 0600 in /tmp, shredded after).
+
+Stage Summary:
+- Session-2 deliverable complete: parity gaps closed, repo identity clean, docs + SKILL.md aligned, full gate green, pushed to git@github.com:nordeim/personalized-tutor-app.git main.

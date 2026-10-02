@@ -1,7 +1,7 @@
 {
-  "name": "orbital",
+  "name": "personalized-tutor-app",
   "version": "1.0.0",
-  "description": "ORBITAL — AI project management workspace (Next.js 16 + React 19 + Prisma/SQLite)",
+  "description": "Thinkerwell — a self-hosted clone of the base44 Personalized Tutor App (Next.js 16 + React 19 + Prisma/SQLite)",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
@@ -28,6 +28,7 @@
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-toast": "^1.2.14",
+    "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.525.0",
@@ -37,12 +38,12 @@
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
-    "z-ai-web-dev-sdk": "^0.0.18",
-    "zustand": "^5.0.6"
+    "z-ai-web-dev-sdk": "^0.0.18"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "bun-types": "^1.3.4",

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-// API envelope contract (the ORBITAL convention, shared with the reference
-// app's spirit): every route handler answers either
+// API envelope contract (mirrors the reference app's spirit): every route
+// handler answers either
 //   { ok: true,  data }                        — 2xx
 //   { ok: false, error: { code, message } }    — 4xx/5xx
 // The client store's call() helper is the only sanctioned consumer.

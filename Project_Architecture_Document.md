@@ -10,12 +10,13 @@
 
 ---
 
-#### Revision Block — v1.0 (Tracked Changes)
+#### Revision Block — v1.1 (Tracked Changes)
 
-- `[SR]` Full clone build: 7 routes, 14 API handlers, 7 Prisma models, AI seam with fallbacks, measured design system, 33 unit + 29 e2e checks.
+- `[SR]` Full clone build: 7 routes, 15 API handlers, 7 Prisma models, AI seam with fallbacks, measured design system, 46 unit + 34 e2e checks.
 - `[SAN]` Tailwind v4 engine traps pinned in `globals.css` (five documented differences vs the reference's v3 compiled CSS — see the companion trap log).
 - `[AUTH]` Session-cookie `secure` flag derived from request protocol (fixes silent cookie drops on plain-HTTP production boots — the e2e boot caught it).
 - `[RES]` Mobile navigation fix: empty toast container made `pointer-events-none` (the live reference ships the bug; Playwright refuses the covered hamburger tap — pinned by `tests/e2e/mobile-navigation.spec.ts`).
+- `[S2]` Session-2 parity pass (see `docs/remediation-plan-session-2.md`): the reference's exact 99-line content pool + per-load random bubble picks (server-side prop); the lesson-quiz flow ported to the reference semantics (800 ms auto-advance, retry-later re-queue, 8-to-complete, in-pane "Level Up!" interstitial at stage boundaries with live 1200/800 ms timing); the three confetti presets (`src/lib/confetti.ts` + `canvas-confetti`); Study Streak + Total XP cards (days = min(quizScore,7), XP = pct·10 + score·50); the interactive Daily Challenge modal (upgraded `/api/challenge` returning question/hint/options/correctIndex); conditional Course Progress tint; typewriter topics synced to the reference list; identity sweep (package.json, .env, configs de-ORBITAL'd, `personalized-tutor-app_SKILL.md` replaces the stale scaffold skill).
 
 ---
 
@@ -197,7 +198,7 @@ flowchart TB
     end
     subgraph App["Next.js 16 (App Router, :3000 dev / :3100 e2e / standalone prod)"]
         PAGES["Server components (force-dynamic)<br/>session + snapshot resolution"]
-        API["API route handlers (14)<br/>{ ok, data } envelope"]
+        API["API route handlers (15)<br/>{ ok, data } envelope"]
         CSS["globals.css @theme tokens<br/>+ trap pins"]
     end
     subgraph ServerOnly["Server-only libs"]
@@ -273,7 +274,7 @@ Prisma, libs never import React.
  ├── 📂 quiz/                 # 7-question diagnostic; error state w/o student
  ├── 📂 hub/                  # learning workspace: ?course= & ?lesson= params
  ├── 📂 demo/                 # stateless guest mirror (demoPercent={60})
- └── 📂 api/                  # 14 route handlers (see §4.2)
+ └── 📂 api/                  # 15 route handlers (see §4.2)
 📂 src/components/
  ├── 📄 mascot.tsx            # <Image unoptimized> wrappers for the SVGs
  ├── 📄 toast.tsx             # Sonner-compatible layer; pointer-events FIXED

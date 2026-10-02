@@ -11,16 +11,19 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | | Feature | Where |
 |---|---------|-------|
 | 🔐 | Email/password auth (scrypt + HMAC cookie sessions, rate-limited) | `src/lib/auth.ts` + `/api/auth/*` |
-| 🧭 | Onboarding dashboard: typewriter hero, mode cards, topic/material input, category tags | `/` + `/onboarding` |
+| 🧭 | Onboarding dashboard: typewriter hero (reference topic list), mode cards, category tags | `/` + `/onboarding` |
 | 🤖 | AI course generation: 3-stage roadmap from any topic or pasted material | `/api/courses/generate` |
-| 📝 | Diagnostic quiz: 7 AI questions → gap analysis → personalized roadmap | `/quiz` |
-| 📚 | Course dashboard: welcome hero, progress stats, daily challenge, learning roadmap | `/?course=<id>` |
+| 📝 | Diagnostic quiz: 7 AI questions → gap analysis → roadmap, confetti at 3/7 correct | `/quiz` |
+| 📚 | Course dashboard: welcome hero, progress stats, daily challenge modal, learning roadmap | `/?course=<id>` |
 | 🎓 | The Hub: desktop three-pane (lessons sidebar / Nori chat / lesson content), mobile Learn·Ask Nori·Lessons tab shell | `/hub` |
 | 💬 | Nori, the Socratic AI tutor — persistent chat history per course | `/api/chat` |
-| ✅ | Lesson quizzes: 8 questions per lesson with instant feedback and level-up moments | `/api/lessons/content` + `/api/progress` |
+| 🗛 | The reference's exact 99-line quote pool, random pick per page load | `src/lib/quotes.ts` |
+| ✅ | Lesson quizzes ported to the reference flow: auto-advance, retry-later re-queue, 8-to-complete | `src/components/hub/lesson-view.tsx` |
+| 🎉 | Confetti moments: level-up burst, dual-cannon course completion, quiz milestones | `src/lib/confetti.ts` |
+| 🔥 | Study Streak + Total XP cards (the reference's gamification column) | `src/components/dashboard/course-dashboard.tsx` |
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course | `/demo` |
-| 🧪 | 33 unit tests + 29 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 46 unit tests + 34 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -52,7 +55,7 @@ flowchart TB
 📂 prisma                  schema.prisma (7 models) + idempotent seed
 📂 public                  mascot.svg, logo.svg (extracted from the live app)
 📂 src/app                 routes: /, /login, /onboarding, /courses, /quiz, /hub, /demo
- │  └─ 📂 api              14 route handlers (auth, courses, quiz, lessons, chat, progress, health)
+ │  └─ 📂 api              15 route handlers (auth, courses, quiz, lessons, chat, progress, challenge, health)
  ├── 📄 globals.css        Tailwind v4 @theme tokens + the five engine-trap pins + toaster fix
  ├── 📄 layout.tsx         Root layout: Google Fonts (Funnel Sans + Eczar)
 📂 src/components
@@ -105,18 +108,20 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 33 Vitest unit checks (domain grid, roadmap parsing, quotes)
+bun run test          # 46 Vitest unit checks (domain grid, quote pool, gamification math, db-path)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 29 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 34 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
 The e2e suite covers: the auth surface (login, signup, bad credentials,
-redirects), the yellow header chrome, the course dashboard, the Hub panes,
-Nori chat persistence, the courses page, the guest demo — and the
-**mobile-navigation regression pin** (390×844): the empty toast layer must
-stay `pointer-events-none` so the hamburger menu stays tappable. The live
-reference ships this bug; the clone fixes it and the spec proves it.
+redirects), the yellow header chrome, the course dashboard (incl. the
+Study Streak + Total XP cards and the challenge modal), the Hub panes, the
+lesson-quiz flow (auto-advance + retry modal), Nori chat persistence, the
+courses page, the guest demo — and the **mobile-navigation regression pin**
+(390×844): the empty toast layer must stay `pointer-events-none` so the
+hamburger menu stays tappable. The live reference ships this bug; the clone
+fixes it and the spec proves it.
 
 ## The Tailwind v4 trap log
 
@@ -133,6 +138,17 @@ reference's byte-identical class attributes — full report in
 Plus the mobile-nav toaster fix: the notifications container is
 `pointer-events-none` (items restore `auto`), so an empty toast layer can
 never cover the header's hamburger button.
+
+## The session-2 parity pass
+
+A second audit against the live bundle
+([`docs/remediation-plan-session-2.md`](docs/remediation-plan-session-2.md))
+closed the remaining behavioral gaps: the typewriter topic list, the exact
+99-line quote pool with per-load random picks, the lesson-quiz flow
+(auto-advance, retry-later re-queue, 8-to-complete), the three confetti
+moments, the Study Streak + Total XP cards, the interactive Daily Challenge
+modal, and the conditional Course Progress tint. Every one of them is mined
+verbatim from the reference and pinned by tests.
 
 ## Pushing to GitHub
 

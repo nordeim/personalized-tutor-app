@@ -3,17 +3,52 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MascotWelcome } from "@/components/mascot";
+import { X, CircleCheckBig, CircleX } from "lucide-react";
 import {
   completedLessonCount,
   courseProgressPercent,
   stageStatus,
+  studyStreakDays,
+  totalXp,
   type Roadmap,
 } from "@/lib/domain";
-import { quoteOfTheDay } from "@/lib/quotes";
 import type { CourseDto, DashboardUser } from "@/components/dashboard/dashboard-app";
 import { useToast } from "@/components/toast";
 
 type CourseView = CourseDto & { roadmap: Roadmap; lessonTitles: string[] };
+
+/** The mascot bubble line — picked at random per page load (reference semantics). */
+export type BubbleQuote = { raw: string; text: string; author: string | null };
+
+const FALLBACK_BUBBLE: BubbleQuote = {
+  raw: '"An investment in knowledge pays the best interest." — Benjamin Franklin',
+  text: "An investment in knowledge pays the best interest.",
+  author: "Benjamin Franklin",
+};
+
+type Challenge = {
+  question: string;
+  hint: string;
+  options: string[];
+  correctIndex: number;
+  aiGenerated: boolean;
+};
+
+const FALLBACK_CHALLENGE: Challenge = {
+  question: "What is the term for a market structure with only one seller and many buyers?",
+  hint: "Think about the prefix that means 'one'.",
+  options: ["Oligopoly", "Monopoly", "Monopolistic competition", "Perfect competition"],
+  correctIndex: 1,
+  aiGenerated: false,
+};
+
+const WEEKDAY_LABELS = ["M", "T", "W", "T", "F", "S", "S"];
+
+const FLAME_TILE = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.153.433-2.294 1-3a2.5 2.5 0 0 1 2.5-1 1.072 1.072 0 0 1-.5 2 2.5 2.5 0 0 0 .5 3.5c.387.387.5.947.5 1.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5" />
+  </svg>
+);
 
 const BOOK_ICON = (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-open h-5 w-5 flex-shrink-0">
@@ -49,6 +84,7 @@ export function CourseDashboard({
   user,
   course,
   demoPercent,
+  bubbleQuote,
 }: {
   user: DashboardUser;
   course: CourseView;
@@ -56,10 +92,12 @@ export function CourseDashboard({
   /** The /demo route pins the reference's static marketing numbers (60%
    *  with 4/6 lessons — the live demo hardcodes them); real courses compute. */
   demoPercent?: number;
+  /** Server-picked random bubble line (fresh each page load, like the reference). */
+  bubbleQuote?: BubbleQuote;
 }) {
   const router = useRouter();
   const { toast } = useToast();
-  const quote = useMemo(() => quoteOfTheDay(), []);
+  const quote = bubbleQuote ?? FALLBACK_BUBBLE;
   const today = useMemo(
     () =>
       new Date().toLocaleDateString("en-US", {
@@ -77,9 +115,11 @@ export function CourseDashboard({
   const completed = completedLessonCount(course.lessonProgress);
   const progressPct = demoPercent ?? courseProgressPercent(completed);
 
-  const [challenge, setChallenge] = useState<string>(
-    "What is the term for a market structure with only one seller and many buyers?",
-  );
+  const [challenge, setChallenge] = useState<Challenge | null>(null);
+  const [challengeLoading, setChallengeLoading] = useState(true);
+  const [challengeOpen, setChallengeOpen] = useState(false);
+  const [challengePicked, setChallengePicked] = useState<number | null>(null);
+  const [challengeRevealed, setChallengeRevealed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -87,11 +127,14 @@ export function CourseDashboard({
       try {
         const res = await fetch("/api/challenge", { method: "POST" });
         const json = (await res.json()) as
-          | { ok: true; data: { question: string } }
+          | { ok: true; data: Challenge }
           | { ok: false };
-        if (!cancelled && json.ok) setChallenge(json.data.question);
+        if (!cancelled && json.ok) setChallenge(json.data);
+        else if (!cancelled) setChallenge(FALLBACK_CHALLENGE);
       } catch {
-        /* keep the fallback */
+        if (!cancelled) setChallenge(FALLBACK_CHALLENGE);
+      } finally {
+        if (!cancelled) setChallengeLoading(false);
       }
     })();
     return () => {
@@ -106,11 +149,8 @@ export function CourseDashboard({
     ? Math.round((stageDoneCount / course.roadmap.length) * 100)
     : 0;
 
-  const lessonPct = (i: number) => {
-    const p = course.lessonProgress.find((x) => x.lessonIndex === i);
-    if (!p) return 0;
-    return Math.round((p.correctCount / p.total) * 100);
-  };
+  const streakDays = studyStreakDays(course.quizScore ?? 0);
+  const xp = totalXp(progressPct, course.quizScore ?? 0);
 
   return (
     <div className="flex flex-1 flex-col gap-[4px] px-[4px] pb-[4px] pt-[4px] lg:flex-row" style={{ minHeight: 0 }}>
@@ -159,7 +199,13 @@ export function CourseDashboard({
                     overflow: "hidden",
                   }}
                 >
-                  &ldquo;{quote.text}&rdquo; — {quote.author}
+                  {quote.author ? (
+                    <>
+                      &ldquo;{quote.text}&rdquo; — {quote.author}
+                    </>
+                  ) : (
+                    quote.text
+                  )}
                 </p>
                 <div
                   style={{
@@ -192,7 +238,10 @@ export function CourseDashboard({
               {course.courseName}
             </p>
           </div>
-          <div className="flex flex-col gap-2 rounded-[20px] p-6" style={{ backgroundColor: "rgb(255, 253, 115)" }}>
+          <div
+            className="flex flex-col gap-2 rounded-[20px] p-6"
+            style={{ backgroundColor: progressPct > 0 ? "rgb(255, 253, 115)" : "rgb(248, 248, 248)" }}
+          >
             {TREND_ICON}
             <p className="text-xs font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
               Course Progress
@@ -212,29 +261,141 @@ export function CourseDashboard({
           </div>
           <button
             type="button"
-            onClick={() => router.push(`/hub?course=${course.id}`)}
+            onClick={() => challenge && setChallengeOpen(true)}
+            disabled={!challenge}
             className="col-span-2 flex flex-col gap-2 rounded-[20px] p-6 text-left transition-all md:col-span-1"
-            style={{ backgroundColor: "rgb(248, 248, 248)", cursor: "pointer" }}
-            aria-label="Daily challenge — continue in the Hub"
+            style={{ backgroundColor: "rgb(248, 248, 248)", cursor: challenge ? "pointer" : "default" }}
+            aria-label="Daily challenge — open the challenge card"
           >
             {SPARKLE_ICON}
             <p className="text-xs font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
               Daily Challenge
             </p>
-            <p
-              className="text-sm font-normal leading-tight text-black"
-              style={{
-                fontFamily: '"Funnel Sans", sans-serif',
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-              }}
-            >
-              {challenge}
-            </p>
+            {challengeLoading ? (
+              <div className="mt-1 flex items-center gap-2">
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-black/30 border-t-black" />
+                <p className="text-xs font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
+                  Generating challenge...
+                </p>
+              </div>
+            ) : (
+              <p
+                className="text-sm font-normal leading-tight text-black"
+                style={{
+                  fontFamily: '"Funnel Sans", sans-serif',
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {challenge?.question}
+              </p>
+            )}
           </button>
         </div>
+
+        {/* daily challenge modal — the reference's interactive card */}
+        {challengeOpen && challenge ? (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+            style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+            onClick={() => setChallengeOpen(false)}
+          >
+            <div
+              className="mx-4 flex max-w-md flex-col gap-4 rounded-[24px] p-6"
+              style={{ backgroundColor: "rgb(248, 248, 248)", fontFamily: '"Funnel Sans", sans-serif' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {SPARKLE_ICON}
+                  <span className="text-sm font-medium text-black">Daily Challenge</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setChallengeOpen(false)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full transition-all hover:bg-black/10"
+                  aria-label="Close the daily challenge"
+                >
+                  <X className="h-4 w-4 text-black/50" />
+                </button>
+              </div>
+              <p className="text-base font-normal leading-snug text-black">{challenge.question}</p>
+              <p className="-mt-2 text-xs font-light italic text-black/30">{challenge.hint}</p>
+              <div className="flex flex-col gap-2">
+                {challenge.options.map((opt, i) => {
+                  let bg = "rgb(225, 200, 185)"; // unanswered tan
+                  if (challengeRevealed) {
+                    if (i === challenge.correctIndex) bg = "rgb(255, 253, 115)";
+                    else if (i === challengePicked) bg = "rgb(255, 208, 208)";
+                    else bg = "rgb(220, 220, 220)";
+                  }
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => challengeRevealed || setChallengePicked(i)}
+                      className="rounded-[12px] px-4 py-3 text-left text-sm font-normal text-black transition-all"
+                      style={{
+                        backgroundColor: bg,
+                        border:
+                          challengePicked === i && !challengeRevealed
+                            ? "1px solid rgb(15, 14, 14)"
+                            : "1px solid transparent",
+                      }}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+              {challengeRevealed ? (
+                <div className="flex flex-col gap-2">
+                  <div
+                    className="flex items-center justify-center gap-2 rounded-[12px] px-4 py-3 text-center text-sm font-medium"
+                    style={{
+                      backgroundColor:
+                        challengePicked === challenge.correctIndex ? "rgb(188, 252, 175)" : "rgb(255, 208, 208)",
+                    }}
+                  >
+                    {challengePicked === challenge.correctIndex ? (
+                      <>
+                        <CircleCheckBig className="h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
+                        Correct! Well done!
+                      </>
+                    ) : (
+                      <>
+                        <CircleX className="h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
+                        Not quite — the correct answer is highlighted in yellow.
+                      </>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChallengeOpen(false);
+                      setChallengePicked(null);
+                      setChallengeRevealed(false);
+                    }}
+                    className="w-full rounded-[12px] bg-black py-3 text-sm font-semibold text-white transition-all hover:bg-gray-800"
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => challengePicked !== null && setChallengeRevealed(true)}
+                  disabled={challengePicked === null}
+                  className="w-full rounded-[12px] bg-black py-3 text-sm font-semibold text-white transition-all hover:bg-gray-800 disabled:opacity-30"
+                >
+                  Submit Answer
+                </button>
+              )}
+            </div>
+          </div>
+        ) : null}
 
         {/* learning roadmap */}
         <div className="flex min-h-0 flex-1 flex-col rounded-[20px] p-4" style={{ backgroundColor: "rgb(248, 248, 248)" }}>
@@ -358,48 +519,126 @@ export function CourseDashboard({
             </p>
           </div>
           <div className="scroll-slim flex-1 min-h-0 space-y-2 overflow-y-auto">
-            {course.lessonTitles.map((title, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => router.push(`/hub?course=${course.id}&lesson=${i}`)}
-                className="w-full rounded-xl px-3 py-2.5 text-left transition-all"
-                style={{ backgroundColor: "rgb(245, 245, 245)", border: "1px solid transparent", cursor: "pointer" }}
-                aria-label={`Open lesson ${i + 1}: ${title}`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold"
-                    style={{
-                      backgroundColor: completedIdx.includes(i) ? "rgb(15, 14, 14)" : "rgba(0, 0, 0, 0.1)",
-                      color: completedIdx.includes(i) ? "white" : "rgb(89, 89, 89)",
-                    }}
-                  >
-                    {completedIdx.includes(i) ? "✓" : i + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-light leading-tight" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
-                      Lesson {i + 1}
-                    </p>
-                    <p className="truncate text-xs font-medium leading-tight" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(15, 14, 14)" }}>
-                      {title}
-                    </p>
-                    <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-black/10">
-                      <div
-                        className="h-full rounded-full bg-black transition-all duration-700"
-                        style={{ width: `${lessonPct(i)}%` }}
-                      />
+            {course.lessonTitles.map((title, i) => {
+              const isDone = completedIdx.includes(i);
+              const isNext = !isDone && i === Math.min(...Array.from({ length: 6 }, (_, k) => k).filter((k) => !completedIdx.includes(k)));
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => router.push(`/hub?course=${course.id}&lesson=${i}`)}
+                  className="w-full rounded-xl px-3 py-2.5 text-left transition-all"
+                  style={{
+                    backgroundColor: isDone ? "rgb(245, 245, 245)" : isNext ? "rgb(255, 255, 255)" : "rgb(250, 250, 250)",
+                    border: isNext ? "1px solid rgb(15, 14, 14)" : "1px solid transparent",
+                    cursor: "pointer",
+                  }}
+                  aria-label={`Open lesson ${i + 1}: ${title}`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-semibold"
+                      style={{
+                        backgroundColor: isDone ? "rgb(15, 14, 14)" : "rgba(0, 0, 0, 0.1)",
+                        color: isDone ? "white" : "rgb(89, 89, 89)",
+                      }}
+                    >
+                      {isDone ? "✓" : i + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-light leading-tight" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
+                        Lesson {i + 1}
+                      </p>
+                      <p className="truncate text-xs font-medium leading-tight" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(15, 14, 14)" }}>
+                        {title}
+                      </p>
+                      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-black/10">
+                        <div
+                          className="h-full rounded-full bg-black transition-all duration-700"
+                          style={{ width: isDone ? "100%" : "0%" }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
+          <p className="mt-3 text-center text-xs font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
+            <span className="font-medium text-black">{completed}</span> / {course.lessonTitles.length || 6} lessons · {progressPct}% complete
+          </p>
           {course.gapAnalysis ? (
-            <p className="mt-3 text-xs font-light leading-snug" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
+            <p className="mt-2 text-xs font-light leading-snug" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
               {course.gapAnalysis}
             </p>
           ) : null}
+        </div>
+
+        {/* Study Streak + Total XP — the reference's bottom pair */}
+        <div className="flex flex-col gap-[4px] md:flex-row lg:flex-row">
+          <div className="flex-1 rounded-[20px] p-6" style={{ backgroundColor: "rgb(200, 174, 255)" }}>
+            <div className="mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-calendar-days h-4 w-4 text-black">
+                <path d="M8 2v4" />
+                <path d="M16 2v4" />
+                <rect width="18" height="18" x="3" y="4" rx="2" />
+                <path d="M3 10h18" />
+              </svg>
+              <p className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                Study Streak
+              </p>
+            </div>
+            <div className="mb-4 flex items-end gap-2">
+              <span className="text-4xl font-light text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                {streakDays}
+              </span>
+              <span className="mb-1 text-sm font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
+                day{streakDays !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="flex justify-between gap-1.5">
+              {WEEKDAY_LABELS.map((label, i) => {
+                const active = i < streakDays;
+                const date = new Date();
+                date.setDate(date.getDate() - (streakDays - 1) + i);
+                return (
+                  <div key={i} className="flex flex-col items-center gap-1">
+                    <div
+                      className="flex h-8 w-8 items-center justify-center rounded-xl text-xs font-medium transition-all lg:h-10 lg:w-10"
+                      style={{
+                        backgroundColor: active ? "rgb(15, 14, 14)" : "rgb(245, 245, 245)",
+                        color: active ? "white" : "rgb(15, 14, 14)",
+                        fontFamily: '"Funnel Sans", sans-serif',
+                      }}
+                    >
+                      {active ? FLAME_TILE : date.getDate()}
+                    </div>
+                    <span className="text-xs font-light text-black/40" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                      {label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex-1 rounded-[20px] p-6" style={{ backgroundColor: "rgb(255, 255, 255)" }}>
+            <div className="mb-4 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-gem h-4 w-4 text-black">
+                <path d="M6 3h12l4 6-10 13L2 9Z" />
+                <path d="M11 3 8 9l4 13 4-13-3-6" />
+                <path d="M2 9h20" />
+              </svg>
+              <p className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                Total XP
+              </p>
+            </div>
+            <p className="text-3xl font-light text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+              {xp}
+            </p>
+            <p className="mt-1 text-xs font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
+              Keep learning to earn more XP!
+            </p>
+          </div>
         </div>
       </div>
     </div>

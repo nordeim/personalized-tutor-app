@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (33 checks) | `bun run test` |
-| Browser E2E (29 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (46 checks) | `bun run test` |
+| Browser E2E (34 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (33) → `bun run build` → `bun run test:e2e` (29 Playwright
+`bun run test` (46) → `bun run build` → `bun run test:e2e` (34 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -80,6 +80,22 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   (empty container covers the hamburger button; Playwright refuses the
   click). `tests/e2e/mobile-navigation.spec.ts` pins the fix — do not
   remove the pointer-events rules in `globals.css`/`toast.tsx`.
+- **THE quiz-flow rules (ported from the reference bundle):** a correct
+  answer AUTO-ADVANCES after 800 ms; a wrong answer opens the in-pane retry
+  modal after 800 ms ("Retry later" re-queues the question at the end,
+  "Skip it" just advances); a lesson completes at 8 correct. Completing a
+  stage-boundary lesson (index 1 or 3) shows the in-pane "Level Up!"
+  interstitial (1200 ms → burst → 800 ms → auto-advance); the final lesson
+  fires dual confetti cannons. The presets live in `src/lib/confetti.ts`;
+  the trigger math (`confettiAt` 3/7 crossing, `requeueQuestion`) lives in
+  `src/lib/domain.ts` and is unit-pinned.
+- **THE content pool:** `src/lib/quotes.ts` ships the reference's exact
+  99-line pool (49 authored quotes + 50 encouragements, order preserved).
+  The dashboard bubble picks a random line per page load — the pick happens
+  SERVER-side (`page.tsx` / `demo/page.tsx` → `bubbleQuote` prop) so it is
+  hydration-safe. `encouragementFor(n)` cycles the pool deterministically.
+  Regenerate only with `scripts/extract-live-quotes.mjs` +
+  `scripts/generate-quotes-ts.mjs`; `tests/parity-session2.test.ts` pins it.
 - **Design tokens (measured off the live app):** app gutter `#0F0E0E`,
   yellow `#FFFD73` (header, accent cards, active states), paper `#F8F8F8`,
   purple `#C8AEFF` (setup panel), lilac `#D2C0F9` (hub sidebar), bubble
@@ -96,7 +112,9 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   `src/components/mascot.tsx` — never inline the 10 KB SVGs.
 - **SQLite path normalization:** import `db` from `@/lib/db`, never construct
   `PrismaClient` directly. Relative `file:` URLs resolve against
-  `prisma/schema.prisma` (the tested `src/lib/db-path.ts` seam).
+  `prisma/schema.prisma` (the tested `src/lib/db-path.ts` seam). NOTE: a
+  `DATABASE_URL` exported in your shell OVERRIDES `.env` (dotenv precedence)
+  — check `echo $DATABASE_URL` if the app opens an unexpected file.
 - **Standalone server must start from the project root**
   (`output: "standalone"`; `outputFileTracingRoot` pinned in
   `next.config.ts`, which also carries `allowedDevOrigins` — Next 16's

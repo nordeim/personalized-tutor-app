@@ -3,8 +3,8 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypt
 import { cookies, headers } from "next/headers";
 import { db } from "@/lib/db";
 
-// Hand-rolled cookie-session auth (the ORBITAL doctrine — no NextAuth, no
-// JWTs, no middleware): scrypt password hashes + an HMAC-signed stateless
+// Hand-rolled cookie-session auth (no NextAuth, no JWTs, no middleware):
+// scrypt password hashes + an HMAC-signed stateless
 // session cookie `thinkerwell_session` carrying {uid, iat} with a 7-day TTL.
 // requireSession() guards every API route handler.
 

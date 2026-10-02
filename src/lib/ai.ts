@@ -324,15 +324,28 @@ export async function generateGapAnalysis(
 
 export async function generateDailyChallenge(
   subject: string,
-): Promise<{ question: string; options: string[]; correctIndex: number; aiGenerated: boolean }> {
+): Promise<{
+  question: string;
+  hint: string;
+  options: string[];
+  correctIndex: number;
+  aiGenerated: boolean;
+}> {
   const raw = await complete(
-    `Create ONE multiple-choice daily challenge question about ${subject}. ` +
-      `Return ONLY a JSON object with keys "question", "options" (exactly 4 strings), "correctIndex" (0-3).`,
+    `Generate a quick daily challenge about "${subject}". ` +
+      `Return ONLY a JSON object with keys "question" (the question text), "hint" (a short hint), ` +
+      `"options" (exactly 4 strings), "correctIndex" (0-3 index of the right answer).`,
   );
-  const parsed = extractJson<{ question: string; options: string[]; correctIndex: number }>(raw);
+  const parsed = extractJson<{
+    question: string;
+    hint: string;
+    options: string[];
+    correctIndex: number;
+  }>(raw);
   if (
     parsed &&
     typeof parsed.question === "string" &&
+    typeof parsed.hint === "string" &&
     Array.isArray(parsed.options) &&
     parsed.options.length === 4 &&
     Number.isInteger(parsed.correctIndex) &&
@@ -342,7 +355,8 @@ export async function generateDailyChallenge(
     return { ...parsed, aiGenerated: true };
   }
   return {
-    question: `What is the term for a market structure with only one seller and many buyers?`,
+    question: "What is the term for a market structure with only one seller and many buyers?",
+    hint: "Think about the prefix that means 'one'.",
     options: ["Oligopoly", "Monopoly", "Monopolistic competition", "Perfect competition"],
     correctIndex: 1,
     aiGenerated: false,

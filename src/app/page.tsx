@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { displayName } from "@/lib/domain";
+import { randomQuote } from "@/lib/quotes";
 import { DashboardApp } from "@/components/dashboard/dashboard-app";
 
 // The dashboard — the reference's home. Server-resolves the session and the
@@ -38,6 +39,7 @@ export default async function HomePage({
 
   return (
     <DashboardApp
+      bubbleQuote={randomQuote()}
       user={{ name: displayName(user.email, user.fullName), email: user.email }}
       student={
         student

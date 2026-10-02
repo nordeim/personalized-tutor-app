@@ -1,10 +1,11 @@
 import { defineConfig } from "vitest/config";
 import path from "node:path";
 
-// Unit-test layer for the pure domain seams (router, clarify questions,
-// plan sanitizer, check-in mapping, db-path resolution). Browser/E2E
-// coverage lives in tests/e2e/*.spec.ts (Playwright — never picked up by
-// this config, which matches *.test.ts only) plus scripts/smoke-test.sh.
+// Unit-test layer for the pure domain seams (the mastery grid and roadmap
+// parsing in domain.ts, the SQLite URL resolution in db-path.ts, the
+// 99-line content pool + gamification math + retry re-queue in the session-2
+// parity pins). Browser/E2E coverage lives in tests/e2e/*.spec.ts
+// (Playwright — never picked up by this config, which matches *.test.ts only).
 export default defineConfig({
   test: {
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],

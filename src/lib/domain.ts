@@ -134,16 +134,20 @@ export const CATEGORY_TAGS = [
   { subject: "Marketing", topic: "Digital Marketing" },
 ] as const;
 
-/** The h1 typewriter topics (cycled "Dive into {topic}" on the dashboard). */
+/**
+ * The h1 typewriter topics (cycled "Dive into {topic}" on the dashboard).
+ * Mined verbatim from the reference bundle (const $i=[...]) — order matters
+ * because the live typewriter starts on "Literature".
+ */
 export const DIVE_TOPICS = [
+  "Literature",
   "Finance",
   "History",
-  "Literature",
-  "Philosophy",
+  "Psychology",
   "Marketing",
+  "Philosophy",
   "Economics",
   "Biology",
-  "Music Theory",
 ] as const;
 
 /** Initials avatar letter (the reference shows the first character). */
@@ -157,4 +161,50 @@ export function displayName(email: string, fullName: string | null): string {
   if (fullName && fullName.trim()) return fullName.trim();
   const local = email.split("@")[0] ?? email;
   return local;
+}
+
+// ---------------------------------------------------------------------------
+// Gamification math — mined from the reference's dashboard right card
+// (Study Streak / Total XP) and its confetti triggers. Pinned by
+// tests/parity-session2.test.ts.
+// ---------------------------------------------------------------------------
+
+/**
+ * Study Streak "days": the reference caps the diagnostic quiz score at 7
+ * (Math.min(quizScore, 7)) and renders that as the streak's day count.
+ */
+export function studyStreakDays(quizScore: number): number {
+  return Math.min(Math.max(0, Math.floor(quizScore) || 0), 7);
+}
+
+/** Total XP: scorePercent*10 + quizScore*50 — the reference's exact formula. */
+export function totalXp(scorePercent: number, quizScore: number): number {
+  return (Math.floor(scorePercent) || 0) * 10 + (Math.floor(quizScore) || 0) * 50;
+}
+
+/**
+ * The reference fires confetti when the quiz score CROSSES 3 or 7 (upward
+ * only; the first observation initializes the ref without firing).
+ */
+export function confettiAt(prevScore: number | null, nextScore: number): boolean {
+  if (prevScore === null) return false;
+  if (nextScore <= prevScore) return false;
+  return (prevScore < 3 && nextScore >= 3) || (prevScore < 7 && nextScore >= 7);
+}
+
+/** A lesson quiz question (the shape /api/lessons/content returns). */
+export type LessonQuestion = {
+  id: number;
+  question: string;
+  options: string[];
+  correctIndex: number;
+};
+
+/**
+ * "Retry later" semantics: the missed question is re-queued at the END of the
+ * list (the reference appends a copy; its id field exists only for React
+ * keys — this clone keys by index). The original array is never mutated.
+ */
+export function requeueQuestion<T extends object>(questions: T[], q: T): T[] {
+  return [...questions, { ...q }];
 }
