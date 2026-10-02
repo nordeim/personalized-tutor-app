@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { MascotWelcome } from "@/components/mascot";
 import { X, CircleCheckBig, CircleX } from "lucide-react";
 import {
-  completedLessonCount,
-  courseProgressPercent,
-  stageStatus,
+  derivedLessonsCompleted,
+  quizProgressPercent,
+  roadmapCurrentStage,
+  roadmapStageStatus,
   studyStreakDays,
   totalXp,
   type Roadmap,
@@ -83,15 +84,11 @@ const LESSON_ICON = (
 export function CourseDashboard({
   user,
   course,
-  demoPercent,
   bubbleQuote,
 }: {
   user: DashboardUser;
   course: CourseView;
   courses: { id: string; name: string; current: boolean }[];
-  /** The /demo route pins the reference's static marketing numbers (60%
-   *  with 4/6 lessons — the live demo hardcodes them); real courses compute. */
-  demoPercent?: number;
   /** Server-picked random bubble line (fresh each page load, like the reference). */
   bubbleQuote?: BubbleQuote;
 }) {
@@ -109,11 +106,14 @@ export function CourseDashboard({
     [],
   );
 
-  const completedIdx = course.lessonProgress
-    .filter((p) => p.completed)
-    .map((p) => p.lessonIndex);
-  const completed = completedLessonCount(course.lessonProgress);
-  const progressPct = demoPercent ?? courseProgressPercent(completed);
+  // The reference's quiz-derived progress model (session-3 F24): the
+  // enrollment carries no per-lesson progress — every dashboard number
+  // derives from the diagnostic quiz score (E = round(score/5×100),
+  // lessons = round(E/100×6)). The demo's quiz 3 yields the live's exact
+  // 60% / 4/6 / 750 XP / 3-day numbers naturally.
+  const progressPct = quizProgressPercent(course.quizScore, course.quizCompleted);
+  const completed = derivedLessonsCompleted(progressPct);
+  const currentStage = roadmapCurrentStage(completed);
 
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [challengeLoading, setChallengeLoading] = useState(true);
@@ -142,12 +142,7 @@ export function CourseDashboard({
     };
   }, []);
 
-  const stageDoneCount = course.roadmap.filter(
-    (_, i) => stageStatus(i, completedIdx) === "done",
-  ).length;
-  const stageProgressPct = course.roadmap.length
-    ? Math.round((stageDoneCount / course.roadmap.length) * 100)
-    : 0;
+  const roadmapLessonsPct = (completed / (course.lessonTitles.length || 6)) * 100;
 
   const streakDays = studyStreakDays(course.quizScore ?? 0);
   const xp = totalXp(progressPct, course.quizScore ?? 0);
@@ -407,7 +402,7 @@ export function CourseDashboard({
               </p>
             </div>
             <p className="text-xs font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-              {stageDoneCount}/{course.roadmap.length || 3} stages
+              {completed}/6 lessons
             </p>
           </div>
           <div className="flex flex-1 flex-col gap-4 md:flex-row md:gap-0">
@@ -419,9 +414,13 @@ export function CourseDashboard({
                   { title: "Mastery", description: "Advanced material and synthesis." },
                 ]
             ).map((stage, i) => {
-              const status = stageStatus(i, completedIdx);
+              const status = roadmapStageStatus(i, currentStage);
               return (
-                <div key={stage.title} className="flex flex-1 flex-col" style={{ paddingRight: 16 }}>
+                <div
+                  key={stage.title}
+                  className="flex flex-1 flex-col"
+                  style={{ paddingRight: 16, opacity: status === "upcoming" ? 0.45 : 1 }}
+                >
                   <span
                     className="block font-light leading-none"
                     style={{
@@ -448,11 +447,7 @@ export function CourseDashboard({
                       <span className="inline-flex items-center gap-1 text-[12px] font-semibold" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(15, 14, 14)" }}>
                         <span>→</span> In progress
                       </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
-                        <span>○</span> Upcoming
-                      </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               );
@@ -462,7 +457,7 @@ export function CourseDashboard({
             <div className="h-1.5 overflow-hidden rounded-full bg-black/10">
               <div
                 className="h-full rounded-full bg-black transition-all duration-700"
-                style={{ width: `${stageProgressPct}%` }}
+                style={{ width: `${roadmapLessonsPct}%` }}
               />
             </div>
             <div className="mt-1.5 flex justify-between">
@@ -520,8 +515,8 @@ export function CourseDashboard({
           </div>
           <div className="scroll-slim flex-1 min-h-0 space-y-2 overflow-y-auto">
             {course.lessonTitles.map((title, i) => {
-              const isDone = completedIdx.includes(i);
-              const isNext = !isDone && i === Math.min(...Array.from({ length: 6 }, (_, k) => k).filter((k) => !completedIdx.includes(k)));
+              const isDone = i < completed;
+              const isNext = i === completed;
               return (
                 <button
                   key={i}
@@ -567,11 +562,6 @@ export function CourseDashboard({
           <p className="mt-3 text-center text-xs font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
             <span className="font-medium text-black">{completed}</span> / {course.lessonTitles.length || 6} lessons · {progressPct}% complete
           </p>
-          {course.gapAnalysis ? (
-            <p className="mt-2 text-xs font-light leading-snug" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
-              {course.gapAnalysis}
-            </p>
-          ) : null}
         </div>
 
         {/* Study Streak + Total XP — the reference's bottom pair */}

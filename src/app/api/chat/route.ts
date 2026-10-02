@@ -4,13 +4,20 @@ import { fail, ok, readJson } from "@/lib/api";
 import { chatWithNori } from "@/lib/ai";
 
 // POST /api/chat — Nori, the Socratic tutor.
-// Body: { message, courseId? } → { reply, aiGenerated }. Persists both
-// messages (chat history reloads with the Hub).
+// Body: { message, courseId?, currentQuestion? } → { reply, aiGenerated }.
+// Persists both messages (chat history reloads with the Hub). When the hub
+// reports the active quiz question, the AI prompt carries the reference's
+// context prefix ([Current question: "…" — Options: …]) while the STORED
+// user message stays the bare text (the live displays it stripped too).
 export async function POST(req: Request) {
   const user = await requireSession();
   if (!user) return fail("UNAUTHORIZED", "Sign in required", 401);
 
-  const body = await readJson<{ message?: string; courseId?: string | null }>(req);
+  const body = await readJson<{
+    message?: string;
+    courseId?: string | null;
+    currentQuestion?: { question?: string; options?: string[] } | null;
+  }>(req);
   const message = body?.message?.trim();
   if (!message) return fail("VALIDATION", "message is required", 422);
   if (message.length > 2000) {
@@ -32,13 +39,21 @@ export async function POST(req: Request) {
     take: 20,
   });
 
+  // The reference's context prefix — only for the AI, never persisted.
+  const q = body?.currentQuestion;
+  const options = Array.isArray(q?.options) ? q!.options.filter((o) => typeof o === "string") : [];
+  const promptMessage =
+    q && typeof q.question === "string" && options.length > 0
+      ? `[Current question: "${q.question}" — Options: ${options.map((o, i) => `${i + 1}. ${o}`).join(", ")}]  Student: ${message}`
+      : message;
+
   const { reply, aiGenerated } = await chatWithNori(
     [
       ...history.map((m) => ({
         role: m.role === "user" ? ("user" as const) : ("assistant" as const),
         content: m.content,
       })),
-      { role: "user" as const, content: message },
+      { role: "user" as const, content: promptMessage },
     ],
     subject,
   );

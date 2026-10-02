@@ -4,8 +4,10 @@ import { fail, ok, readJson } from "@/lib/api";
 import { generateLessonContent } from "@/lib/ai";
 
 // POST /api/lessons/content — the Hub's per-lesson material.
-// Body: { courseId, lessonIndex } → { coreConcept, questions, aiGenerated }.
-// Lesson index maps onto stage/level (3 stages × 2 lessons; see domain.ts).
+// Body: { courseId, lessonIndex } → { title, concept, scenario, challenge,
+// questions[8] × {question, options, correctIndex, contentType, contentText},
+// aiGenerated }. The "level" fed to the generator is the 1-based STAGE
+// number (floor(lessonIndex/2)+1) exactly like the live's Y2 wiring.
 export async function POST(req: Request) {
   const user = await requireSession();
   if (!user) return fail("UNAUTHORIZED", "Sign in required", 401);
@@ -26,17 +28,17 @@ export async function POST(req: Request) {
   // Lesson focus: derive from the roadmap stage title, else default grid.
   const roadmap = JSON.parse(enrollment.roadmapSteps || "[]") as { title?: string }[];
   const stage = Math.floor(lessonIndex / 2);
-  const level = lessonIndex % 2;
-  const stageTitle = roadmap[stage]?.title;
+  const stageTitle = typeof roadmap[stage]?.title === "string" ? roadmap[stage].title : undefined;
   const focus =
     stageTitle ??
     ["Introduction", "Key Concepts", "Real Examples", "Problem Solving", "Deep Dive", "Mastery Check"][lessonIndex];
 
   const content = await generateLessonContent(
-    level,
+    stage + 1,
     lessonIndex + 1,
     enrollment.courseName,
     focus,
+    stageTitle,
   );
   return ok(content);
 }

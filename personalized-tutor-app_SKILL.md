@@ -6,11 +6,12 @@ description: >
   React 19, Prisma/SQLite, Tailwind v4, and a server-side AI seam. Captures
   the design tokens, the reference-mined behavioral contracts, the five
   Tailwind v4 engine traps, the mobile-nav toaster fix, the quiz-flow
-  semantics, the gamification math, the AI fallback doctrine, and the exact
-  test gate every change must pass.
-version: 1.1.0
+  semantics, the quiz-derived progress model, the lesson-view architecture
+  (gO/yO/xO + Im), the gamification math, the AI fallback doctrine, and the
+  exact test gate every change must pass.
+version: 1.2.0
 last_updated: 2026-10-02
-project_state: 46 unit tests + 34 e2e checks green; session-2 parity pass complete
+project_state: 49 unit tests + 36 e2e checks green; session-3 architecture pass complete
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -243,9 +244,14 @@ per page load (server-side pick → `bubbleQuote` prop — the reference's
 `encouragementFor(n)` cycles the encouragement half deterministically for
 the lesson-complete card.
 
-**The lesson-quiz flow** (`lesson-view.tsx` — ported from the bundle's Y2):
-1. Pick an option → "Submit Answer" reveals.
-2. Correct → score +1 → auto-advance after **800 ms** (no Next button).
+**The lesson-quiz flow** (`lesson-view.tsx` — the bundle's Y2 + gO/yO/xO +
+Im, ported in session-3):
+1. Pick an option (tan 2-column grid) → "**Next Question**" (ChevronRight,
+   ml-auto; gray `#E0E0E0`/`#999` until a pick) → **1000 ms reveal** →
+   then **800 ms** advance/retry. The reveal paints the correct option
+   GREEN `#BCFCAF` (+ CircleCheckBig) and a wrong pick `#FFD0D0`
+   (+ CircleX); the others dim to 40%.
+2. Correct → score +1 → auto-advance after the 800 ms (no manual Next).
 3. Wrong → 800 ms → the in-pane retry modal ("Not quite!" / "Would you
    like to retry this question later?"): "Retry later" re-queues the
    question at the END (`requeueQuestion`), "Skip it" just advances.
@@ -257,6 +263,27 @@ the lesson-complete card.
    burst → **800 ms** → auto-advance into the next lesson.
 6. The final lesson (index 5) fires the dual side cannons and lands on
    the completion card ("LEGENDARY! 🌟").
+7. The h2 shows the SUBJECT on level 1, the AI `title` on levels 2/3; the
+   level context card is "Core Concept" (#FFFD73, question 0 only),
+   "Real-World Scenario" (#E1C8B9), or "Final Boss Challenge" (#D2C0F9);
+   each question carries a content card — video (16:9 shimmer + play +
+   "Example video — …" caption) or "Reading" (#F0F0F0, FileText).
+
+**The lesson-content contract** (`/api/lessons/content`):
+`{title, concept, scenario, challenge, questions[8] ×
+{question, options[4], correctIndex, contentType "video"|"text",
+contentText}, aiGenerated}` — the reference's exact prompt ("Generate 8
+distinct multiple-choice questions for Level N on the subject…"), the
+level fed as the 1-based STAGE number (floor(lessonIndex/2)+1).
+
+**The quiz-derived progress model** (session-3, `domain.ts`): the
+reference has NO per-lesson entity — `quizProgressPercent(score,
+completed) = round(score/5×100)` (clamped at 100), `derivedLessonsCompleted
+= round(pct/100×6)`, roadmap current stage = `floor(lessons/2)`, roadmap
+bar = lessons/6×100 UNROUNDED. The hub sidebar is 3-state (done
+`#DCDCDC`/active yellow/locked `#EBEBEB`+0.45+Lock) keyed off the active
+lesson index; its Lesson Progress card shows `{answered + 1}/8` from the
+SESSION's correct count (the LessonView reports via `onAnswered`).
 
 **Confetti presets** (`src/lib/confetti.ts`): quiz milestone
 (80 particles, spread 55, origin {x:.85,y:.4}, `#FFFD73/#C8AEFF/#0F0E0E`)
@@ -331,6 +358,20 @@ exercises this via real 429s). The Daily Challenge returns
     the changing identity).
 12. **dotenv precedence:** a shell-exported `DATABASE_URL` overrides
     `.env`; a mysteriously wrong DB file is almost always this (§3).
+13. **Lesson-counted dashboard progress (session-3):** the reference has NO
+    per-lesson progress entity — deriving dashboard numbers from
+    LessonProgress rows produces 67%-style numbers the live never shows.
+    Use the quiz-derived seam (`quizProgressPercent` /
+    `derivedLessonsCompleted`); the hub's per-lesson tracking feeds nothing
+    visual.
+14. **Reveal-then-advance timing:** the reference resolves an answer in TWO
+    stages — 1000 ms reveal, then 800 ms advance/retry — collapsing them
+    into a single 800 ms delay makes the reveal invisible to the user and
+    breaks the e2e settle checks.
+15. **Nested component definitions trip the react-compiler lint** ("Cannot
+    create components during render") — extract inner cards to module-level
+    components with props (the ContentCard/ContextCard pattern in
+    lesson-view.tsx).
 
 ## §10 Debugging Guide
 
@@ -344,15 +385,18 @@ exercises this via real 429s). The Daily Challenge returns
 | App opens the wrong SQLite file | trap 12 | `echo $DATABASE_URL`; `ls -la db/` |
 | `P1003: database file does not exist` | db never pushed / wrong anchor | `bun run db:push` from the repo root |
 | AI flows hang then show fallback content | SDK 429/timeout | expected degradation — check `dev.log` for the 429, the fallback is by design |
-| Quiz seems "stuck" after a correct answer | you removed the 800 ms auto-advance | restore the `later(advance, 800)` contract (§7) |
+| Quiz seems "stuck" after a correct answer | you removed the 1800 ms reveal+advance contract | restore `ANSWER_FEEDBACK_MS` (1000) + `ADVANCE_MS` (800) (§7) |
 | Level-up never appears | boundary logic changed | completing lesson index 1 or 3 with 8 correct must interstitial |
+| Dashboard shows 67% / 4-6 lessons on the seeded course | lesson-counted math regressed (trap 13) | quiz 4 must derive 80% / 5/6 (`quizProgressPercent`) |
+| "Cannot create components during render" lint error | trap 15 (nested components) | extract the card to a module-level component |
+| Options render white/single-column | the tan 2-col grid regressed | `button.rounded-[14px]` grid + `#E1C8B9` (§4) |
 | Bubble quote changes on every render / hydration warning | random pick moved client-side | move the pick back to the server page (§5) |
 
 **Live-site verification commands:**
 ```bash
 curl -s localhost:3000/api/health          # {"ok":true,"data":{"status":"ok","db":true}}
-bun run test                              # 46 unit
-bun run build && bun run test:e2e         # 34 e2e on :3100
+bun run test                              # 49 unit
+bun run build && bun run test:e2e         # 36 e2e on :3100
 ```
 
 ## §11 Pre-Ship Checklist
@@ -362,9 +406,9 @@ Run IN ORDER; the local gate is the only gate (no hosted CI):
 ```bash
 bun run lint          # eslint . — zero warnings
 bun run typecheck     # tsc --noEmit — zero errors (build won't catch them!)
-bun run test          # 46 Vitest checks
+bun run test          # 49 Vitest checks
 bun run build         # standalone build (also required for e2e)
-bun run test:e2e      # 34 Playwright checks on :3100
+bun run test:e2e      # 36 Playwright checks on :3100
 ```
 
 Verification categories beyond the gate:
@@ -589,6 +633,13 @@ function confettiAt(prev: number | null, next: number): boolean;
 function requeueQuestion<T extends object>(questions: T[], q: T): T[];
 function studyStreakDays(quizScore: number): number;   // min(score, 7)
 function totalXp(scorePercent: number, quizScore: number): number;
+// session-3 quiz-derived progress seam:
+function quizProgressPercent(quizScore: number | null, quizCompleted: boolean | null): number; // round(score/5*100), clamped
+function derivedLessonsCompleted(progressPct: number): number;   // round(pct/100*6)
+function roadmapCurrentStage(lessonsCompleted: number): number;  // floor(x/2)
+function roadmapStageStatus(stage: number, currentStage: number): StageStatus;
+function subjectIconName(courseName: string | null, contentSource: string | null): string;
+const LEVEL_SUFFIXES: readonly (readonly [string, string])[];  // per-stage lesson-title suffix pairs
 
 // src/lib/quotes.ts
 type PoolQuote = { raw: string; text: string; author: string };
@@ -603,8 +654,9 @@ function encouragementFor(lessonNumber: number): string;
 type BubbleQuote = { raw: string; text: string; author: string | null };
 type Challenge = { question: string; hint: string; options: string[]; correctIndex: number; aiGenerated: boolean };
 
-// hub lesson content (POST /api/lessons/content)
-type LessonContent = { coreConcept: string; questions: { question: string; options: string[]; correctIndex: number }[]; aiGenerated: boolean };
+// hub lesson content (POST /api/lessons/content) — the reference's Y2 schema
+type LessonQuestion = { question: string; options: string[]; correctIndex: number; contentType: "video" | "text"; contentText: string };
+type LessonContent = { title: string; concept: string; scenario: string; challenge: string; questions: LessonQuestion[]; aiGenerated: boolean };
 ```
 
 ---

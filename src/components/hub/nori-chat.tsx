@@ -4,17 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import { MascotChat } from "@/components/mascot";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
+type CurrentQuestion = { question: string; options: string[] } | null;
 
 // NoriChat — the Socratic AI tutor panel. Bubbles: assistant left with the
 // mascot avatar (bg #F0F0F0, radius 16/16/16/4), user right (bg #FFFD73).
-// Input row: rounded-xl #F0F0F0 with a w-7 h-7 black send button.
+// Input row: rounded-xl #F0F0F0 with a w-7 h-7 black send button. When the
+// hub reports the active quiz question, it rides along to /api/chat so Nori
+// can answer in context (the reference's [Current question: …] prefix).
 
 export function NoriChat({
   courseId,
   initialChat,
+  currentQuestion,
 }: {
   courseId: string | null;
   initialChat: ChatMsg[];
+  currentQuestion?: CurrentQuestion;
 }) {
   const [messages, setMessages] = useState<ChatMsg[]>(
     initialChat.length > 0
@@ -46,7 +51,7 @@ export function NoriChat({
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ message: text, courseId }),
+        body: JSON.stringify({ message: text, courseId, currentQuestion }),
       });
       const json = (await res.json()) as
         | { ok: true; data: { reply: string } }

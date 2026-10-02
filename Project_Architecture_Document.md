@@ -1,4 +1,4 @@
-# Thinkerwell (Personalized Tutor App Clone) — Master Project Architecture Document (PAD) v1.0
+# Thinkerwell (Personalized Tutor App Clone) — Master Project Architecture Document (PAD) v1.2
 
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
@@ -10,13 +10,14 @@
 
 ---
 
-#### Revision Block — v1.1 (Tracked Changes)
+#### Revision Block — v1.2 (Tracked Changes)
 
-- `[SR]` Full clone build: 7 routes, 15 API handlers, 7 Prisma models, AI seam with fallbacks, measured design system, 46 unit + 34 e2e checks.
+- `[SR]` Full clone build: 7 routes, 15 API handlers, 7 Prisma models, AI seam with fallbacks, measured design system, 49 unit + 36 e2e checks.
 - `[SAN]` Tailwind v4 engine traps pinned in `globals.css` (five documented differences vs the reference's v3 compiled CSS — see the companion trap log).
 - `[AUTH]` Session-cookie `secure` flag derived from request protocol (fixes silent cookie drops on plain-HTTP production boots — the e2e boot caught it).
 - `[RES]` Mobile navigation fix: empty toast container made `pointer-events-none` (the live reference ships the bug; Playwright refuses the covered hamburger tap — pinned by `tests/e2e/mobile-navigation.spec.ts`).
 - `[S2]` Session-2 parity pass (see `docs/remediation-plan-session-2.md`): the reference's exact 99-line content pool + per-load random bubble picks (server-side prop); the lesson-quiz flow ported to the reference semantics (800 ms auto-advance, retry-later re-queue, 8-to-complete, in-pane "Level Up!" interstitial at stage boundaries with live 1200/800 ms timing); the three confetti presets (`src/lib/confetti.ts` + `canvas-confetti`); Study Streak + Total XP cards (days = min(quizScore,7), XP = pct·10 + score·50); the interactive Daily Challenge modal (upgraded `/api/challenge` returning question/hint/options/correctIndex); conditional Course Progress tint; typewriter topics synced to the reference list; identity sweep (package.json, .env, configs de-ORBITAL'd, `personalized-tutor-app_SKILL.md` replaces the stale scaffold skill).
+- `[S3]` Session-3 architecture pass (see `docs/remediation-plan-session-3.md`): the lesson view ported to the reference's decoded gO/yO/xO + Im architecture (subject h2 on level 1 / AI title on 2-3, per-level Core Concept / Real-World Scenario / Final Boss Challenge cards, per-question video + reading content cards, tan 2-column `#E1C8B9` option grid with green/red reveal + CircleCheckBig/CircleX icons, "Next Question" button, 1000 ms reveal → 800 ms advance timing); the hub sidebar's 3-state rows (done/active/locked — the active index drives all three) with the session-scoped "N+1/8" Lesson Progress card (BookOpen icon); per-stage lesson-title suffixes (Basics/In Practice, Fundamentals/Application, Deep Dive/Mastery); the mobile lessons sheet (All Lessons header, black active rows, stage-number-twice labels); subject-icon course cards (keyword-mapped lucide icons, black tiles, Trash2 + ChevronRight, quiz-derived progress); Nori chat question-context prefix (`[Current question: …]` on `/api/chat`); **the quiz-derived progress model** — the reference has no per-lesson entity, so `quizProgressPercent = round(score/5×100)` drives every dashboard/courses number (the demo's 60% = round(3/5·100); the percent clamps at 100, fixing the live's >100% bug); gap_analysis render removed (the live never displays it).
 
 ---
 

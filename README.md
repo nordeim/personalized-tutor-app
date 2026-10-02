@@ -18,7 +18,9 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🎓 | The Hub: desktop three-pane (lessons sidebar / Nori chat / lesson content), mobile Learn·Ask Nori·Lessons tab shell | `/hub` |
 | 💬 | Nori, the Socratic AI tutor — persistent chat history per course | `/api/chat` |
 | 🗛 | The reference's exact 99-line quote pool, random pick per page load | `src/lib/quotes.ts` |
-| ✅ | Lesson quizzes ported to the reference flow: auto-advance, retry-later re-queue, 8-to-complete | `src/components/hub/lesson-view.tsx` |
+| ✅ | Lesson quizzes ported to the reference flow: 1000 ms reveal + auto-advance, retry-later re-queue, 8-to-complete | `src/components/hub/lesson-view.tsx` |
+| 🃏 | The reference's tan 2-column option grid, per-level context cards, and per-question video/reading content cards | `src/components/hub/lesson-view.tsx` |
+| 🧭 | The quiz-derived progress model (the live has no per-lesson entity): round(score/5×100) → lessons → stages | `src/lib/domain.ts` |
 | 🎉 | Confetti moments: level-up burst, dual-cannon course completion, quiz milestones | `src/lib/confetti.ts` |
 | 🔥 | Study Streak + Total XP cards (the reference's gamification column) | `src/components/dashboard/course-dashboard.tsx` |
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
@@ -108,9 +110,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 46 Vitest unit checks (domain grid, quote pool, gamification math, db-path)
+bun run test          # 49 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 34 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 36 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
@@ -149,6 +151,20 @@ closed the remaining behavioral gaps: the typewriter topic list, the exact
 moments, the Study Streak + Total XP cards, the interactive Daily Challenge
 modal, and the conditional Course Progress tint. Every one of them is mined
 verbatim from the reference and pinned by tests.
+
+## The session-3 architecture pass
+
+A third audit ([`docs/remediation-plan-session-3.md`](docs/remediation-plan-session-3.md))
+decoded the reference's actual component functions from the bundle and
+ported them wholesale: the lesson view's gO/yO/xO level layouts (subject h2
+on level 1, per-level context cards) + Im per-question content cards
+(video shimmer + reading cards), the tan 2-column option grid with
+"Next Question", the hub sidebar's 3-state rows (done/active/locked), the
+session-scoped "{answered + 1}/8" Lesson Progress card, the per-stage
+lesson-title suffixes, the mobile lessons sheet, and the subject-icon course
+cards — plus the biggest semantic discovery: the reference's dashboard
+progress is QUIZ-DERIVED (`round(score/5×100)`), which is exactly why its
+demo shows 60% with a 3/7 quiz score.
 
 ## Pushing to GitHub
 

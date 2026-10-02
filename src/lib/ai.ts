@@ -18,9 +18,23 @@ export type QuizQuestion = {
   correctIndex: number;
 };
 
+export type LessonQuestion = QuizQuestion & {
+  /** "video" renders the shimmer placeholder + caption; "text" the reading card. */
+  contentType: "video" | "text";
+  /** Video caption label, or the reading card's paragraphs (split on newlines). */
+  contentText: string;
+};
+
 export type LessonContent = {
-  coreConcept: string;
-  questions: QuizQuestion[];
+  /** The 3-5 word level title (the h2 for levels 2 and 3). */
+  title: string;
+  /** 1-2 sentence core idea — the Level-1 "Core Concept" card. */
+  concept: string;
+  /** 1-sentence real-world scenario — the Level-2 card (empty elsewhere). */
+  scenario: string;
+  /** Deep mastery challenge intro — the Level-3 card (empty elsewhere). */
+  challenge: string;
+  questions: LessonQuestion[];
   aiGenerated: boolean;
 };
 
@@ -191,66 +205,134 @@ function fallbackQuiz(subject: string): QuizQuestion[] {
 }
 
 /* ------------------------------------------------------------------ */
-/* 3. Lesson content — core concept + QUESTIONS_PER_LESSON questions    */
+/* 3. Lesson content — the reference's exact Y2 prompt and schema        */
 /* ------------------------------------------------------------------ */
+
+type RawLesson = {
+  title?: unknown;
+  concept?: unknown;
+  scenario?: unknown;
+  challenge?: unknown;
+  questions?: unknown;
+};
 
 export async function generateLessonContent(
   level: number,
   lessonNumber: number,
   subject: string,
   lessonFocus: string,
+  stageTitle?: string,
 ): Promise<LessonContent> {
+  // The live's InvokeLLM prompt (mined verbatim from the bundle's Y2.O) —
+  // level is the 1-based stage number, lessonFocus the specific lesson title.
   const raw = await complete(
-    `Create lesson content for the course "${subject}", lesson ${lessonNumber} focused on "${lessonFocus}". ` +
-      `Return ONLY a JSON object with keys "coreConcept" (2-3 sentence summary) and "questions" ` +
-      `(array of exactly ${QUESTIONS_PER_LESSON} objects with keys "question", "options" (array of exactly 4 strings), "correctIndex" (0-3)). ` +
-      `Make all questions closely related to this lesson topic. Difficulty: ${level === 0 ? "foundational" : "advanced"}.`,
+    `Generate ${QUESTIONS_PER_LESSON} distinct multiple-choice questions for Level ${level} on the subject: "${subject}". ` +
+      (stageTitle ? `Focus on this stage: ${stageTitle}. ` : "") +
+      (lessonFocus
+        ? `This specific lesson is: "${lessonFocus}". Make all questions closely related to this lesson topic.`
+        : "") +
+      ` Return a JSON object with: ` +
+      `- title: string (short 3-5 word level title) ` +
+      `- concept: string (1-2 sentence core idea for the level) ` +
+      `- scenario: string (1-sentence real-world scenario, for level 2 only, else empty string) ` +
+      `- challenge: string (a deep mastery challenge intro, for level 3 only, else empty string) ` +
+      `- questions: array of exactly ${QUESTIONS_PER_LESSON} objects, each with: ` +
+      `* "question": string (question text, max 15 words) ` +
+      `* "options": array of exactly 4 strings (answer choices) ` +
+      `* "correctIndex": number (0-3, index of the correct option) ` +
+      `* "content_type": string, either "video" or "text" ` +
+      `* "content_text": string — if content_type is "text", write 2-3 paragraphs explaining the concept; if content_type is "video", a short label describing what the video would cover ` +
+      `Alternate between "video" and "text" content types across the ${QUESTIONS_PER_LESSON} questions.`,
   );
-  const parsed = extractJson<{ coreConcept: string; questions: QuizQuestion[] }>(raw);
+  const parsed = extractJson<RawLesson>(raw);
   if (
     parsed &&
-    typeof parsed.coreConcept === "string" &&
+    typeof parsed.title === "string" &&
+    typeof parsed.concept === "string" &&
     Array.isArray(parsed.questions) &&
     parsed.questions.length >= 4 &&
     parsed.questions.every(
       (q) =>
-        typeof q.question === "string" &&
-        Array.isArray(q.options) &&
-        q.options.length === 4 &&
-        Number.isInteger(q.correctIndex) &&
-        q.correctIndex >= 0 &&
-        q.correctIndex <= 3,
+        typeof q === "object" &&
+        q !== null &&
+        typeof (q as LessonQuestion).question === "string" &&
+        Array.isArray((q as LessonQuestion).options) &&
+        (q as LessonQuestion).options.length === 4 &&
+        Number.isInteger((q as LessonQuestion).correctIndex) &&
+        (q as LessonQuestion).correctIndex >= 0 &&
+        (q as LessonQuestion).correctIndex <= 3,
     )
   ) {
+    const questions: LessonQuestion[] = (parsed.questions as Array<Record<string, unknown>>)
+      .slice(0, QUESTIONS_PER_LESSON)
+      .map((q, i) => ({
+        question: String(q.question),
+        options: (q.options as string[]).map(String),
+        correctIndex: Number(q.correctIndex),
+        // alternate deterministically when the model skips the field
+        contentType: q.content_type === "video" ? "video" : i % 2 === 0 ? "video" : "text",
+        contentText: typeof q.content_text === "string" ? q.content_text : "",
+      }));
     return {
-      coreConcept: parsed.coreConcept,
-      questions: parsed.questions.slice(0, QUESTIONS_PER_LESSON),
+      title: parsed.title,
+      concept: parsed.concept,
+      scenario: typeof parsed.scenario === "string" ? parsed.scenario : "",
+      challenge: typeof parsed.challenge === "string" ? parsed.challenge : "",
+      questions,
       aiGenerated: true,
     };
   }
-  return fallbackLesson(subject, lessonFocus, lessonNumber);
+  return fallbackLesson(level, subject, lessonFocus, lessonNumber);
 }
 
 function fallbackLesson(
+  level: number,
   subject: string,
   lessonFocus: string,
   lessonNumber: number,
 ): LessonContent {
+  // The observed live no-course content: "This level introduces the
+  // foundational concepts and basic principles required for understanding
+  // the subject." — mirrored here with per-level scenario/challenge fills.
   const concept =
-    lessonNumber === 1
-      ? `This level introduces the fundamental concepts and core definitions required for ${subject} proficiency. ${lessonFocus} builds the vocabulary and mental models every later lesson depends on.`
-      : `This lesson deepens your ${subject} understanding of ${lessonFocus}, connecting prior concepts to new applications and practiced problem-solving.`;
-  const questions: QuizQuestion[] = Array.from({ length: QUESTIONS_PER_LESSON }, (_, i) => ({
-    question: `${lessonFocus} — practice question ${i + 1}: which statement is most accurate for ${subject}?`,
-    options: [
-      `The core principle of ${lessonFocus} applies only in isolated cases`,
-      `${lessonFocus} is a foundational ${subject} concept with broad application`,
-      `${lessonFocus} has no practical use in ${subject}`,
-      `${lessonFocus} is unrelated to earlier lessons`,
-    ],
-    correctIndex: 1,
-  }));
-  return { coreConcept: concept, questions, aiGenerated: false };
+    level === 1
+      ? `This level introduces the foundational concepts and basic principles required for understanding ${subject}.`
+      : level === 2
+        ? `This level applies the core ${subject} ideas from ${lessonFocus} to concrete, real-world situations.`
+        : `This level synthesizes everything covered in ${subject} so far into advanced, exam-ready mastery of ${lessonFocus}.`;
+  const title =
+    level === 1
+      ? `${subject} Foundations`
+      : level === 2
+        ? `${subject} In Practice`
+        : `${subject} Mastery`;
+  const scenario =
+    level === 2
+      ? `A practical scenario: using ${lessonFocus} ideas to reason about a real ${subject} decision.`
+      : "";
+  const challenge =
+    level === 3
+      ? `Final challenge: synthesize the full ${subject} roadmap and explain ${lessonFocus} from first principles.`
+      : "";
+  const questions: LessonQuestion[] = Array.from(
+    { length: QUESTIONS_PER_LESSON },
+    (_, i) => ({
+      question: `Which statement best captures the role of ${lessonFocus} in ${subject}?`,
+      options: [
+        `${lessonFocus} is a foundational ${subject} concept with broad application`,
+        `${lessonFocus} applies only in isolated cases`,
+        `${lessonFocus} has no practical use in ${subject}`,
+        `${lessonFocus} is unrelated to earlier lessons`,
+      ],
+      correctIndex: 0,
+      contentType: i % 2 === 0 ? "video" : "text",
+      contentText:
+        i % 2 === 0
+          ? `An overview of ${lessonFocus} in ${subject}`
+          : `${lessonFocus} is a core ${subject} topic.\n\nThis reading walks through why it matters, how it connects to the earlier stages, and where it shows up in practice.\n\nUse it as a refresher before answering.`,
+    }),
+  );
+  return { title, concept, scenario, challenge, questions, aiGenerated: false };
 }
 
 /* ------------------------------------------------------------------ */

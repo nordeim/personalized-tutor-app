@@ -2,7 +2,8 @@ import { expect, test } from "@playwright/test";
 
 // Desktop (1440×900) parity essentials for the dashboard surfaces.
 // Contexts arrive AUTHENTICATED (storageState); the seed plants the demo
-// account with the reference's sample Economics course (60%, 4/6 lessons).
+// account with the reference's sample Economics course (quiz 4/7 → the
+// reference's quiz-derived model: 80%, 5/6 lessons).
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -23,11 +24,12 @@ test.describe("course dashboard (the seeded Economics demo state)", () => {
     await expect(lessons).toHaveCount(6);
   });
 
-  test("the seeded progress computes honestly (4/6 lessons → 67%)", async ({ page }) => {
-    // The reference's /demo hardcodes 60%, but a REAL course computes —
-    // round(4/6*100) = 67. Assert the honest math on the seeded state.
-    await expect(page.getByText("67%", { exact: true })).toBeVisible();
-    await expect(page.getByText("4/6 lessons completed")).toBeVisible();
+  test("the seeded progress derives from the quiz score (4/5 → 80%, 5/6 lessons)", async ({ page }) => {
+    // The reference has NO per-lesson progress — every dashboard number
+    // derives from the diagnostic quiz: round(4/5*100) = 80%, round(0.8*6) = 5.
+    await expect(page.getByText("80%", { exact: true })).toBeVisible();
+    await expect(page.getByText("5/6 lessons completed")).toBeVisible();
+    await expect(page.getByText("5/6 lessons", { exact: true })).toBeVisible();
   });
 
   test("the quote bubble and mascot ship the reference tokens", async ({ page }) => {
@@ -64,11 +66,13 @@ test.describe("the Hub (desktop three-pane)", () => {
     await expect(page.getByText("Core Concept").first()).toBeVisible({ timeout: 30_000 });
   });
 
-  test("the sidebar active lesson row computes the yellow chip", async ({ page }) => {
+  test("the sidebar lesson rows ship the reference's 3 states", async ({ page }) => {
     const active = page.getByRole("button", { name: /Lesson 1 · Now/ });
     await expect(active).toHaveCSS("background-color", "rgb(255, 253, 115)");
-    const inactive = page.getByRole("button", { name: /Lesson 2 / }).first();
-    await expect(inactive).toHaveCSS("background-color", "rgb(235, 235, 235)");
+    const locked = page.getByRole("button", { name: /Lesson 2 / }).first();
+    await expect(locked).toHaveCSS("background-color", "rgb(235, 235, 235)");
+    await expect(locked).toHaveCSS("opacity", "0.45");
+    await expect(locked).toBeDisabled();
   });
 
   test("Nori answers with the Socratic persona", async ({ page }) => {
@@ -86,8 +90,11 @@ test.describe("the Hub (desktop three-pane)", () => {
   });
 
   test("switching lessons loads a fresh lesson view", async ({ page }) => {
-    await page.getByRole("button", { name: /Lesson 3 / }).first().click();
+    // Future lessons are locked on the sidebar (the reference's qP rule) —
+    // the deep link selects lesson 3 directly.
+    await page.goto("/hub?lesson=2");
     await expect(page.getByText(/^Lesson 3$/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: /Lesson 3 · Now/ })).toBeVisible();
   });
 });
 
@@ -115,9 +122,11 @@ test.describe("the guest demo route", () => {
   test("renders the full Economics dashboard without auth state", async ({ page }) => {
     await page.goto("/demo");
     await expect(page.getByRole("heading", { name: "Guest", exact: true })).toBeVisible();
-    await expect(page.getByText("Microeconomic Foundations", { exact: true })).toBeVisible();
-    // The demo pins the reference's static marketing numbers.
+    await expect(page.getByText("Foundations of Microeconomics", { exact: true })).toBeVisible();
+    // The reference's demo numbers arrive via the quiz-derived model
+    // (quiz 3/7 → round(3/5*100) = 60%, 4/6 lessons, 750 XP, 3-day streak).
     await expect(page.getByText("60%", { exact: true })).toBeVisible();
+    await expect(page.getByText("750")).toBeVisible();
     await expect(page.getByRole("link", { name: /Enter The Hub/ })).toBeVisible();
   });
 });

@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (46 unit + 34 Playwright
+   bun run test && bun run build && bun run test:e2e` (49 unit + 36 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -93,15 +93,24 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   notifications layer covers the hamburger button and Playwright refuses
   the tap. `tests/e2e/mobile-navigation.spec.ts` pins the fix with a REAL
   `.tap()`; do not weaken either rule or that spec.
-- **THE quiz-flow invariants (session-2 port):** correct answers
-  AUTO-ADVANCE after 800 ms (never require a manual Next click); wrong
-  answers open the in-pane retry modal after 800 ms ("Retry later" =
-  `requeueQuestion` appends the question at the END; "Skip it" advances);
-  a lesson completes at 8 correct; stage-boundary lessons (index 1, 3)
-  render the in-pane "Level Up!" interstitial (1200 ms → `confettiLevelUp`
-  → 800 ms → auto-advance); the final lesson fires the dual cannons.
-  `tests/parity-session2.test.ts` + `tests/e2e/session2-parity.spec.ts`
-  pin all of it.
+- **THE quiz-flow invariants (session-3 port of gO/yO/xO + Im):** correct
+  answers resolve after a 1000 ms reveal, then auto-advance after 800 ms
+  (never require a manual Next click); wrong answers open the in-pane retry
+  modal after 1800 ms ("Retry later" = `requeueQuestion` appends at the END;
+  "Skip it" advances); a lesson completes at 8 correct; stage-boundary
+  lessons (index 1, 3) render the in-pane "Level Up!" interstitial (1200 ms
+  → `confettiLevelUp` → 800 ms → auto-advance); the final lesson fires the
+  dual cannons. Options are the tan 2-column grid (reveal: correct GREEN
+  `#BCFCAF`, wrong `#FFD0D0`); the button reads "Next Question".
+  `tests/parity-session2.test.ts` + `tests/e2e/session2-parity.spec.ts` pin
+  all of it.
+- **THE progress-model invariant (session-3 F24):** dashboard/courses
+  numbers are QUIZ-DERIVED (`round(score/5×100)`, `round(pct/100×6)` —
+  `src/lib/domain.ts` `quizProgressPercent`/`derivedLessonsCompleted`),
+  NOT lesson-counted. `/demo` = the same math on quiz 3 (60%, 4/6, 750 XP,
+  3 days). The hub sidebar is 3-STATE (done/active/LOCKED past the active
+  lesson) and its Lesson Progress card counts the SESSION
+  (`{answered + 1}/8`), reported by the LessonView via `onAnswered`.
 - **THE content pool:** `src/lib/quotes.ts` is the reference's exact
   99-line array (49 quotes + 50 encouragements). The bubble pick is
   SERVER-side (page → `bubbleQuote` prop) so hydration never mismatches;
@@ -134,9 +143,9 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   "Lesson Progress" / "Core Concept" match twice — `.first()` is the
   desktop instance, `.last()` the mobile one. Document the order in specs.
 - **The `/demo` route is a stateless guest mirror** with the reference's
-  static marketing numbers (Course Progress pinned to 60% via
-  `demoPercent` while 4/6 lessons honestly compute 67% elsewhere). Do not
-  "fix" the inconsistency — it replicates the reference.
+  sample data (quiz 3/7 — the live's 60% / 4/6 / 3 days / 750 XP all fall
+  out of the shared quiz-derived math). Do not "fix" the inconsistency —
+  it replicates the reference.
 
 ## Implementation Standards
 

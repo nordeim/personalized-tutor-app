@@ -3,8 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/layout/app-header";
-import { completedLessonCount, courseProgressPercent } from "@/lib/domain";
+import { derivedLessonsCompleted, quizProgressPercent, subjectIconName } from "@/lib/domain";
 import { ToastProvider } from "@/components/toast";
+import {
+  Atom,
+  BookOpen,
+  Brain,
+  Calculator,
+  ChartColumnIncreasing,
+  ChevronRight,
+  Cpu,
+  Globe,
+  Landmark,
+  Leaf,
+  Megaphone,
+  Music,
+  Palette,
+  Scale,
+  Trash2,
+} from "lucide-react";
 import type { DashboardUser } from "@/components/dashboard/dashboard-app";
 
 export type CourseCard = {
@@ -12,13 +29,37 @@ export type CourseCard = {
   courseName: string;
   quizScore?: number | null;
   quizCompleted?: boolean;
-  lessonTitles: string[];
-  lessonProgress: { lessonIndex: number; completed: boolean; correctCount: number; total: number }[];
+  contentSource?: string | null;
 };
 
-// The courses dashboard: "Welcome back" + big-name hero card, then the
-// courses card — rows (icon + name + quiz progress) with per-course
-// delete, or the empty state with the dashed "Add a Course" CTA.
+// The courses dashboard — ported to the reference's CO card (session-3 R12):
+// each course renders as its own #F8F8F8 rounded-[20px] card inside a
+// gap-[4px] grid, with a BLACK subject-icon tile (keyword-mapped, like the
+// live's bO), the "AI-Generated Course"/"Custom Material" badge, a Trash2
+// delete + ChevronRight affordance, and the quiz-derived progress
+// ("{round(score/5×6)}/6 lessons · {round(score/5×100)}%" + h-1.5 bar) —
+// the live has no per-lesson entity, so the card never reads lesson progress.
+
+const SUBJECT_ICONS: Record<string, typeof BookOpen> = {
+  Calculator,
+  Leaf,
+  Atom,
+  Landmark,
+  Brain,
+  ChartColumnIncreasing,
+  Cpu,
+  Music,
+  Palette,
+  Scale,
+  Megaphone,
+  Globe,
+  BookOpen,
+};
+
+function SubjectIcon({ name, courseName, contentSource }: { name: string; courseName: string; contentSource?: string | null }) {
+  const Icon = SUBJECT_ICONS[subjectIconName(courseName, contentSource)] ?? BookOpen;
+  return <Icon className="h-5 w-5 text-white" strokeWidth={1.5} aria-label={name} />;
+}
 
 export function CoursesApp({ user, courses }: { user: DashboardUser; courses: CourseCard[] }) {
   const router = useRouter();
@@ -73,10 +114,7 @@ export function CoursesApp({ user, courses }: { user: DashboardUser; courses: Co
               {list.length === 0 ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12">
                   <div className="flex h-14 w-14 items-center justify-center rounded-[16px] bg-black/5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-book-open h-6 w-6 text-black/30">
-                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                    </svg>
+                    <BookOpen className="h-7 w-7 text-black/30" strokeWidth={1.5} />
                   </div>
                   <p className="text-center text-sm font-light text-black/40" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
                     No courses yet.
@@ -85,57 +123,75 @@ export function CoursesApp({ user, courses }: { user: DashboardUser; courses: Co
                   </p>
                 </div>
               ) : (
-                <div className="scroll-slim flex flex-1 flex-col gap-2 overflow-y-auto" style={{ maxHeight: "24rem" }}>
+                <div className="grid grid-cols-1 gap-[4px]">
                   {list.map((c) => {
-                    const completed = completedLessonCount(c.lessonProgress);
-                    const pct = courseProgressPercent(completed);
-                    const score = c.quizScore ?? 0;
+                    const pct = quizProgressPercent(c.quizScore, c.quizCompleted);
+                    const lessons = derivedLessonsCompleted(pct);
                     return (
                       <div
                         key={c.id}
-                        className="flex items-center gap-3 rounded-[16px] px-4 py-4 transition-all"
-                        style={{ backgroundColor: "rgb(245, 245, 245)" }}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => router.push(`/?course=${c.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") router.push(`/?course=${c.id}`);
+                        }}
+                        className="flex w-full cursor-pointer flex-col gap-4 rounded-[20px] p-5 text-left transition-all hover:scale-[1.01]"
+                        style={{ backgroundColor: "rgb(248, 248, 248)" }}
+                        aria-label={`Open ${c.courseName}`}
                       >
-                        <span
-                          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] text-sm font-semibold"
-                          style={{ backgroundColor: "rgb(200, 174, 255)", color: "rgb(15, 14, 14)" }}
-                        >
-                          {c.courseName.slice(0, 1).toUpperCase()}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/?course=${c.id}`)}
-                          className="min-w-0 flex-1 text-left"
-                          aria-label={`Open ${c.courseName}`}
-                        >
-                          <p className="truncate text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-                            {c.courseName}
-                          </p>
-                          <p className="text-xs font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
-                            {completed}/6 lessons · quiz {score}/7
-                          </p>
-                          <div className="mt-2 h-1 overflow-hidden rounded-full bg-black/10">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[12px] bg-black">
+                              <SubjectIcon name={c.courseName} courseName={c.courseName} contentSource={c.contentSource} />
+                            </div>
+                            <div>
+                              <p className="text-base font-medium leading-tight text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                                {c.courseName}
+                              </p>
+                              <p className="mt-0.5 text-xs font-light text-black/40" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                                {c.contentSource === "custom" ? "Custom Material" : "AI-Generated Course"}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void remove(c.id);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.stopPropagation();
+                                  void remove(c.id);
+                                }
+                              }}
+                              aria-label={`Delete ${c.courseName}`}
+                              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-all hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 text-black/30 hover:text-red-400" strokeWidth={1.5} />
+                            </div>
+                            <ChevronRight className="h-5 w-5 flex-shrink-0 text-black/30" strokeWidth={1.5} />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-light text-black/40" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                              {lessons}/{6} lessons
+                            </span>
+                            <span className="text-xs font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+                              {pct}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-black/10">
                             <div
                               className="h-full rounded-full bg-black transition-all duration-700"
                               style={{ width: `${pct}%` }}
                             />
                           </div>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void remove(c.id)}
-                          disabled={deleting === c.id}
-                          aria-label={`Delete ${c.courseName}`}
-                          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-all hover:bg-black/10 disabled:opacity-40"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-trash-2 h-4 w-4" style={{ color: "rgb(89, 89, 89)" }}>
-                            <path d="M3 6h18" />
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                            <line x1="10" x2="10" y1="11" y2="17" />
-                            <line x1="14" x2="14" y1="11" y2="17" />
-                          </svg>
-                        </button>
+                        </div>
                       </div>
                     );
                   })}

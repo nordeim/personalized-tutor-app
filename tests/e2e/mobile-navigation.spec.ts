@@ -95,11 +95,14 @@ test.describe("hub mobile chrome (390×844)", () => {
   test("the hub header links to Dashboard and opens the Lessons sheet", async ({ page }) => {
     await expect(page.getByRole("link", { name: "Dashboard" })).toBeVisible();
     await page.getByRole("button", { name: "Lessons", exact: true }).first().tap();
-    // The sheet lists all six lessons with stage/level labels.
-    for (const label of ["Stage 1 · Level 1", "Stage 2 · Level 1", "Stage 3 · Level 1"]) {
+    // The sheet header + all six lessons. The reference prints the stage
+    // number twice ("Stage 2 · Level 2") and the ACTIVE row goes black.
+    await expect(page.getByText("All Lessons").first()).toBeVisible();
+    for (const label of ["Stage 1 · Level 1", "Stage 2 · Level 2", "Stage 3 · Level 3"]) {
       await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
     }
-    await expect(page.getByText("Active").first()).toBeVisible();
+    const activeRow = page.getByRole("button", { name: /Active/ }).first();
+    await expect(activeRow).toHaveCSS("background-color", "rgb(15, 14, 14)");
   });
 
   test("the bottom tab bar carries Learn / Ask Nori / Lessons with the yellow active chip", async ({ page }) => {
@@ -122,7 +125,7 @@ test.describe("hub mobile chrome (390×844)", () => {
     await expect(page.getByPlaceholder("Ask Nori anything...").last()).toBeVisible();
     await bar.getByRole("button", { name: "Lessons", exact: true }).tap();
     // .last(): the desktop sidebar's instance renders first (hidden at 390).
-    await expect(page.getByText("Lesson Progress").last()).toBeVisible();
+    await expect(page.getByText("All Lessons").last()).toBeVisible();
     await bar.getByRole("button", { name: "Learn", exact: true }).tap();
     // .last(): same DOM-order rule — the mobile lesson view is second.
     await expect(page.getByText("Core Concept").last()).toBeVisible();

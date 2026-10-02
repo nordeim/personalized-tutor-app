@@ -5,47 +5,95 @@ import { MascotGenerating } from "@/components/mascot";
 import { encouragementFor } from "@/lib/quotes";
 import { QUESTIONS_PER_LESSON, requeueQuestion } from "@/lib/domain";
 import { confettiCourseComplete, confettiLevelUp } from "@/lib/confetti";
-import { Zap, RotateCcw } from "lucide-react";
+import {
+  ChevronRight,
+  CircleCheckBig,
+  CircleX,
+  FileText,
+  Lightbulb,
+  MapPin,
+  Play,
+  RotateCcw,
+  Trophy,
+  Zap,
+} from "lucide-react";
 
-type QuizQuestion = { question: string; options: string[]; correctIndex: number };
-type LessonContent = { coreConcept: string; questions: QuizQuestion[]; aiGenerated: boolean };
+type LessonQuestion = {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  contentType: "video" | "text";
+  contentText: string;
+};
+type LessonContent = {
+  title: string;
+  concept: string;
+  scenario: string;
+  challenge: string;
+  questions: LessonQuestion[];
+  aiGenerated: boolean;
+};
 
-// LessonView — the lesson content pane, ported to the reference's exact quiz
-// flow (mined from the live bundle's Y2 component):
-//   * Submit → CORRECT: auto-advance after 800 ms (score = correct count / 8).
-//   * Submit → WRONG: 800 ms later the in-pane retry modal — "Retry later"
-//     re-queues the question at the end of the list, "Skip it" just advances.
-//   * A lesson completes at 8 correct (or when the queue is exhausted — the
-//     graceful fallback for an edge the reference leaves broken).
-//   * Completing a stage-boundary lesson (index 1 or 3) shows the in-pane
-//     "Level Up!" interstitial after 1200 ms (Zap tile + "Preparing Lesson
-//     N…"), fires the level-up confetti burst, then advances after 800 ms.
-//   * Completing the final lesson fires the dual side cannons and lands on
-//     the celebration card.
+// LessonView — ported to the reference's Y2 + gO/yO/xO + Im architecture
+// (mined from the live bundle, session-3 remediation R7):
 //
-// All state resets happen via remount — the parent keys this component on
-// the active lesson.
+//   * The h2 shows the SUBJECT on level 1 and the generated level title on
+//     levels 2/3; "Lesson N" + "{correct}/8 correct" + a w-24 progress bar
+//     ride along.
+//   * Level 1 renders the yellow "Core Concept" card (question 0 only);
+//     level 2 the tan "Real-World Scenario" card; level 3 the lilac "Final
+//     Boss Challenge" card.
+//   * Every question carries a content card: "video" = the 16:9 shimmer with
+//     a play button and an "Example video — …" caption; "text" = the
+//     "Reading" card with the content_text paragraphs.
+//   * Options form a 2-column grid of tan #E1C8B9 rounded-[14px] buttons;
+//     a pick adds the black outline; the reveal paints the correct answer
+//     green (#BCFCAF + CircleCheckBig) and a wrong pick red (#FFD0D0 +
+//     CircleX) while the others dim to 40%.
+//   * The submit button reads "Next Question" (ChevronRight, ml-auto) —
+//     gray until an option is picked, hidden after the reveal.
+//   * Timing (the live's): submit → 1000 ms reveal → onAnswer → (correct:
+//     800 ms auto-advance / wrong: 800 ms → the in-pane retry modal, where
+//     "Retry later" re-queues the question at the end and "Skip it" just
+//     advances).
+//   * A lesson completes at 8 correct (or queue exhaustion — the graceful
+//     fallback for an edge the live leaves broken); stage boundaries show the
+//     in-pane "Level Up!" interstitial (1200 ms → burst → 800 ms → advance);
+//     the final lesson fires the dual confetti cannons.
+//   * `onAnswered` reports the session's correct count so the Hub's Lesson
+//     Progress card renders the reference's "{answered + 1}/8" label.
+//
+// State resets happen via remount — the parent keys this component on the
+// active lesson.
 
 const LEVEL_UP_DELAY_MS = 1200; // live: onCorrect → setTimeout(..., 1200)
 const LEVEL_UP_HOLD_MS = 800; // live: interstitial → setTimeout(..., 800)
-const ANSWER_FEEDBACK_MS = 800; // live: reveal → advance/retry-modal delay
+const ANSWER_FEEDBACK_MS = 1000; // live: submit → reveal → onAnswer (1e3)
+const ADVANCE_MS = 800; // live: onAnswer → advance/retry-modal (800)
 
 export function LessonView({
   courseId,
   courseName,
   lessonIndex,
   lessonTitle,
-  progress,
+  subject,
   onComplete,
   onLessonChange,
+  onAnswered,
+  onQuestionChange,
 }: {
   courseId: string | null;
   courseName: string | null;
   lessonIndex: number;
   lessonTitle: string;
-  progress: { lessonIndex: number; completed: boolean; correctCount: number; total: number }[];
+  /** The h2 subject for level 1 (the live shows current_subject || "General"). */
+  subject?: string;
   onComplete: (lessonIndex: number, correct: number, total: number) => void;
   onLessonChange: (index: number) => void;
+  /** Session-correct-count reporter for the Hub's Lesson Progress card. */
+  onAnswered?: (correct: number) => void;
+  /** Active-question reporter — rides to Nori as chat context. */
+  onQuestionChange?: (q: { question: string; options: string[] } | null) => void;
 }) {
   const [content, setContent] = useState<LessonContent | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,7 +103,7 @@ export function LessonView({
   const [correctCount, setCorrectCount] = useState(0);
   const [finished, setFinished] = useState(false);
   const [levelingUp, setLevelingUp] = useState(false);
-  const [retryQ, setRetryQ] = useState<QuizQuestion | null>(null);
+  const [retryQ, setRetryQ] = useState<LessonQuestion | null>(null);
   const timers = useRef<number[]>([]);
 
   const later = (fn: () => void, ms: number) => {
@@ -69,8 +117,21 @@ export function LessonView({
     []
   );
 
+  // The 1-based stage level (lessons 0-1 → 1, 2-3 → 2, 4-5 → 3).
+  const level = Math.floor(lessonIndex / 2) + 1;
+  const h2 = level === 1 ? (subject || courseName || "General") : (content?.title || lessonTitle);
   const isFinalLesson = lessonIndex === 5;
   const isStageBoundary = lessonIndex === 1 || lessonIndex === 3;
+  const q = content?.questions[qIndex];
+
+  useEffect(() => {
+    onAnswered?.(0);
+  }, [lessonIndex]);
+
+  const activeQuestion = q ? { question: q.question, options: q.options } : null;
+  useEffect(() => {
+    onQuestionChange?.(activeQuestion);
+  }, [activeQuestion?.question]);
 
   function completeLesson(finalScore: number, total: number) {
     setFinished(true);
@@ -91,14 +152,13 @@ export function LessonView({
     if (isFinalLesson) {
       confettiCourseComplete();
     } else if (isStageBoundary) {
-      // live: 1200 ms → interstitial + burst → 800 ms → next lesson
+      // live: 1200 ms → interstitial + burst → 800 ms → next level
       later(() => {
         setLevelingUp(true);
         confettiLevelUp();
         later(() => {
           setLevelingUp(false);
-          onComplete(lessonIndex, finalScore, total);
-          onLessonChange(lessonIndex + 1); // the live auto-advances into the next level
+          onLessonChange(lessonIndex + 1); // the auto-advance into the next level
         }, LEVEL_UP_HOLD_MS);
       }, LEVEL_UP_DELAY_MS);
     }
@@ -125,13 +185,17 @@ export function LessonView({
   function confirm() {
     if (picked === null || revealed || !q || !content) return;
     setRevealed(true);
-    if (picked === q.correctIndex) {
-      const nextScore = correctCount + 1;
-      setCorrectCount(nextScore);
-      later(() => advance(nextScore, content.questions.length), ANSWER_FEEDBACK_MS);
-    } else {
-      later(() => setRetryQ(q), ANSWER_FEEDBACK_MS);
-    }
+    // live: hold the reveal for 1s, THEN resolve correct/wrong.
+    later(() => {
+      if (picked === q.correctIndex) {
+        const nextScore = correctCount + 1;
+        setCorrectCount(nextScore);
+        onAnswered?.(nextScore);
+        later(() => advance(nextScore, content.questions.length), ADVANCE_MS);
+      } else {
+        later(() => setRetryQ(q), ADVANCE_MS);
+      }
+    }, ANSWER_FEEDBACK_MS);
   }
 
   function retry(requeue: boolean) {
@@ -155,22 +219,40 @@ export function LessonView({
     let cancelled = false;
     void (async () => {
       if (!courseId) {
-        // No course (fresh account): render the default grid lesson.
+        // No course (fresh account): render the default-grid lesson with
+        // the reference's observed fallback shapes.
         if (!cancelled) {
+          const levelLocal = Math.floor(lessonIndex / 2) + 1;
           setContent({
-            coreConcept:
-              lessonIndex === 0
-                ? "This level introduces fundamental concepts and core definitions required for general proficiency."
-                : `This lesson builds on earlier concepts with worked examples and practice for ${lessonTitle.toLowerCase()}.`,
+            title: lessonTitle,
+            concept:
+              levelLocal === 1
+                ? "This level introduces the foundational concepts and basic principles required for understanding the subject."
+                : levelLocal === 2
+                  ? `This level applies the core ideas from ${lessonTitle} to concrete, real-world situations.`
+                  : `This level synthesizes everything covered so far into advanced, exam-ready mastery.`,
+            scenario:
+              levelLocal === 2
+                ? `A practical scenario: using ${lessonTitle} ideas to reason through a real decision.`
+                : "",
+            challenge:
+              levelLocal === 3
+                ? `Final challenge: synthesize the full roadmap and explain ${lessonTitle} from first principles.`
+                : "",
             questions: Array.from({ length: QUESTIONS_PER_LESSON }, (_, i) => ({
-              question: `${lessonTitle} — practice question ${i + 1}: which statement is most accurate?`,
+              question: `What best describes the role of ${lessonTitle}?`,
               options: [
-                "The concept applies only in isolated cases",
-                "This is a foundational concept with broad application",
-                "This concept has no practical use",
-                "This concept is unrelated to earlier lessons",
+                "A foundational concept with broad application",
+                "A detail with no practical impact",
+                "An advanced exception to every rule",
+                "An unrelated aside",
               ],
-              correctIndex: 1,
+              correctIndex: 0,
+              contentType: i % 2 === 0 ? "video" : "text",
+              contentText:
+                i % 2 === 0
+                  ? `An overview of ${lessonTitle} and why it matters`
+                  : `${lessonTitle} anchors the level.\n\nThis reading walks through the core idea, how it connects to the earlier stages, and where it shows up in practice.\n\nUse it as a refresher before answering.`,
             })),
             aiGenerated: false,
           });
@@ -197,16 +279,14 @@ export function LessonView({
     return () => {
       cancelled = true;
     };
-  }, [courseId, lessonIndex]);
-
-  const q = content?.questions[qIndex];
+  }, [courseId, lessonIndex, lessonTitle]);
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-24">
         <MascotGenerating />
         <p className="mt-4 text-sm font-light" style={{ fontFamily: '"Funnel Sans", sans-serif', color: "rgb(89, 89, 89)" }}>
-          Generating Lesson {lessonIndex + 1} content...
+          Generating Lesson {level} content...
         </p>
       </div>
     );
@@ -245,7 +325,7 @@ export function LessonView({
             Level Up!
           </h2>
           <p className="text-sm font-light" style={{ color: "rgb(89, 89, 89)" }}>
-            Preparing Lesson {(lessonIndex + 1) / 2 + 1}...
+            Preparing Lesson {level + 1}...
           </p>
         </div>
       </div>
@@ -301,6 +381,9 @@ export function LessonView({
     );
   }
 
+  /* ---------------- per-question content card (the live's Im) ---------------- */
+  /* ---------------- the level context card (gO/yO/xO) ---------------- */
+
   return (
     <div className="animate-fade-in-up">
       <div className="space-y-5" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
@@ -311,7 +394,7 @@ export function LessonView({
               Lesson {lessonIndex + 1}
             </p>
             <h2 className="text-2xl font-normal text-black" style={{ letterSpacing: "-0.02em" }}>
-              {lessonTitle}
+              {h2}
             </h2>
           </div>
           <div className="text-right">
@@ -330,25 +413,16 @@ export function LessonView({
           </div>
         </div>
 
-        {/* core concept */}
-        <div className="flex items-start gap-3 rounded-[16px] p-4" style={{ backgroundColor: "rgb(255, 253, 115)" }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-lightbulb mt-0.5 h-5 w-5 flex-shrink-0">
-            <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
-            <path d="M9 18h6" />
-            <path d="M10 22h4" />
-          </svg>
-          <div>
-            <p className="mb-1 text-xs font-medium text-black">Core Concept</p>
-            <p className="text-sm font-light leading-relaxed text-black">{content.coreConcept}</p>
-          </div>
-        </div>
+        {/* level context card */}
+        <ContextCard
+          level={level}
+          qIndex={qIndex}
+          concept={content.concept}
+          scenario={content.scenario}
+          challenge={content.challenge}
+        />
 
-        {/* video placeholder */}
-        <div className="overflow-hidden rounded-[16px]" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
-          <div className="video-shimmer w-full" style={{ aspectRatio: "16 / 9" }} aria-hidden="true" />
-        </div>
-
-        {/* quiz / question card */}
+        {/* quiz / question */}
         {finished ? (
           <div className="rounded-[16px] p-6 text-center" style={{ backgroundColor: "rgb(235, 226, 255)" }}>
             <p className="text-lg font-normal text-black">Lesson {lessonIndex + 1} complete!</p>
@@ -368,6 +442,7 @@ export function LessonView({
                 setRevealed(false);
                 setCorrectCount(0);
                 setFinished(false);
+                onAnswered?.(0);
               }}
               className="mt-5 rounded-[12px] bg-black px-6 py-3 text-sm font-bold text-white transition-all hover:bg-gray-800"
             >
@@ -375,16 +450,20 @@ export function LessonView({
             </button>
           </div>
         ) : q ? (
-          <div className="rounded-[16px] p-5" style={{ backgroundColor: "rgb(245, 245, 245)" }}>
-            <p className="mb-1 text-[10px] font-medium uppercase tracking-wider" style={{ color: "rgb(89, 89, 89)" }}>
-              Question {qIndex + 1}
-            </p>
-            <h3 className="mb-4 text-base font-medium leading-snug text-black">{q.question}</h3>
-            <div className="space-y-2">
+          <div>
+            <ContentCard question={q} />
+            <h3
+              className="mb-4 mt-4 text-base font-normal text-black"
+              style={{ lineHeight: 1.4 }}
+            >
+              {q.question}
+            </h3>
+            <div className="grid grid-cols-2 gap-2.5">
               {q.options.map((opt, i) => {
                 const isPicked = picked === i;
                 const isCorrect = revealed && i === q.correctIndex;
                 const isWrong = revealed && isPicked && i !== q.correctIndex;
+                const dimmed = revealed && !isCorrect && !isWrong;
                 return (
                   <button
                     key={i}
@@ -393,50 +472,149 @@ export function LessonView({
                       if (!revealed) setPicked(i);
                     }}
                     disabled={revealed}
-                    className="w-full rounded-xl px-4 py-3 text-left text-sm transition-all"
+                    className="rounded-[14px] p-4 text-left transition-all duration-200"
                     style={{
                       backgroundColor: isCorrect
-                        ? "rgb(255, 253, 115)"
+                        ? "rgb(188, 252, 175)"
                         : isWrong
                           ? "rgb(255, 208, 208)"
-                          : "white",
-                      color: "rgb(15, 14, 14)",
-                      border: "1px solid rgba(0, 0, 0, 0.06)",
+                          : "rgb(225, 200, 185)",
+                      border: `1px solid ${isPicked && !revealed ? "rgb(15, 14, 14)" : "transparent"}`,
+                      opacity: dimmed ? 0.4 : 1,
+                      cursor: revealed ? "default" : "pointer",
                     }}
                     aria-pressed={isPicked}
                   >
-                    <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold" style={{ backgroundColor: "rgba(0, 0, 0, 0.08)" }}>
-                      {String.fromCharCode(65 + i)}
-                    </span>
-                    {opt}
-                    {isCorrect ? <span className="ml-2 font-semibold">✓</span> : null}
-                    {isWrong ? <span className="ml-2 font-semibold">✗</span> : null}
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-light leading-snug text-black">{opt}</p>
+                      {revealed ? (
+                        isCorrect ? (
+                          <CircleCheckBig className="h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
+                        ) : isWrong ? (
+                          <CircleX className="h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
+                        ) : null
+                      ) : null}
+                    </div>
                   </button>
                 );
               })}
             </div>
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-xs font-light" style={{ color: "rgb(89, 89, 89)" }}>
-                {revealed
-                  ? picked === q.correctIndex
-                    ? "Nailed it! ⚡ Your brain is on fire right now. Keep that momentum going!"
-                    : "Not quite — the highlighted answer is correct."
-                  : "Pick the best answer."}
-              </p>
-              {!revealed ? (
-                <button
-                  type="button"
-                  disabled={picked === null}
-                  onClick={confirm}
-                  className="rounded-[12px] bg-black px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-gray-800 disabled:opacity-30"
-                >
-                  Submit Answer
-                </button>
-              ) : null}
-            </div>
+            {!revealed ? (
+              <button
+                type="button"
+                onClick={confirm}
+                disabled={picked === null}
+                className="ml-auto mt-4 flex items-center gap-2 rounded-[14px] px-5 py-2.5 text-sm font-medium transition-all"
+                style={{
+                  fontFamily: '"Funnel Sans", sans-serif',
+                  backgroundColor: picked === null ? "rgb(224, 224, 224)" : "rgb(15, 14, 14)",
+                  color: picked === null ? "rgb(153, 153, 153)" : "rgb(255, 255, 255)",
+                  cursor: picked === null ? "not-allowed" : "pointer",
+                }}
+              >
+                Next Question
+                <ChevronRight className="h-4 w-4" strokeWidth={1.5} />
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>
     </div>
   );
+}
+
+/* ---------------- module-level cards (the live's Im + gO/yO/xO) ---------------- */
+
+/** The per-question content card — video shimmer + play + caption, or the
+ * "Reading" card with the content_text paragraphs. */
+export function ContentCard({ question }: { question: LessonQuestion }) {
+  if (!question.contentType || !question.contentText) return null;
+  if (question.contentType === "video") {
+    return (
+      <div className="overflow-hidden rounded-[16px]" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
+        <div className="video-shimmer relative w-full" style={{ aspectRatio: "16 / 9" }} aria-hidden="true">
+          <div className="absolute inset-0 z-[1] flex items-center justify-center">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-full"
+              style={{ backgroundColor: "rgba(0, 0, 0, 0.25)" }}
+            >
+              <Play className="h-5 w-5 text-white" strokeWidth={1.5} fill="white" />
+            </div>
+          </div>
+        </div>
+        <div className="px-1 pb-1 pt-2">
+          <p className="text-xs font-light" style={{ color: "rgb(89, 89, 89)" }}>
+            Example video — {question.contentText}
+          </p>
+        </div>
+      </div>
+    );
+  }
+  const paragraphs = question.contentText.split(/\n+/).filter((p) => p.trim());
+  return (
+    <div className="rounded-[16px] p-5" style={{ backgroundColor: "rgb(240, 240, 240)" }}>
+      <div className="mb-3 flex items-center gap-2">
+        <FileText className="h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
+        <p className="text-xs font-medium text-black">Reading</p>
+      </div>
+      <div className="space-y-3" style={{ maxWidth: 500 }}>
+        {paragraphs.map((p, i) => (
+          <p key={i} className="text-sm font-light leading-relaxed text-black">
+            {p}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The level context card — Core Concept (L1, question 0 only), the
+ * Real-World Scenario (L2), or the Final Boss Challenge (L3). */
+export function ContextCard({
+  level,
+  qIndex,
+  concept,
+  scenario,
+  challenge,
+}: {
+  level: number;
+  qIndex: number;
+  concept: string;
+  scenario: string;
+  challenge: string;
+}) {
+  if (level === 1 && qIndex === 0) {
+    return (
+      <div className="flex items-start gap-3 rounded-[16px] p-4" style={{ backgroundColor: "rgb(255, 253, 115)" }}>
+        <Lightbulb className="mt-0.5 h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
+        <div>
+          <p className="mb-1 text-xs font-medium text-black">Core Concept</p>
+          <p className="text-sm font-light leading-relaxed text-black">{concept}</p>
+        </div>
+      </div>
+    );
+  }
+  if (level === 2 && scenario) {
+    return (
+      <div className="flex items-start gap-3 rounded-[16px] p-4" style={{ backgroundColor: "rgb(225, 200, 185)" }}>
+        <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
+        <div>
+          <p className="mb-1 text-xs font-medium text-black">Real-World Scenario</p>
+          <p className="text-sm font-light leading-relaxed text-black">{scenario}</p>
+        </div>
+      </div>
+    );
+  }
+  if (level === 3 && challenge) {
+    return (
+      <div className="flex items-start gap-3 rounded-[16px] p-4" style={{ backgroundColor: "rgb(210, 192, 249)" }}>
+        <Trophy className="mt-0.5 h-4 w-4 flex-shrink-0 text-black" strokeWidth={1.5} />
+        <div>
+          <p className="mb-1 text-xs font-medium text-black">Final Boss Challenge</p>
+          <p className="text-sm font-light leading-relaxed text-black">{challenge}</p>
+        </div>
+      </div>
+    );
+  }
+  return null;
 }

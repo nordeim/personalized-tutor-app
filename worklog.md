@@ -154,3 +154,20 @@ Work Log:
 
 Stage Summary:
 - Session-2 deliverable complete: parity gaps closed, repo identity clean, docs + SKILL.md aligned, full gate green, pushed to git@github.com:nordeim/personalized-tutor-app.git main.
+
+---
+Task ID: 7
+Agent: main (Super Z)
+Task: Session 3 — architecture decode, quiz-derived progress model, lesson-view rework, docs, push
+
+Work Log:
+- git pull → 7f16110; re-reviewed all root docs + session_1/2 + remediation-plan-session-2 + worklog; validated against the code (baseline gate green: 46 unit + 34 e2e; unset the stale shell DATABASE_URL export).
+- Deep bundle decode (qP, Y2, gO/yO/xO, Im, H2, Kh, CO/kO, bO icon mapper, the ie level-up handler) + live DOM captures of /demo, /hub (desktop+mobile), /courses, /quiz; drove the live hub quiz interactively (observed the 1/8→2/8 session counter, the retry modal, and the reference crashing mid-quiz).
+- Findings: 24 catalogued in docs/remediation-plan-session-3.md — headline: F24 the QUIZ-DERIVED progress model (E = round(score/5×100) drives everything; the demo's 60% = round(3/5×100)), F1-F8 the gO/yO/xO+Im lesson architecture, F9 the 3-state sidebar, F16 per-stage title suffixes, F17 subject-icon course cards.
+- TDD execution: domain seam first (quizProgressPercent/derivedLessonsCompleted/roadmapCurrentStage/roadmapStageStatus/subjectIconName/LEVEL_SUFFIXES, 46→49 unit), then the AI Y2 prompt/schema, the LessonView rewrite (tan 2-col grid, Next Question, content cards, 1000+800 ms timing), the HubApp rework (3-state rows, session Lesson Progress, always-on Course pill, chevron mobile header, reference mobile sheet), the dashboard switch to the quiz-derived model (demoPercent deleted), the CO-style courses cards, and the chat question-context prefix.
+- Gate green: lint ✓ typecheck ✓ 49 unit ✓ build ✓ 36 e2e ✓; screenshots 23–32 captured + pixel-verified (all reference hexes present).
+- Docs aligned: AGENTS.md, CLAUDE.md, README.md, PAD v1.2 [S3], personalized-tutor-app_SKILL.md v1.2.0 (Phase-5 verified), docs/session_3.md.
+- Committed on main and pushed via docs/ssh_git_wrapper_v3.py.
+
+Stage Summary:
+- Session-3 deliverable complete: the clone now reproduces the reference's decoded component architecture and its quiz-derived data model, with the full gate green and pushed to main.

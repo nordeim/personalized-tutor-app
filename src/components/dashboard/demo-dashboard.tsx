@@ -5,28 +5,30 @@ import { CourseDashboard } from "@/components/dashboard/course-dashboard";
 import { ToastProvider } from "@/components/toast";
 
 // The guest demo dashboard — a static mirror of the course dashboard with
-// the reference's sample Economics data: 3 stages, 6 lessons, 60% progress.
+// the reference's sample Economics data: quiz 3/7 (which drives the live's
+// exact 60% / 4/6 lessons / 3-day streak / 750 XP numbers via the quiz-
+// derived model), the live's roadmap titles/descriptions, and 6 lessons.
 const DEMO_ROADMAP = [
   {
-    title: "Microeconomic Foundations",
+    title: "Foundations of Microeconomics",
     description:
-      "Students will explore the fundamental principles of supply and demand and how individual choices drive market outcomes. This stage covers elasticity, consumer behavior, and firm production decisions.",
+      "Students will explore the fundamental principles of supply, demand, and market equilibrium. This stage provides the groundwork for understanding how individual consumers and firms make rational decisions in a market economy.",
   },
   {
     title: "Macroeconomic Principles",
     description:
-      "This stage shifts focus to the broader economy, examining indicators like GDP, inflation, and unemployment. Students will learn how government policies and central banks influence national economic growth.",
+      "This stage shifts focus to the economy as a whole, covering topics like GDP, inflation, and unemployment. Learners will examine how government policies and fiscal actions influence national economic performance.",
   },
   {
     title: "Global Economic Systems",
     description:
-      "Learners will analyze international trade, currency exchange rates, and the impact of globalization on local economies. The curriculum concludes with a look at how interconnected markets shape contemporary policy challenges.",
+      "Students will analyze international trade, currency exchange, and the complexities of global development. The curriculum concludes by investigating how interconnected nations manage resources and financial stability on a worldwide scale.",
   },
 ];
 
 const DEMO_LESSONS = [
-  "Microeconomic Foundations: Basics",
-  "Microeconomic Foundations: In Practice",
+  "Foundations of Microeconomics: Basics",
+  "Foundations of Microeconomics: In Practice",
   "Macroeconomic Principles: Fundamentals",
   "Macroeconomic Principles: Application",
   "Global Economic Systems: Deep Dive",
@@ -43,11 +45,11 @@ export function DemoDashboard({
     () => ({
       id: "demo-enrollment",
       courseName: "Economics",
-      quizScore: 4,
+      quizScore: 3,
       quizCompleted: true,
       roadmapSteps: JSON.stringify(DEMO_ROADMAP),
       gapAnalysis:
-        "Your 4/7 score suggests a developing grasp of Economics. The personalized roadmap below balances your learning path, covering core areas progressively.",
+        "You have a solid grasp of basic economic concepts. Focus on applying micro and macroeconomic principles to real-world scenarios.",
       lessonProgress: [0, 1, 2, 3].map((lessonIndex) => ({
         lessonIndex,
         completed: true,
@@ -101,7 +103,6 @@ export function DemoDashboard({
         <CourseDashboard
           user={{ name: "Guest", email: "guest@thinkerwell.demo" }}
           course={course}
-          demoPercent={60}
           bubbleQuote={bubbleQuote}
           courses={[{ id: "demo-enrollment", name: "Economics", current: true }]}
         />
