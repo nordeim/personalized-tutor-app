@@ -32,6 +32,7 @@ async function generateCourse(
 ): Promise<string> {
   const gen = await page.request.post("/api/courses/generate", {
     data: { topic, mode: "topic" },
+    timeout: 60_000,
   });
   expect(gen.ok()).toBeTruthy();
   const json = (await gen.json()) as { ok: boolean; data: { courseId: string } };
@@ -66,16 +67,18 @@ test.describe("the dashboard confetti decode (S12-F2 — the c_ port)", () => {
   test("the streak burst fires when the active course's score crosses 3 (refresh-driven)", async ({ page }) => {
     // The live's c_ fires on REACTIVE entity updates while the dashboard is
     // mounted (Base44's realtime store re-renders G5's props in place). The
-    // clone's architectural equivalent of that in-place update is
-    // router.refresh() re-fetching the snapshot (client state preserved,
-    // props updated — the App Router's same-route course-switch REMOUNTS
-    // via a new Router Cache entry, so it cannot fire there; a documented
-    // ADR-001 divergence). Drive: mount at score 2 → submit score 3
-    // API-level → trigger the UI's refresh (the m_ rename flow's
-    // onStudentUpdated → router.refresh()) → streakDays 2→3 fires.
+    // clone has TWO in-place firing surfaces (both re-render the shell with
+    // fresh props WITHOUT remounting it — S13-F2/F3 corrected the session-12
+    // "the switch remounts" misdiagnosis: the frozen viewCourseId state had
+    // blocked the switch entirely): this drive's router.refresh() (the m_
+    // rename flow's onStudentUpdated) and the same-route course switch
+    // (pinned in session13-parity.spec.ts). Drive: mount at score 2 →
+    // submit score 3 API-level → trigger the UI's refresh → streakDays 2→3
+    // fires.
     const astronomy = await generateCourse(page, "Astronomy");
     const submit = await page.request.post("/api/quiz/submit", {
       data: { courseId: astronomy, answers: [1, 1, 1, 1, 1], total: 5, score: 2 },
+      timeout: 60_000,
     });
     expect(submit.ok()).toBeTruthy();
 
@@ -93,6 +96,7 @@ test.describe("the dashboard confetti decode (S12-F2 — the c_ port)", () => {
     // The score updates on the server while the dashboard stays mounted…
     const retake = await page.request.post("/api/quiz/submit", {
       data: { courseId: astronomy, answers: [1, 1, 1, 1, 1], total: 5, score: 3 },
+      timeout: 60_000,
     });
     expect(retake.ok()).toBeTruthy();
 
@@ -103,11 +107,15 @@ test.describe("the dashboard confetti decode (S12-F2 — the c_ port)", () => {
     await page.getByRole("button", { name: /Update Preferences/ }).click();
     await page.locator("#pref-name-input").fill("Demo Learner");
     await page.getByRole("button", { name: /^Save Changes$/ }).click();
-    await page.waitForTimeout(1500);
 
-    // The burst: canvas-confetti appends a fixed full-screen canvas.
-    const canvases = await page.locator("canvas").count();
-    expect(canvases).toBeGreaterThan(0);
+    // The burst: canvas-confetti appends a fixed full-screen canvas. S13-F7:
+    // POLL instead of a fixed wait — the canvas self-removes after its
+    // animation, so a slow refresh landing after a fixed 1500ms window
+    // read count() === 0 and flaked; the poll exits as soon as the burst
+    // fires (an 8s window absorbs the server round-trip).
+    await expect
+      .poll(async () => page.locator("canvas").count(), { timeout: 8_000 })
+      .toBeGreaterThan(0);
   });
 });
 
@@ -150,6 +158,7 @@ test.describe("the material-course gate (S12-F1)", () => {
         contentText:
           "The cell membrane is a phospholipid bilayer. Mitochondria produce ATP through oxidative phosphorylation. Ribosomes synthesize proteins from mRNA transcripts.",
       },
+      timeout: 60_000,
     });
     expect(gen.ok()).toBeTruthy();
     const json = (await gen.json()) as { ok: boolean; data: { courseId: string } };
@@ -169,16 +178,19 @@ test.describe("the submit-route validation (S12-F8)", () => {
 
     const badScore = await page.request.post("/api/quiz/submit", {
       data: { courseId, answers: [0, 0, 0, 0, 0], total: 5, score: 99 },
+      timeout: 60_000,
     });
     expect(badScore.status()).toBe(422);
 
     const badAnswers = await page.request.post("/api/quiz/submit", {
       data: { courseId, answers: [7, 0, 0], total: 5, score: 1 },
+      timeout: 60_000,
     });
     expect(badAnswers.status()).toBe(422);
 
     const badType = await page.request.post("/api/quiz/submit", {
       data: { courseId, answers: [0, 0, 0, 0, 0], total: 5, score: "3" },
+      timeout: 60_000,
     });
     expect(badType.status()).toBe(422);
 
@@ -186,10 +198,12 @@ test.describe("the submit-route validation (S12-F8)", () => {
     // session-11 spec pins) and a well-formed payload still succeeds.
     const missing = await page.request.post("/api/quiz/submit", {
       data: { courseId, answers: [0, 0, 0, 0, 0], total: 5 },
+      timeout: 60_000,
     });
     expect(missing.ok()).toBeTruthy();
     const valid = await page.request.post("/api/quiz/submit", {
       data: { courseId, answers: [1, 1, 1, 0, 0], total: 5, score: 3 },
+      timeout: 60_000,
     });
     expect(valid.ok()).toBeTruthy();
   });

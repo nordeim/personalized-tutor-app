@@ -14,6 +14,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
+      // `server-only` is a bundler directive, not a real package (Next provides
+      // its own shim at build time). The node test environment resolves this
+      // stub so the AI seam (src/lib/ai.ts) is unit-testable.
+      "server-only": path.resolve(import.meta.dirname, "tests/stubs/server-only.ts"),
     },
   },
 });

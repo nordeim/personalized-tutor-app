@@ -28,7 +28,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 153 unit tests + 86 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 175 unit tests + 90 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -113,9 +113,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 153 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate)
+bun run test          # 175 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing, the dual-shape roadmap)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 86 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 90 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
@@ -314,6 +314,30 @@ fired; the gate is now the broad `enrollmentMaterial` predicate); and the
 Hub trailing icon decoded as ChevronRight (the ArrowRight was a session-1
 invention), the submit route 422s on malformed payloads, and the quiz
 star now rides a `next/image` wrapper. 125 → 153 unit, 82 → 86 e2e.
+
+## The session-13 course-switch + data-contract pass
+
+A thirteenth audit
+([`docs/remediation-plan-session-13.md`](docs/remediation-plan-session-13.md))
+found the session-12 confetti port's real blocker: **the same-route course
+switch was functionally broken** — the dashboard shell's `viewCourseId`
+state was frozen at mount (its setter had no caller), so the CoursePill
+rows' navigation changed the URL while the dashboard kept rendering the
+mount-time course (empirically: the pre-switch course's streak/XP
+persisted until a full reload — and the session-12 "the App Router
+remounts the page" diagnosis was wrong: nothing remounts, the stale state
+simply ignored the fresh props). `activeCourse` now derives from the
+URL-resolved `currentCourseId` prop, which fixes the switch AND finally
+delivers the live's c_ confetti surface — a course switch crossing a
+streak boundary or mastery tier now fires the ported bursts in place
+(e2e-pinned with dedicated content/burst/label drives). The same pass:
+hardened the `{steps}` wrapper parser (a lazy string reply crashed the
+route with a 500 — the "AI may degrade, never fail" invariant), split
+the roadmap response schemas to the live's verbatim decode (generate-time
+objects vs submit-time STRING arrays, with `parseRoadmap` mapping both
+via the live's Kh/card split semantics), completed the submit route's
+422 symmetry (non-array answers, non-integer total), and hardened the
+e2e AI-timeout convention. 153 → 175 unit, 86 → 90 e2e.
 
 ## Pushing to GitHub
 

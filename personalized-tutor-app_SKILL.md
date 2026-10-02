@@ -18,9 +18,9 @@ description: >
   header variant + the /demo auth gate + the Try-it navigation), the
   gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.11.0
+version: 1.12.0
 last_updated: 2026-10-03
-project_state: 153 unit tests + 86 e2e checks green; session-12 dashboard-decode parity pass complete (the material gate un-deadened, the dashboard confetti port — the streak + mastery-label triggers decoded from c_, the mid-quiz confetti removed, the ChevronRight CTA icon, the three roadmap prompts split, the submit-route 422s)
+project_state: 175 unit tests + 90 e2e checks green; session-13 course-switch + data-contract pass complete (the frozen viewCourseId state fixed — same-route switches update the content and fire the ported c_ bursts on their natural surface; the {steps} wrapper parser array-checked; the roadmap response schemas split to the live's verbatim decode with dual-shape parseRoadmap; the submit route's 422 symmetry; the e2e timeout hardening)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -265,8 +265,9 @@ on every render.
 - `useMascot*` — not hooks; the mascot wrappers (`MascotWelcome`,
   `MascotGenerating`, `BrandMark`) are plain components around static SVGs.
 - The confetti "hooks" are ref-guards: `confettiAt(prev, next)` (pure, in
-  `domain.ts`) + a `useRef` in `quiz-app.tsx` — never fire on first
-  observation, only on upward crossings.
+  `domain.ts`) + `useRef`s in `dashboard-app.tsx` (the UNKEYED shell — S12's
+  c_ port; E3/quiz-app fires none) — never fire on first observation, only
+  on upward crossings (the streak) or label changes (the mastery tier).
 
 ## §7 Content & AI Flows (the reference-mined contracts)
 
@@ -362,10 +363,13 @@ session-2 mid-quiz placement was a misattribution. The hub's level-up
 calls, 120 particles, angles 60°/120°, spread 70, origins x:0/x:1, the
 right cannon swapping in `#10b981`) presets are unchanged. The triggers
 live in the UNKEYED shell (`dashboard-app.tsx`) because the live's
-unkeyed c_ keeps its refs across course switches — while the App
-Router's same-route switch REMOUNTS the keyed CourseDashboard (a new
-Router Cache entry; the clone's firing surface is `router.refresh()`,
-e.g. the m_ rename flow — e2e-pinned).
+unkeyed c_ keeps its refs across course switches — while the clone's
+KEYED CourseDashboard remounts when the active course's key changes
+(the same-route switch re-renders the shell with fresh props — the
+shell does NOT remount; S13-F2 fixed the frozen `viewCourseId` state
+that had blocked the switch entirely). The clone's firing surfaces
+are BOTH the same-route course switch AND `router.refresh()` (e.g.
+the m_ rename flow — both e2e-pinned).
 
 **Gamification math** (`domain.ts`): `studyStreakDays(quizScore) =
 min(quizScore, 7)`; `totalXp(pct, score) = pct*10 + score*50`; the Study
@@ -620,19 +624,58 @@ exercises this via real 429s). The Daily Challenge returns
     the clone's writer mapping differs — always gate on the predicate,
     never the label.
 36. **The roadmap prompts are THREE distinct shapes + the
-    {"steps":[…]} wrapper** (session-12, S12-F4): GENERATE-time
+    {"steps":[…]} wrapper** (session-12, S12-F4; response schemas
+    corrected session-13, S13-F5): GENERATE-time
     (G5's empty-roadmap effect / the onboarding create) = "Create
     exactly 3 progressive learning stages for the course…", course
-    name only; SUBMIT-time (E3, pct-aware) = "Based on someone scoring
-    {pct}%… create exactly 3 progressive learning focus areas… (one
-    per arena level)", material-aware; the skip-time variant is
-    discarded by the live's own code. The LLM answers in the
-    `{"steps":[…]}` OBJECT shape (response_json_schema) —
-    `generateCourseStages` parses BOTH the wrapper and a bare array
-    (a wrapper-only parser silently falls to the static fallback even
-    on a correct LLM answer). The "Enter The Hub" trailing icon is
+    name only, OBJECT response schema
+    (`{"steps":[{"title":"Stage title","description":"2-3 sentence
+    description."}]}`); SUBMIT-time (E3, pct-aware) = "Based on someone
+    scoring {pct}%… create exactly 3 progressive learning focus
+    areas… (one per arena level)", material-aware, STRING response
+    schema (`{"steps":["Step 1: …","Step 2: …","Step 3: …"]}` — the
+    live's response_json_schema is an array of strings, and BOTH its
+    writes persist the raw strings); the skip-time variant is
+    discarded by the live's own code. `generateCourseStages` parses
+    the wrapper AND the bare array AND both element shapes (strings
+    map via the live's split semantics in `parseRoadmap`); the routes
+    store whatever the LLM answered verbatim. The "Enter The Hub"
+    trailing icon is
     ChevronRight at lucide default sw 2 (`m9 18 6-6-6-6` — stable
     across lucide versions), never ArrowRight.
+37. **A frozen `useState` can silently break same-route
+    navigation** (session-13, S13-F2): the dashboard shell's
+    `viewCourseId` state initialized from a prop whose value changes
+    on navigation — but its setter had NO caller, so `activeCourse`
+    kept resolving the mount-time course while the URL (and the
+    server-resolved props) moved on. A same-route App Router
+    navigation does NOT remount the shell (same component type, same
+    tree position) — the client state survives the re-render. When a
+    prop is URL-derived and authoritative, DERIVE from the prop
+    (useMemo), never mirror it into state; a state mirror with no
+    setter is a freeze-frame bug the e2e suite must pin with a
+    content assertion (URL-only assertions pass while the content is
+    stale). The session-12 "the App Router remounts the page on
+    same-route navigation" claim was this bug misdiagnosed.
+38. **Trust the LLM's reply shape, but ARRAY-CHECK every unwrapped
+    field** (session-13, S13-F1): `parsed?.steps` rode an unchecked
+    cast — a lazy string reply (`{"steps": "Foundation, …"}`) passes
+    `.length >= 3` (the STRING's own length) and then crashes
+    `.every` → a 500 from the route, violating the "AI may degrade,
+    never fail" invariant. Every wrapper-field access needs
+    `Array.isArray(...)` (the quiz parser's own pattern) + the
+    element validation must handle BOTH element shapes (strings and
+    objects) once the contract is dual-shape. Unit-pin the exact
+    crash input.
+39. **Playwright request-level calls carry a 30s default timeout
+    while the AI seam budgets 45s** (session-13, S13-F7): every
+    `page.request.post` that hits an AI-backed route needs an explicit
+    `timeout: 60_000` (the AI-assertion convention) — the suite passes
+    in fast-fail sandboxes (the SDK 429s into the fallbacks) but a
+    reachable-but-slow LLM aborts mid-test. Likewise, transient-canvas
+    assertions (confetti) must POLL (`expect.poll`) — the canvas
+    self-removes after its animation, so a fixed wait races its
+    lifetime.
 
 ## §10 Debugging Guide
 

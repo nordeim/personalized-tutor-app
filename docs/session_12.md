@@ -72,10 +72,14 @@ headline mobile-navigation re-verification.
    `quiz-app.tsx` (E3 has none) with the duplicate domain import merged
    and `skip()` now consuming the envelope's `redirectTo`; the two c_
    confetti effects ported into the UNKEYED shell (`dashboard-app.tsx` —
-   the App Router remounts the keyed CourseDashboard on a same-route
-   course switch, so the triggers must observe the active course above
-   the key boundary; the clone's firing surface is `router.refresh()`,
-   e2e-pinned via the m_ rename-driven refresh); `confettiLabelChange()`
+   the KEYED CourseDashboard child remounts when the active course's key
+   changes on a same-route course switch, so the triggers observe the
+   active course above the key boundary; session-13 correction: the
+   switch itself was blocked at this time by the frozen `viewCourseId`
+   state — S13-F2 — so the only working firing surface then was
+   `router.refresh()`, e2e-pinned via the m_ rename-driven refresh; the
+   session-13 fix restored the switch surface too);
+   `confettiLabelChange()`
    (90 particles) added to `confetti.ts`; the Enter The Hub trailing icon
    swapped to ChevronRight (`m9 18 6-6-6-6`, lucide default sw 2); the
    submit route 422s on present-but-invalid score/answers (a missing

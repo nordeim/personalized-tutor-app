@@ -3,7 +3,7 @@ import {
   confettiAt,
   enrollmentMaterial,
   masteryLabelTier,
-} from "../src/lib/domain";
+} from "@/lib/domain";
 
 // Session-12 pins — the dashboard-confetti decode (bundle c_), the
 // material-gate helper (the dead === "custom" fix), and the
@@ -33,6 +33,14 @@ describe("masteryLabelTier (S12-F2c — the live's Qi ladder)", () => {
   });
   it("Scholar at 60", () => {
     expect(masteryLabelTier(60).label).toBe("Scholar");
+  });
+  // S13-F11: the keeps-below pins for the upper tiers (the session-12 set
+  // covered only 0/20/40).
+  it("keeps Scholar below 80", () => {
+    expect(masteryLabelTier(79).label).toBe("Scholar");
+  });
+  it("keeps Expert below 100", () => {
+    expect(masteryLabelTier(99).label).toBe("Expert");
   });
   it("Expert at 80", () => {
     expect(masteryLabelTier(80).label).toBe("Expert");
@@ -84,6 +92,12 @@ describe("confettiAt (S12-F2b — the exact-equality crossing)", () => {
   });
   it("4 -> 7 fires", () => {
     expect(confettiAt(4, 7)).toBe(true);
+  });
+  // S13-F11: a nextScore ABOVE 7 never fires (the real inputs are
+  // min(quizScore, 7)-clamped, but the helper's exact-equality contract
+  // deserves the pin).
+  it("4 -> 8 does NOT fire (above the 7 ladder)", () => {
+    expect(confettiAt(4, 8)).toBe(false);
   });
 });
 

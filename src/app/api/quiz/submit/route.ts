@@ -24,7 +24,13 @@ export async function POST(req: Request) {
     score?: number;
   }>(req);
   const courseId = body?.courseId;
+  // S13-F4: a present-but-NON-ARRAY answers is REJECTED (422) — the silent
+  // `?? []` coercion masked client bugs. A MISSING answers still degrades
+  // to [] (the legacy-client path the session-11 spec pins).
   const answers = Array.isArray(body?.answers) ? body.answers : [];
+  if (body?.answers !== undefined && !Array.isArray(body.answers)) {
+    return fail("VALIDATION", "answers must be an array of indices", 422);
+  }
   if (!courseId) return fail("VALIDATION", "courseId is required", 422);
   // S12-F8: a present-but-invalid payload is REJECTED (422) rather than
   // silently coerced — a malformed score/answers entry is a client bug the
@@ -49,6 +55,16 @@ export async function POST(req: Request) {
     return fail("NOT_FOUND", "Course not found", 404);
   }
 
+  // S13-F4: total validates like the other present-but-invalid fields —
+  // a positive integer. The old truthy-plus-`> 0` check let `"5"` (string)
+  // and `0.5` through (string coercion; pct = 200 on the fractional case).
+  // A MISSING total still degrades (answers.length || 5).
+  if (
+    body?.total !== undefined &&
+    (typeof body.total !== "number" || !Number.isInteger(body.total) || body.total < 1)
+  ) {
+    return fail("VALIDATION", "total must be a positive integer", 422);
+  }
   const total = body?.total && body.total > 0 ? body.total : answers.length || 5;
   if (body?.score !== undefined && body.score > total) {
     return fail("VALIDATION", "score cannot exceed total", 422);

@@ -21,7 +21,7 @@ type QuizQuestion = { question: string; options: string[]; correctIndex: number 
 // `filter((G, re) => G === c[re].ans).length` — diagnosticScore).
 // S12-F2a: E3 contains ZERO confetti — the milestone burst the clone fired
 // mid-quiz was a session-2 misattribution; the decoded triggers live on the
-// DASHBOARD (course-dashboard.tsx, the c_ port).
+// DASHBOARD (dashboard-app.tsx — the unkeyed shell, the c_ port).
 
 const QUIZ_FONT = "'Funnel Sans', sans-serif";
 

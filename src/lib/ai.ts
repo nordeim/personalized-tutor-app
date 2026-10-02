@@ -86,34 +86,59 @@ function extractJson<T>(raw: string | null): T | null {
 
 export type StageDraft = { title: string; description: string };
 
+/** A roadmap step as the LLM answered it: the generate-time OBJECT shape
+ * ({title, description}) or the submit-time STRING shape ("Step 1: Title —
+ * desc"). The routes store whichever arrived verbatim (the live's contract:
+ * `roadmap_steps: JSON.stringify(steps)`); `parseRoadmap` maps both. */
+export type RawStage = string | StageDraft;
+
 export async function generateCourseStages(
   courseName: string,
   opts?: { pct?: number; material?: string | null },
-): Promise<{ stages: StageDraft[]; aiGenerated: boolean }> {
-  // S12-F4: the live carries THREE distinct roadmap prompts — the
+): Promise<{ stages: RawStage[]; aiGenerated: boolean }> {
+  // S12-F4 + S13-F5: the live carries THREE distinct roadmap prompts — the
   // GENERATE-time shape (G5's empty-roadmap effect, the onboarding/create
   // path: "Create exactly 3 progressive learning stages for the course…",
-  // course name only, NO material context) and the SUBMIT-time shape (E3,
-  // pct-aware: "Based on someone scoring {pct}%… create exactly 3
-  // progressive learning focus areas… (one per arena level)", material-
-  // aware). The session-11 port collapsed both onto the submit wording;
-  // the branches are now split to the decode.
+  // course name only, NO material context, OBJECT response schema) and the
+  // SUBMIT-time shape (E3, pct-aware: "Based on someone scoring {pct}%…
+  // create exactly 3 progressive learning focus areas… (one per arena
+  // level)", material-aware, STRING response schema — the live's
+  // response_json_schema is an array of strings and its own writers store
+  // them verbatim). The session-11 port collapsed both onto the submit
+  // wording; the session-12 split restored the bodies; this pass restores
+  // each branch's RESPONSE schema to the decode.
   const hasMaterial = !!opts?.material && opts.material.trim().length > 0;
   const prompt =
     typeof opts?.pct === "number"
       ? `Based on someone scoring ${opts.pct}% on a diagnostic quiz about ${
           hasMaterial ? "their uploaded material" : courseName
         }, create exactly 3 progressive learning focus areas for the subject "${hasMaterial ? "Custom Material" : courseName}" (one per arena level). ` +
-        `Return JSON: { "steps": [{ "title": "Stage title", "description": "Stage description" }] }`
+        `Return JSON: { "steps": ["Step 1: ...", "Step 2: ...", "Step 3: ..."] }`
       : `Create exactly 3 progressive learning stages for the course "${courseName}". ` +
         `Each stage needs a short title (2-3 words) and a description (2-3 sentences explaining what the student will learn in this stage). ` +
-        `Return JSON: { "steps": [{ "title": "Stage title", "description": "Stage description" }] }`;
+        `Return JSON: { "steps": [{ "title": "Stage title", "description": "2-3 sentence description." }] }`;
   const raw = await complete(prompt);
   // The live's response_json_schema wraps the array in { "steps": [...] } —
   // the LLM may answer with the wrapper object OR a bare array; accept both.
-  const parsed = extractJson<StageDraft[] | { steps?: StageDraft[] }>(raw);
-  const stages = Array.isArray(parsed) ? parsed : parsed?.steps;
-  if (stages && stages.length >= 3 && stages.every((s) => typeof s.title === "string")) {
+  // S13-F1: `parsed?.steps` must be ARRAY-checked — a lazy string reply
+  // (`{"steps": "Foundation, …"}`) passes `.length >= 3` and then crashes
+  // `.every` (a 500 from the route — the "AI may degrade, never fail"
+  // invariant violation). The sibling quiz parser already applied this
+  // check; the stages parser now mirrors it.
+  const parsed = extractJson<RawStage[] | { steps?: RawStage[] }>(raw);
+  const stages = Array.isArray(parsed)
+    ? parsed
+    : Array.isArray(parsed?.steps)
+      ? parsed.steps
+      : null;
+  if (
+    stages &&
+    stages.length >= 3 &&
+    stages.every((s) => {
+      if (typeof s === "string") return s.trim().length > 0;
+      return typeof s === "object" && s !== null && typeof s.title === "string";
+    })
+  ) {
     return { stages: stages.slice(0, 3), aiGenerated: true };
   }
   return {

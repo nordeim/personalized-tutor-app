@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (153 unit + 86 Playwright
+   bun run test && bun run build && bun run test:e2e` (175 unit + 90 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -193,17 +193,23 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   enrollment). The submit upserts the DiagnosticQuiz by (user, subject).
   The login page's origin construction is the pinned `headerOrigin`
   helper (comma-list proto normalization + localhost http heuristic).
-- **THE session-12 invariants (the dashboard c_ decode):** the diagnostic
+- **THE session-12 invariants (the dashboard c_ decode; corrected
+  session-13 S13-F2/F3):** the diagnostic
   quiz (E3) fires NO confetti — the decoded triggers live on the
   DASHBOARD, ported into the UNKEYED shell (`dashboard-app.tsx`, not the
-  keyed CourseDashboard which the App Router remounts on a same-route
-  course switch): the 80-particle streak burst (min(quizScore,7) crossing
+  keyed CourseDashboard which remounts when the active course's key
+  changes on a same-route switch): the 80-particle streak burst
+  (min(quizScore,7) crossing
   EXACTLY 3 or 7 — `confettiAt`'s exact-equality semantics, unit-pinned)
   and the 90-particle mastery-label burst (`masteryLabelTier` —
   Novice/Apprentice/Learner/Scholar/Expert/Master at 0/20/40/60/80/100;
-  the label never renders, it exists for the trigger). The clone's firing
-  surface is `router.refresh()` (the live's is the reactive entity
-  store) — e2e-pinned via the m_ rename-driven refresh. The quiz-flow
+  the label never renders, it exists for the trigger). The shell derives
+  activeCourse from the currentCourseId PROP (S13-F2 — the frozen
+  viewCourseId state had blocked same-route switches); the firing
+  surfaces are BOTH the course switch AND `router.refresh()` (the
+  live's is the reactive entity
+  store) — e2e-pinned via the m_ rename-driven refresh AND the
+  course-switch drives. The quiz-flow
   material context gates on the BROAD predicate (`enrollmentMaterial` =
   isCustomSource && non-blank text — the session-11 `=== "custom"` gate
   was dead code: no clone writer emits "custom"). The roadmap prompts
@@ -213,6 +219,21 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   The Hub trailing icon is ChevronRight at lucide default sw 2
   (`m9 18 6-6-6-6`); the submit route 422s on present-but-invalid
   payloads (a missing score still degrades to 0).
+- **THE session-13 invariants (the course-switch fix + the dual-shape
+  roadmap):** `dashboard-app.tsx` derives `activeCourse` from the
+  `currentCourseId` PROP — the session-8 `viewCourseId` state was frozen
+  at mount (its setter had no caller), so same-route course switches
+  rendered STALE content and the ported confetti triggers never fired on
+  them (a same-route navigation re-renders the shell with fresh props
+  WITHOUT remounting it — the session-12 "the page remounts" diagnosis
+  was wrong; the KEYED child remounts on the key change, the unkeyed
+  shell persists). The roadmap contract is DUAL-SHAPE (the live's
+  generate-time OBJECTS vs submit-time STRING array — each branch's
+  prompt + response verbatim; `parseRoadmap` maps strings via the live's
+  Kh/card split semantics), and the `{steps}` wrapper parser
+  ARRAY-CHECKS `parsed?.steps` (a lazy string reply crashed `.every` →
+  500 — the degrade-never-fail invariant). e2e-pinned by the
+  course-switch content/burst/label drives.
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in

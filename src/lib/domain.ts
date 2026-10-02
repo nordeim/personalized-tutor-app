@@ -66,16 +66,42 @@ export function parseRoadmap(json: string | null | undefined): Roadmap {
     const parsed = JSON.parse(json) as unknown;
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .filter(
-        (s): s is RoadmapStage =>
-          typeof s === "object" &&
-          s !== null &&
-          typeof (s as RoadmapStage).title === "string",
-      )
-      .map((s) => ({
-        title: s.title,
-        description: typeof s.description === "string" ? s.description : "",
-      }))
+      .map((s): RoadmapStage | null => {
+        // S13-F5: the live's roadmap_steps carries BOTH shapes — the
+        // generate-time OBJECTS ({title, description}) and the submit-time
+        // STRINGS ("Step 1: Core Foundations — build the base"). The live's
+        // own renderers map both (the roadmap card's name/label mapper +
+        // the Kh lesson-title expansion): strip the /^(Lesson|Step)\s*\d+/
+        // prefix, split on " — " (title before, description after), else on
+        // ": " when the index < 40, else the whole string with "".
+        if (typeof s === "object" && s !== null && typeof (s as RoadmapStage).title === "string") {
+          const obj = s as RoadmapStage;
+          return {
+            title: obj.title,
+            description: typeof obj.description === "string" ? obj.description : "",
+          };
+        }
+        if (typeof s === "string") {
+          const stripped = s.replace(/^(Lesson|Step)\s*\d+[:\.\-\s]*/i, "").trim();
+          const em = stripped.indexOf(" — ");
+          if (em > -1) {
+            return {
+              title: stripped.slice(0, em).trim(),
+              description: stripped.slice(em + 3).trim(),
+            };
+          }
+          const colon = stripped.indexOf(": ");
+          if (colon > -1 && colon < 40) {
+            return {
+              title: stripped.slice(0, colon).trim(),
+              description: stripped.slice(colon + 2).trim(),
+            };
+          }
+          return { title: stripped, description: "" };
+        }
+        return null;
+      })
+      .filter((s): s is RoadmapStage => s !== null)
       .slice(0, STAGES_PER_COURSE);
   } catch {
     return [];

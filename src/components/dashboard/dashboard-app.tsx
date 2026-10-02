@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/layout/app-header";
 import { OnboardingDashboard } from "@/components/dashboard/onboarding-dashboard";
@@ -64,13 +64,27 @@ export function DashboardApp({
   bubbleQuote?: { raw: string; text: string; author: string | null };
 }) {
   const router = useRouter();
-  const [viewCourseId, setViewCourseId] = useState<string | null>(currentCourseId);
 
+  // S13-F2: activeCourse derives from the URL-resolved currentCourseId PROP —
+  // never from client state. The session-8 viewCourseId state was FROZEN at
+  // mount (its setter had no caller), so a same-route course switch (the
+  // CoursePill rows' router.push("/?course=" + id), the mobile Switch Course
+  // rows) re-rendered this shell with the NEW props while activeCourse kept
+  // resolving the mount-time course — the dashboard rendered STALE content
+  // (empirically: the streak/XP stats of the pre-switch course persisted
+  // until a full reload). Deriving from the prop fixes the switch AND
+  // delivers the live's c_ confetti surface: a same-route switch re-renders
+  // with fresh props (the shell does NOT remount — same type, same tree
+  // position), the KEYED CourseDashboard remounts on the key change (the
+  // content swap), and this UNKEYED shell's ref-guarded effects observe the
+  // streak/label change exactly like the live's unkeyed c_. The refresh path
+  // (the m_ rename flow) is unchanged: router.refresh() re-renders with the
+  // same currentCourseId but fresh course data.
   const activeCourse = useMemo(() => {
     if (forceOnboarding) return null;
-    if (viewCourseId) return courses.find((c) => c.id === viewCourseId) ?? null;
+    if (currentCourseId) return courses.find((c) => c.id === currentCourseId) ?? null;
     return currentCourse;
-  }, [forceOnboarding, viewCourseId, courses, currentCourse]);
+  }, [forceOnboarding, currentCourseId, courses, currentCourse]);
 
   // S11-F3: the live's $P model — the with-course dashboard renders
   // whenever the enrollment EXISTS (the $P resolver sets the enrollment and

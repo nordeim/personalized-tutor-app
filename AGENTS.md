@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (153 checks) | `bun run test` |
-| Browser E2E (86 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (175 checks) | `bun run test` |
+| Browser E2E (90 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (153) → `bun run build` → `bun run test:e2e` (86 Playwright
+`bun run test` (175) → `bun run build` → `bun run test:e2e` (90 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -322,21 +322,28 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   find by (user, subject) → update | create — retakes no longer
   accumulate rows. The gap-analysis prompt is the live's named/pct-aware
   shape; the submit-time roadmap prompt carries the pct.
-- **THE dashboard confetti is the c_ port (session-12, S12-F2):** the
-  diagnostic quiz (E3) fires NO confetti — the decoded triggers live on
-  the DASHBOARD, ported into the UNKEYED shell (`dashboard-app.tsx`, not
-  the keyed CourseDashboard — the App Router remounts the keyed child on
-  a same-route course switch, while the live's unkeyed c_ keeps its
-  refs): (a) the streak burst — 80 particles, spread 55, origin
+- **THE dashboard confetti is the c_ port (session-12, S12-F2; corrected
+  session-13 S13-F2/F3):** the diagnostic quiz (E3) fires NO confetti —
+  the decoded triggers live on the DASHBOARD, ported into the UNKEYED
+  shell (`dashboard-app.tsx`, not the keyed CourseDashboard — the keyed
+  child remounts when the active course's key changes on a same-route
+  course switch, while the live's unkeyed c_ keeps its refs): (a) the
+  streak burst — 80 particles, spread 55, origin
   {x:.85,y:.4}, `#FFFD73/#C8AEFF/#0F0E0E` — when `min(quizScore,7)`
   crosses EXACTLY 3 or 7 upward (`confettiAt`'s exact-equality semantics,
   unit-pinned); (b) the label burst — 90 particles, spread 60, origin
   {x:.85,y:.3} — when the mastery tier changes
   (`masteryLabelTier(scorePercent)`: Novice 0 / Apprentice 20 / Learner
   40 / Scholar 60 / Expert 80 / Master 100 — the label NEVER renders;
-  it exists for the trigger, like the live). The clone's firing surface
-  is `router.refresh()` (the live's is Base44's reactive entities);
-  e2e-pinned via the m_ rename-driven refresh.
+  it exists for the trigger, like the live). The shell derives
+  `activeCourse` from the `currentCourseId` PROP (S13-F2 — the
+  session-8 `viewCourseId` state was frozen at mount, so same-route
+  switches rendered stale content and the triggers never fired on them);
+  the firing surface is BOTH the same-route course switch (re-render
+  with fresh props — the shell does NOT remount) AND `router.refresh()`
+  (the live's is Base44's reactive entities); e2e-pinned via the m_
+  rename-driven refresh (session-12) and the course-switch drives
+  (session-13).
 - **THE material gate is the BROAD predicate (session-12, S12-F1):** the
   quiz-flow material context (the diagnostic preamble, the "Custom
   Material" roadmap subject, the "based on their uploaded material" gap
@@ -357,6 +364,39 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   (`m9 18 6-6-6-6`), never ArrowRight; the submit route 422s on
   present-but-invalid score/answers (a MISSING score still degrades to
   0).
+- **THE same-route course switch derives from the PROP (session-13,
+  S13-F2):** `dashboard-app.tsx` computes `activeCourse` from the
+  URL-resolved `currentCourseId` PROP — never from client state. The
+  session-8 `viewCourseId` `useState` was FROZEN at mount (its setter
+  had no caller), so the pill rows' `router.push("/?course=" + id)`
+  re-rendered the shell with fresh props while `activeCourse` kept
+  resolving the mount-time course — the dashboard rendered STALE
+  content on every same-route switch (empirically: the pre-switch
+  course's streak/XP persisted until a full reload). The mechanism: a
+  same-route App Router navigation does NOT remount the shell (same
+  type, same tree position) — the props re-render in place; the KEYED
+  `CourseDashboard` remounts on the `key` change (the content swap).
+  e2e-pinned by the course-switch content/burst drives in
+  `tests/e2e/session13-parity.spec.ts`.
+- **THE roadmap data contract is DUAL-SHAPE (session-13, S13-F5):** the
+  live's generate-time prompt asks for `{title, description}` OBJECTS
+  while the submit-time prompt asks for a STRING array
+  (`"steps": ["Step 1: …"]` — its response_json_schema), and BOTH
+  writes persist whatever the LLM answered verbatim. The clone's
+  `generateCourseStages` mirrors both schemas (the pct branch requests
+  strings; the no-pct branch requests objects — each branch's verbatim
+  tail) and validates both shapes; `parseRoadmap` maps both (strings:
+  strip `/^(Lesson|Step)\s*\d+/`, split `" — "` else `": "` when
+  < 40 chars, else whole-string+empty — the live's Kh/roadmap-card
+  semantics). Unit-pinned in `tests/ai-seam.test.ts` +
+  `tests/domain-session13.test.ts`.
+- **THE wrapper parser array-checks `steps` (session-13, S13-F1):**
+  `generateCourseStages` must `Array.isArray(parsed?.steps)` before
+  trusting it — a lazy string reply (`{"steps": "Foundation, …"}`)
+  passes `.length >= 3` (the string's own length) and then crashes
+  `.every` → a 500 from the route, violating the "AI may degrade,
+  never fail" invariant. The quiz parser already did this; the stages
+  parser now mirrors it. Unit-pinned (the exact crash shape).
 - **THE daily-challenge modal (session-8):** overlay `rgba(0,0,0,0.5)` via
   INLINE style (Trap 8 — v4's bg-black/50 computes oklab), NO backdrop
   blur, and NO result banner — after the reveal the SAME button slot swaps

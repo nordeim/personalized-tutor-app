@@ -59,7 +59,10 @@ describe("parseRoadmap — defensive JSON parsing", () => {
     expect(parseRoadmap("")).toEqual([]);
     expect(parseRoadmap("not json")).toEqual([]);
     expect(parseRoadmap(JSON.stringify({ title: "x" }))).toEqual([]);
-    expect(parseRoadmap(JSON.stringify([42, "nope"]))).toEqual([]);
+    // S13-F5: a STRING entry is now VALID input (the live's submit-time
+    // roadmap_steps shape — see tests/domain-session13.test.ts); the
+    // invalid-entry cases are numbers/null/title-less objects.
+    expect(parseRoadmap(JSON.stringify([42, null, {}]))).toEqual([]);
   });
 
   it("caps the roadmap at 3 stages", () => {
