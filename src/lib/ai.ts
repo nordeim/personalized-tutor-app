@@ -90,27 +90,31 @@ export async function generateCourseStages(
   courseName: string,
   opts?: { pct?: number; material?: string | null },
 ): Promise<{ stages: StageDraft[]; aiGenerated: boolean }> {
-  // S11-F4c: the live's E3 submit-time roadmap prompt is pct-aware ("Based
-  // on someone scoring {pct}% on a diagnostic quiz about {subject}, create
-  // exactly 3 progressive learning focus areas… (one per arena level)") and
-  // material-aware; the generate-time call (no pct) keeps the baseline
-  // shape (the live's wO-skip/roadmap variant).
-  const about =
-    opts?.material && opts.material.trim().length > 0
-      ? "their uploaded material"
-      : courseName;
-  const lead =
+  // S12-F4: the live carries THREE distinct roadmap prompts — the
+  // GENERATE-time shape (G5's empty-roadmap effect, the onboarding/create
+  // path: "Create exactly 3 progressive learning stages for the course…",
+  // course name only, NO material context) and the SUBMIT-time shape (E3,
+  // pct-aware: "Based on someone scoring {pct}%… create exactly 3
+  // progressive learning focus areas… (one per arena level)", material-
+  // aware). The session-11 port collapsed both onto the submit wording;
+  // the branches are now split to the decode.
+  const hasMaterial = !!opts?.material && opts.material.trim().length > 0;
+  const prompt =
     typeof opts?.pct === "number"
-      ? `Based on someone scoring ${opts.pct}% on a diagnostic quiz about ${about}, `
-      : "";
-  const raw = await complete(
-    `${lead}create exactly 3 progressive learning focus areas for the subject "${opts?.material ? "Custom Material" : courseName}" (one per arena level). ` +
-      `Return ONLY a JSON array of 3 objects with keys "title" and "description". ` +
-      `Titles are short (max 4 words). Descriptions are 1-2 sentences about what the learner covers.`,
-  );
-  const parsed = extractJson<StageDraft[]>(raw);
-  if (parsed && parsed.length >= 3 && parsed.every((s) => typeof s.title === "string")) {
-    return { stages: parsed.slice(0, 3), aiGenerated: true };
+      ? `Based on someone scoring ${opts.pct}% on a diagnostic quiz about ${
+          hasMaterial ? "their uploaded material" : courseName
+        }, create exactly 3 progressive learning focus areas for the subject "${hasMaterial ? "Custom Material" : courseName}" (one per arena level). ` +
+        `Return JSON: { "steps": [{ "title": "Stage title", "description": "Stage description" }] }`
+      : `Create exactly 3 progressive learning stages for the course "${courseName}". ` +
+        `Each stage needs a short title (2-3 words) and a description (2-3 sentences explaining what the student will learn in this stage). ` +
+        `Return JSON: { "steps": [{ "title": "Stage title", "description": "Stage description" }] }`;
+  const raw = await complete(prompt);
+  // The live's response_json_schema wraps the array in { "steps": [...] } —
+  // the LLM may answer with the wrapper object OR a bare array; accept both.
+  const parsed = extractJson<StageDraft[] | { steps?: StageDraft[] }>(raw);
+  const stages = Array.isArray(parsed) ? parsed : parsed?.steps;
+  if (stages && stages.length >= 3 && stages.every((s) => typeof s.title === "string")) {
+    return { stages: stages.slice(0, 3), aiGenerated: true };
   }
   return {
     stages: fallbackStages(courseName),

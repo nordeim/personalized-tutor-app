@@ -71,8 +71,14 @@ test.describe("the diagnostic-quiz surface (S11-F1 — the E3 port)", () => {
     await expect(page.getByText("Astronomy ·")).toBeVisible();
     await expect(page.getByText("Knowledge Assessment")).toBeVisible();
     await expect(page.getByRole("button", { name: "Close assessment" })).toBeVisible();
-    const headerMenu = page.getByRole("button", { name: /Open menu|Account menu/ });
-    await expect(headerMenu).toHaveCount(0);
+    // S12-F6: pin the REPLACEMENT structurally — the desktop cluster
+    // (div.hidden.md:flex) contains EXACTLY ONE button when headerChildren
+    // is present (the X close); the CoursePill + UserMenu triggers are gone
+    // (the prior /Open menu|Account menu/ regex matched nothing in either
+    // render, and the aria-haspopup locator caught the CSS-hidden mobile
+    // hamburger). The accessible-name pin below covers the user pill.
+    await expect(page.locator("header div.hidden.md\\:flex button")).toHaveCount(1);
+    await expect(page.getByRole("button", { name: /Demo Learner/ })).toHaveCount(0);
 
     // (b) the star progress row: the #4A4A4A track + the 42px star image.
     const track = page.locator("div.h-1.rounded-\\[9999px\\]").first();

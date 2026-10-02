@@ -1,11 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/layout/app-header";
 import { OnboardingDashboard } from "@/components/dashboard/onboarding-dashboard";
 import { CourseDashboard } from "@/components/dashboard/course-dashboard";
-import { parseRoadmap, lessonTitles } from "@/lib/domain";
+import { confettiLabelChange, confettiQuizMilestone } from "@/lib/confetti";
+import {
+  confettiAt,
+  lessonTitles,
+  masteryLabelTier,
+  parseRoadmap,
+  quizProgressPercent,
+  studyStreakDays,
+} from "@/lib/domain";
 import { ToastProvider } from "@/components/toast";
 
 export type CourseProgressDto = {
@@ -73,6 +81,36 @@ export function DashboardApp({
   // onboarding after a skipped/abandoned quiz where the live shows the 0%
   // dashboard.)
   const showCourseDashboard = !forceOnboarding && activeCourse !== null;
+
+  // S12-F2b/c — the c_ port: the live's TWO dashboard confetti effects,
+  // ref-guarded (first observation initializes without firing). They live
+  // HERE (the unkeyed shell) rather than in CourseDashboard because the
+  // keyed `<CourseDashboard key={activeCourse.id}>` remounts per course —
+  // the live's c_ has NO key, so its refs persist across course switches;
+  // observing the ACTIVE course at this level replicates that. (a) the
+  // streak burst: 80 particles when min(quizScore,7) crosses EXACTLY 3 or
+  // 7 upward; (b) the label burst: 90 particles when the mastery tier
+  // (Novice→…→Master, keyed off scorePercent) CHANGES. Cross-route
+  // navigations (quiz → dashboard) remount this shell → refs init without
+  // firing, exactly like the live's G5 mount.
+  const streakDays = studyStreakDays(activeCourse?.quizScore ?? 0);
+  const label = masteryLabelTier(
+    quizProgressPercent(activeCourse?.quizScore ?? null, activeCourse?.quizCompleted ?? null),
+  );
+  const streakConfettiRef = useRef<number | null>(null);
+  const labelConfettiRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (confettiAt(streakConfettiRef.current, streakDays)) {
+      confettiQuizMilestone();
+    }
+    streakConfettiRef.current = streakDays;
+  }, [streakDays]);
+  useEffect(() => {
+    if (labelConfettiRef.current !== null && labelConfettiRef.current !== label.label) {
+      confettiLabelChange();
+    }
+    labelConfettiRef.current = label.label;
+  }, [label.label]);
 
   // The with-course header renders the reference's two-dropdown split: the
   // CoursePill (labeled with the student's current_subject) + the m_ user

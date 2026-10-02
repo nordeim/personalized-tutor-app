@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (125 checks) | `bun run test` |
-| Browser E2E (82 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (153 checks) | `bun run test` |
+| Browser E2E (86 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (125) → `bun run build` → `bun run test:e2e` (82 Playwright
+`bun run test` (153) → `bun run build` → `bun run test:e2e` (86 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -322,6 +322,41 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   find by (user, subject) → update | create — retakes no longer
   accumulate rows. The gap-analysis prompt is the live's named/pct-aware
   shape; the submit-time roadmap prompt carries the pct.
+- **THE dashboard confetti is the c_ port (session-12, S12-F2):** the
+  diagnostic quiz (E3) fires NO confetti — the decoded triggers live on
+  the DASHBOARD, ported into the UNKEYED shell (`dashboard-app.tsx`, not
+  the keyed CourseDashboard — the App Router remounts the keyed child on
+  a same-route course switch, while the live's unkeyed c_ keeps its
+  refs): (a) the streak burst — 80 particles, spread 55, origin
+  {x:.85,y:.4}, `#FFFD73/#C8AEFF/#0F0E0E` — when `min(quizScore,7)`
+  crosses EXACTLY 3 or 7 upward (`confettiAt`'s exact-equality semantics,
+  unit-pinned); (b) the label burst — 90 particles, spread 60, origin
+  {x:.85,y:.3} — when the mastery tier changes
+  (`masteryLabelTier(scorePercent)`: Novice 0 / Apprentice 20 / Learner
+  40 / Scholar 60 / Expert 80 / Master 100 — the label NEVER renders;
+  it exists for the trigger, like the live). The clone's firing surface
+  is `router.refresh()` (the live's is Base44's reactive entities);
+  e2e-pinned via the m_ rename-driven refresh.
+- **THE material gate is the BROAD predicate (session-12, S12-F1):** the
+  quiz-flow material context (the diagnostic preamble, the "Custom
+  Material" roadmap subject, the "based on their uploaded material" gap
+  analysis) feeds from `enrollmentMaterial(source, text)` —
+  `isCustomSource(source) && text.trim()` (custom‖material). The
+  session-11 `=== "custom"` gate was DEAD CODE (no clone writer emits
+  "custom"; they emit "topic"|"material"), so the S11-F4 prompts never
+  fired for material courses. Unit-pinned in
+  `tests/domain-session12.test.ts`.
+- **THE roadmap prompts are THREE shapes (session-12, S12-F4):**
+  generate-time (G5/onboarding — "Create exactly 3 progressive learning
+  stages for the course…", course name only) vs submit-time (E3,
+  pct-aware "focus areas… one per arena level", material-aware) — the
+  session-11 port had collapsed both onto the submit wording. The LLM
+  answers the `{"steps":[…]}` OBJECT (response_json_schema) —
+  `generateCourseStages` parses the wrapper AND the bare array. The
+  "Enter The Hub" trailing icon is ChevronRight at lucide default sw 2
+  (`m9 18 6-6-6-6`), never ArrowRight; the submit route 422s on
+  present-but-invalid score/answers (a MISSING score still degrades to
+  0).
 - **THE daily-challenge modal (session-8):** overlay `rgba(0,0,0,0.5)` via
   INLINE style (Trap 8 — v4's bg-black/50 computes oklab), NO backdrop
   blur, and NO result banner — after the reveal the SAME button slot swaps

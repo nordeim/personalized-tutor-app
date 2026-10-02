@@ -244,6 +244,22 @@ export function isCustomSource(
 }
 
 /**
+ * The quiz-flow material gate (S12-F1): the enrollment's study material
+ * feeds the diagnostic-quiz/roadmap/gap-analysis prompts when the course
+ * is custom-SOURCED (custom‖material — the broad predicate; the label-only
+ * `=== "custom"` branch no writer in this codebase can emit, so the
+ * session-11 gate was dead code). Blank text never feeds a prompt.
+ */
+export function enrollmentMaterial(
+  contentSource: string | null | undefined,
+  contentText: string | null | undefined,
+): string | null {
+  if (!isCustomSource(contentSource)) return null;
+  if (!contentText?.trim()) return null;
+  return contentText;
+}
+
+/**
  * The CO course-card's source label (session-6, S6-F7): the reference's
  * bundle renders `content_source === "custom" ? "Custom Material"
  * : "AI-Generated Course"` — custom ONLY. Deliberately NARROWER than
@@ -338,13 +354,46 @@ export function totalXp(scorePercent: number, quizScore: number): number {
 }
 
 /**
- * The reference fires confetti when the quiz score CROSSES 3 or 7 (upward
- * only; the first observation initializes the ref without firing).
+ * The reference fires confetti when the quiz-derived streak CROSSES 3 or 7
+ * (upward only; the first observation initializes the ref without firing).
+ * S12-F2b: the live's c_ effect is EXACT-equality — `a.current < h &&
+ * (h === 3 || h === 7)` with h = min(quizScore, 7) — NOT a >= crossing
+ * (2→4 does not fire; 2→3 and 5→7 do). The trigger lives on the DASHBOARD
+ * (the Course-Lessons column), never inside the diagnostic quiz.
  */
 export function confettiAt(prevScore: number | null, nextScore: number): boolean {
   if (prevScore === null) return false;
   if (nextScore <= prevScore) return false;
-  return (prevScore < 3 && nextScore >= 3) || (prevScore < 7 && nextScore >= 7);
+  return nextScore === 3 || nextScore === 7;
+}
+
+// ---------------------------------------------------------------------------
+// Mastery label tiers (S12-F2c) — the live's Qi ladder, decoded from the
+// dashboard's c_ column: [{Novice,0},{Apprentice,20},{Learner,40},
+// {Scholar,60},{Expert,80},{Master,100}]. The label NEVER renders on the
+// live (the "progress to next tier" computation beside it is dead code);
+// it exists solely to drive the 90-particle label-change confetti.
+// Pinned by tests/domain-session12.test.ts.
+// ---------------------------------------------------------------------------
+
+export type MasteryTier = { label: string; min: number };
+
+const MASTERY_TIERS: readonly MasteryTier[] = [
+  { label: "Novice", min: 0 },
+  { label: "Apprentice", min: 20 },
+  { label: "Learner", min: 40 },
+  { label: "Scholar", min: 60 },
+  { label: "Expert", min: 80 },
+  { label: "Master", min: 100 },
+];
+
+/** The highest mastery tier whose min threshold ≤ scorePercent. */
+export function masteryLabelTier(scorePercent: number): MasteryTier {
+  let tier = MASTERY_TIERS[0];
+  for (const t of MASTERY_TIERS) {
+    if (scorePercent >= t.min) tier = t;
+  }
+  return tier;
 }
 
 /** A lesson quiz question (the shape /api/lessons/content returns). */

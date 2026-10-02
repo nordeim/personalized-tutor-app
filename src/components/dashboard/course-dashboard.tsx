@@ -194,6 +194,10 @@ export function CourseDashboard({
 
   const streakDays = studyStreakDays(course.quizScore ?? 0);
   const xp = totalXp(progressPct, course.quizScore ?? 0);
+  // S12-F2b/c: the dashboard's TWO confetti effects (the c_ port) live in
+  // the PARENT shell (dashboard-app.tsx) — the keyed remount here would
+  // reset their refs on every course switch, and the live's unkeyed c_
+  // keeps them across switches.
 
   return (
     <div className="flex flex-1 flex-col gap-[4px] px-[4px] pb-[4px] pt-[4px] lg:flex-row" style={{ minHeight: 0 }}>
@@ -519,9 +523,14 @@ export function CourseDashboard({
               <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5" />
             </svg>
             Enter The Hub
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-right h-4 w-4">
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
+            {/* S12-F3: the live's trailing icon is ChevronRight (tr) at
+                lucide's DEFAULT strokeWidth 2 — no explicit prop — with the
+                stable path `m9 18 6-6-6-6` (identical across the live's
+                lucide 0.475 and the clone's 0.525; the session-6 CO-card
+                decode pinned the same icon). The ArrowRight this replaced
+                was a session-1 invention. */}
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right h-4 w-4">
+              <path d="m9 18 6-6-6-6" />
             </svg>
           </a>
           <button

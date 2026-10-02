@@ -23,12 +23,12 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | ✅ | Lesson quizzes ported to the reference flow: 1000 ms reveal + auto-advance, retry-later re-queue, 8-to-complete | `src/components/hub/lesson-view.tsx` |
 | 🃏 | The reference's tan 2-column option grid, per-level context cards, and per-question video/reading content cards | `src/components/hub/lesson-view.tsx` |
 | 🧭 | The quiz-derived progress model (the live has no per-lesson entity): round(score/5×100) → lessons → stages | `src/lib/domain.ts` |
-| 🎉 | Confetti moments: level-up burst, dual-cannon course completion, quiz milestones | `src/lib/confetti.ts` |
+| 🎉 | Confetti moments: the dashboard's streak + mastery-label bursts (the live's c_ port), level-up, dual-cannon course completion | `src/lib/confetti.ts` + `dashboard-app.tsx` |
 | 🔥 | Study Streak + Total XP cards (the reference's gamification column) | `src/components/dashboard/course-dashboard.tsx` |
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 125 unit tests + 82 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 153 unit tests + 86 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -67,7 +67,7 @@ flowchart TB
  ├── 📂 layout             app-header.tsx (Course pill + user menu dropdowns, mobile hamburger)
  ├── 📂 dashboard          onboarding / course / demo shells (the demo runs the guest-mode header)
  ├── 📂 hub                hub-app.tsx, nori-chat.tsx, lesson-view.tsx
- ├── 📂 quiz               quiz-app.tsx (7-question diagnostic)
+ ├── 📂 quiz               quiz-app.tsx (the 5-question E3 diagnostic surface)
  ├── 📂 courses            courses-app.tsx + add-course-modal.tsx (the Q5 port)
  ├── 📂 login              login-card.tsx (slate surface, sign-in/up modes)
  └── 📄 mascot.tsx         SVG wrappers, toast.tsx (Sonner-compatible, pointer-events fixed)
@@ -113,9 +113,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 125 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics)
+bun run test          # 153 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 82 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 86 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
@@ -293,6 +293,27 @@ scored every answered question correct, so every completed quiz scored
 enrollment exists — the skip/close paths land on the 0% dashboard), and
 aligned the AI prompts (the named/pct-aware gap analysis, the material
 context, the pct-based roadmap). 108 → 125 unit, 76 → 82 e2e.
+
+## The session-12 dashboard-decode parity pass
+
+A twelfth audit ([`docs/remediation-plan-session-12.md`](docs/remediation-plan-session-12.md))
+decoded the dashboard's right column (c_) straight from the (unchanged)
+live bundle and found three more drifts: **the quiz-milestone confetti was
+misplaced** — the session-2 decode found the 80-particle call but put it
+mid-quiz, while the live's E3 fires nothing during the quiz (the decoded
+triggers live on the DASHBOARD: the streak burst when min(quizScore,7)
+crosses exactly 3 or 7, plus a 90-particle burst when the mastery tier —
+Novice→Apprentice→…→Master at 0/20/40/60/80/100 — changes; the label never
+renders, it exists for the trigger); **the session-11 material gate was
+dead code** (`contentSource === "custom"` is unreachable — every clone
+writer emits `topic`/`material`, so the material-context prompts never
+fired; the gate is now the broad `enrollmentMaterial` predicate); and the
+**generate-time roadmap prompt had drifted** onto the submit-time wording
+(the live carries three distinct prompt shapes, and its LLM answers the
+`{"steps":[…]}` wrapper the clone now parses). Plus polish: the Enter The
+Hub trailing icon decoded as ChevronRight (the ArrowRight was a session-1
+invention), the submit route 422s on malformed payloads, and the quiz
+star now rides a `next/image` wrapper. 125 → 153 unit, 82 → 86 e2e.
 
 ## Pushing to GitHub
 

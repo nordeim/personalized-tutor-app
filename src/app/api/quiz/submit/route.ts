@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth";
 import { fail, ok, readJson } from "@/lib/api";
 import { generateCourseStages, generateGapAnalysis } from "@/lib/ai";
-import { displayName } from "@/lib/domain";
+import { displayName, enrollmentMaterial } from "@/lib/domain";
 
 // POST /api/quiz/submit — diagnostic results.
 // Body: { courseId, answers: number[] (indices), total: number, score: number }
@@ -26,6 +26,23 @@ export async function POST(req: Request) {
   const courseId = body?.courseId;
   const answers = Array.isArray(body?.answers) ? body.answers : [];
   if (!courseId) return fail("VALIDATION", "courseId is required", 422);
+  // S12-F8: a present-but-invalid payload is REJECTED (422) rather than
+  // silently coerced — a malformed score/answers entry is a client bug the
+  // caller should see. A MISSING score still degrades to 0 (the degraded
+  // client path the session-11 spec pins).
+  if (
+    body?.score !== undefined &&
+    (typeof body.score !== "number" ||
+      !Number.isInteger(body.score) ||
+      body.score < 0)
+  ) {
+    return fail("VALIDATION", "score must be a non-negative integer", 422);
+  }
+  if (
+    answers.some((a) => typeof a !== "number" || !Number.isInteger(a) || a < -1 || a > 3)
+  ) {
+    return fail("VALIDATION", "answers entries must be indices in -1..3", 422);
+  }
 
   const enrollment = await db.courseEnrollment.findUnique({ where: { id: courseId } });
   if (!enrollment || enrollment.userId !== user.id) {
@@ -33,13 +50,21 @@ export async function POST(req: Request) {
   }
 
   const total = body?.total && body.total > 0 ? body.total : answers.length || 5;
+  if (body?.score !== undefined && body.score > total) {
+    return fail("VALIDATION", "score cannot exceed total", 422);
+  }
   const score =
     typeof body?.score === "number" && Number.isInteger(body.score) && body.score >= 0 && body.score <= total
       ? body.score
       : 0;
   const pct = Math.round((score / total) * 100);
-  const material =
-    enrollment.contentSource === "custom" ? enrollment.contentText : null;
+  // S12-F1: the broad custom-source predicate — material-mode enrollments
+  // (the only writers of contentText) now feed the prompt context the
+  // session-11 decode specified.
+  const material = enrollmentMaterial(
+    enrollment.contentSource,
+    enrollment.contentText,
+  );
 
   // S11-F4: the live's submit-time prompts — the pct-aware roadmap
   // ("Based on someone scoring {pct}%…") + the named gap analysis

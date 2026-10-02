@@ -1,4 +1,4 @@
-# Thinkerwell (Personalized Tutor App Clone) — Master Project Architecture Document (PAD) v1.10
+# Thinkerwell (Personalized Tutor App Clone) — Master Project Architecture Document (PAD) v1.11
 
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
@@ -10,9 +10,9 @@
 
 ---
 
-#### Revision Block — v1.10 (Tracked Changes)
+#### Revision Block — v1.11 (Tracked Changes)
 
-- `[SR]` Full clone build: 7 routes, 16 API handlers, 7 Prisma models, AI seam with fallbacks, measured design system, 65 unit + 45 e2e checks at v1.4 → 73 unit + 52 e2e at v1.5 → 82 unit + 64 e2e at v1.7 → 91 unit + 69 e2e at v1.8 → 108 unit + 76 e2e at v1.9 → 125 unit + 82 e2e at v1.10.
+- `[SR]` Full clone build: 7 routes, 16 API handlers, 7 Prisma models, AI seam with fallbacks, measured design system, 65 unit + 45 e2e checks at v1.4 → 73 unit + 52 e2e at v1.5 → 82 unit + 64 e2e at v1.7 → 91 unit + 69 e2e at v1.8 → 108 unit + 76 e2e at v1.9 → 125 unit + 82 e2e at v1.10 → 153 unit + 86 e2e at v1.11.
 - `[SAN]` Tailwind v4 engine traps pinned in `globals.css` (EIGHT documented differences vs the reference's v3 compiled CSS — see the companion trap log).
 - `[AUTH]` Session-cookie `secure` flag derived from request protocol (fixes silent cookie drops on plain-HTTP production boots — the e2e boot caught it).
 - `[RES]` Mobile navigation fix: empty toast container made `pointer-events-none` (the live reference ships the bug; Playwright refuses the covered hamburger tap — pinned by `tests/e2e/mobile-navigation.spec.ts`).
@@ -280,7 +280,7 @@ Prisma, libs never import React.
  ├── 📂 login/                # slate card; renders for every visitor
  ├── 📂 onboarding/           # ALWAYS the setup state (Add-a-Course surface)
  ├── 📂 courses/              # courses list + delete + empty state
- ├── 📂 quiz/                 # 7-question diagnostic; error state w/o student
+ ├── 📂 quiz/                 # the 5-question E3 diagnostic; error state w/o student
  ├── 📂 hub/                  # learning workspace: ?course= & ?lesson= params
  ├── 📂 demo/                 # stateless guest mirror (guest-mode AppHeader + sample course)
  └─ 📂 api/                  # 16 route handlers (see §4.2)
@@ -537,7 +537,7 @@ per-process (single-node doctrine).
 
 | Layer | Tool | Scope | Count |
 |---|---|---|---|
-| Pure domain | Vitest (`tests/domain.test.ts`, `tests/db-path.test.ts`, `tests/parity-session2.test.ts`, `tests/domain-session4.test.ts`, `tests/domain-session5.test.ts`, `tests/domain-session6.test.ts`, `tests/domain-session7.test.ts`, `tests/domain-session8.test.ts`, `tests/domain-session9.test.ts`, `tests/domain-session10.test.ts`, `tests/domain-session11.test.ts`) | mastery grid, roadmap parsing, titles, progress math, quotes, URL anchors, ADD_COURSE_TAGS, courseContextLine, isCustomSource, avatarLetter, courseSourceLabel (the predicate split), lessonRowStatus, hubLessonSubject, parsePendingSetup, lessonProgressLabel (the unclamped qP formula), lessonProgressPct, loginRedirectUrl (the from_url writer), sameOriginRedirectTarget (the open-redirect guard), onboardingInputsValid (the 2/2/20 predicate), diagnosticScore (the correct-count semantics), quizMarkerPct, quizDotState, headerOrigin | 125 |
+| Pure domain | Vitest (`tests/domain.test.ts`, `tests/db-path.test.ts`, `tests/parity-session2.test.ts`, `tests/domain-session4.test.ts`, `tests/domain-session5.test.ts`, `tests/domain-session6.test.ts`, `tests/domain-session7.test.ts`, `tests/domain-session8.test.ts`, `tests/domain-session9.test.ts`, `tests/domain-session10.test.ts`, `tests/domain-session11.test.ts`, `tests/domain-session12.test.ts`) | mastery grid, roadmap parsing, titles, progress math, quotes, URL anchors, ADD_COURSE_TAGS, courseContextLine, isCustomSource, avatarLetter, courseSourceLabel (the predicate split), lessonRowStatus, hubLessonSubject, parsePendingSetup, lessonProgressLabel (the unclamped qP formula), lessonProgressPct, loginRedirectUrl (the from_url writer), sameOriginRedirectTarget (the open-redirect guard), onboardingInputsValid (the 2/2/20 predicate), diagnosticScore (the correct-count semantics), quizMarkerPct, quizDotState, headerOrigin, masteryLabelTier, confettiAt (the exact-equality crossing), enrollmentMaterial (the material gate) | 153 |
 | E2E — auth surface | Playwright (`auth.spec.ts`, logged-out storageState) | the PUBLIC onboarding (Sign In pill, name field, items-only mobile menu, the pending deferral + auto-generate flow), the auth-gated redirect pins (/demo, /hub, /quiz, /courses), card structure, bad credentials, signup → onboarding | 10 |
 | E2E — header chrome | `header.spec.ts` (authenticated) | m_ user menu (context line, Update Preferences save), Course pill (p_), logout, yellow tokens, Eczar wordmark | 5 |
 | E2E — dashboard | `dashboard.spec.ts` | stats grid, quiz-derived math, quote bubble tokens, Hub panes, Nori reply + persistence, courses, Q5 modal, demo 60% pin | 12 |
@@ -550,7 +550,8 @@ per-process (single-node doctrine).
 | E2E — session-9 parity | `session9-parity.spec.ts` (authenticated) | the level-2 tan Real-World Scenario card + generated-title h2 (`?lesson=2`), the level-3 lilac Final Boss card (`?lesson=4`), the fresh-lesson "1/8" progress label | 3 |
 | E2E — session-9 public | `session9-public.spec.ts` (logged-out file-level storageState) | the desktop anonymous Sign In pill's from_url (`/login?from_url=%2F`), the mobile (390, hasTouch) anonymous guest menu REAL-TAP pin + the Sign In item's from_url | 2 |
 | E2E — session-10 parity | `session10-parity.spec.ts` (authenticated) | the BLACK user-bubble computed styles + mirrored tail, the Send paper-plane icon pin, the hub back-links' `?course=` hrefs (the EXACT seeded id — S11-F9), the "?" menu's empty-name header + LayoutGrid icon | 4 |
-| E2E — session-11 parity | `session11-parity.spec.ts` (authenticated, demo-user courses with afterEach cleanup) | the E3 quiz surface (5 tan options + A. prefixes, the star row + #4A4A4A track, the lilac tile, the 1/5 counter, the dots, the Skip pill, the header children), the reveal colors, the skip → 0% dashboard, the X close, the payload-score semantics (0% + 60%), the Submit Assessment flow | 6 |
+| E2E — session-11 parity | `session11-parity.spec.ts` (authenticated, demo-user courses with afterEach cleanup) | the E3 quiz surface (5 tan options + A. prefixes, the star row + #4A4A4A track, the lilac tile, the 1/5 counter, the dots, the Skip pill, the header children — the structural desktop-cluster pin), the reveal colors, the skip → 0% dashboard, the X close, the payload-score semantics (0% + 60%), the Submit Assessment flow | 6 |
+| E2E — session-12 parity | `session12-parity.spec.ts` (authenticated, demo-user courses with afterEach cleanup) | the dashboard streak-confetti burst (the refresh-driven c_ port), the Enter The Hub ChevronRight trailing icon, the material-course quiz flow (the un-deadened gate), the submit-route 422 validation | 4 |
 | E2E — session-10 public | `session10-public.spec.ts` (logged-out file-level storageState) | the query-carrying from_url chain (`/?q=parity` → `%2F%3Fq%3Dparity`), the post-login query round-trip, the foreign-origin open-redirect rejection | 3 |
 | E2E — auth setup (project) | `auth.setup.ts` | one request-level login → shared storageState (dodges the auth rate limiter) | 1 |
 

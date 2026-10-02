@@ -97,3 +97,21 @@ export function BrandMark({ className }: { className?: string }) {
     />
   );
 }
+
+/**
+ * The 42×42 diagnostic-quiz star (S11's E3 decode — extracted from the
+ * live's media URL to public/quiz-star.svg). Rides the progress fill edge
+ * (`absolute left:{pct}% translate(-50%,-50%)`, non-interactive).
+ */
+export function QuizStar({ size = 42 }: { size?: number }) {
+  return (
+    <Image
+      src="/quiz-star.svg"
+      alt=""
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
+      unoptimized
+    />
+  );
+}

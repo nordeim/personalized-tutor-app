@@ -25,9 +25,10 @@ export default async function LoginPage({
   // same-app paths (the clone's own writer format, and the live's
   // server-side auth-guard format) pass through untouched.
   // S11-F8a: the origin construction lives in ONE pinned helper
-  // (headerOrigin — the comma-list proto normalization + the localhost
-  // http heuristic; the session-10 inline re-implementation drifted from
-  // auth.ts's protocol semantics).
+  // (headerOrigin — the comma-list proto normalization). The localhost
+  // http HEURISTIC lives here at the call site (it feeds the fallback
+  // proto when no x-forwarded-proto rides the request); the session-10
+  // inline re-implementation drifted from auth.ts's protocol semantics.
   const headerBag = await headers();
   const host = headerBag.get("host") ?? "localhost:3000";
   const localProto =

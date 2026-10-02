@@ -6,22 +6,39 @@
 //
 //   1. The Hub (function Q): a center burst on level-up and DUAL side cannons
 //      on course completion.
-//   2. The dashboard right card (c_): a burst when the diagnostic quiz score
-//      CROSSES 3 or 7 (guarded by a ref).
+//   2. The dashboard right column (c_ — S12-F2's decode): TWO ref-guarded
+//      effects — a 80-particle burst when the quiz-derived STREAK
+//      (min(quizScore,7)) crosses exactly 3 or 7, and a 90-particle burst
+//      when the MASTERY LABEL (Novice→Apprentice→…→Master, keyed off
+//      scorePercent) changes. The diagnostic quiz itself (E3) fires
+//      NOTHING — the session-2 mid-quiz placement was a misattribution.
 //
 // This wrapper keeps the exact presets in one client-only seam so components
 // never import the library directly and the trigger logic stays unit-testable
-// (confettiAt in src/lib/domain.ts).
+// (confettiAt + masteryLabelTier in src/lib/domain.ts).
 // ---------------------------------------------------------------------------
 
 import confetti from "canvas-confetti";
 
-/** Quiz score crossed 3 or 7 — the dashboard milestone burst. */
+/** Quiz-derived streak crossed 3 or 7 — the dashboard milestone burst. */
 export function confettiQuizMilestone(): void {
   void confetti({
     particleCount: 80,
     spread: 55,
     origin: { x: 0.85, y: 0.4 },
+    colors: ["#FFFD73", "#C8AEFF", "#0F0E0E"],
+  });
+}
+
+/**
+ * Mastery label changed (S12-F2c — the live's second dashboard trigger):
+ * 90 particles at the upper-right, the same color triple.
+ */
+export function confettiLabelChange(): void {
+  void confetti({
+    particleCount: 90,
+    spread: 60,
+    origin: { x: 0.85, y: 0.3 },
     colors: ["#FFFD73", "#C8AEFF", "#0F0E0E"],
   });
 }

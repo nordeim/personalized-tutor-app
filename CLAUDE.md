@@ -26,7 +26,7 @@ rebuilt as one deployable Next.js unit. The domain is deliberately small:
 User → Student profile → CourseEnrollments (each carrying a 3-stage roadmap
 JSON) → DiagnosticQuiz → per-lesson LessonProgress → ChatMessage history with
 Nori, the Socratic tutor. The product promise: tell it what you want to learn
-(or paste your own material), take a 7-question diagnostic quiz, receive a
+(or paste your own material), take a 5-question diagnostic quiz, receive a
 gap analysis plus a 3-stage roadmap, then work through 6 lessons (2 per
 stage, 8 questions each) inside the Hub while chatting with Nori.
 
@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (125 unit + 82 Playwright
+   bun run test && bun run build && bun run test:e2e` (153 unit + 86 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -193,6 +193,26 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   enrollment). The submit upserts the DiagnosticQuiz by (user, subject).
   The login page's origin construction is the pinned `headerOrigin`
   helper (comma-list proto normalization + localhost http heuristic).
+- **THE session-12 invariants (the dashboard c_ decode):** the diagnostic
+  quiz (E3) fires NO confetti — the decoded triggers live on the
+  DASHBOARD, ported into the UNKEYED shell (`dashboard-app.tsx`, not the
+  keyed CourseDashboard which the App Router remounts on a same-route
+  course switch): the 80-particle streak burst (min(quizScore,7) crossing
+  EXACTLY 3 or 7 — `confettiAt`'s exact-equality semantics, unit-pinned)
+  and the 90-particle mastery-label burst (`masteryLabelTier` —
+  Novice/Apprentice/Learner/Scholar/Expert/Master at 0/20/40/60/80/100;
+  the label never renders, it exists for the trigger). The clone's firing
+  surface is `router.refresh()` (the live's is the reactive entity
+  store) — e2e-pinned via the m_ rename-driven refresh. The quiz-flow
+  material context gates on the BROAD predicate (`enrollmentMaterial` =
+  isCustomSource && non-blank text — the session-11 `=== "custom"` gate
+  was dead code: no clone writer emits "custom"). The roadmap prompts
+  are THREE shapes (generate-time "stages" vs submit-time pct-aware
+  "focus areas"; the LLM answers the `{"steps":[…]}` wrapper, which
+  `generateCourseStages` now parses alongside the bare array). The Enter
+  The Hub trailing icon is ChevronRight at lucide default sw 2
+  (`m9 18 6-6-6-6`); the submit route 422s on present-but-invalid
+  payloads (a missing score still degrades to 0).
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in

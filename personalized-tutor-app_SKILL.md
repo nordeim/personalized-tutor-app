@@ -18,9 +18,9 @@ description: >
   header variant + the /demo auth gate + the Try-it navigation), the
   gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.10.0
+version: 1.11.0
 last_updated: 2026-10-03
-project_state: 125 unit tests + 82 e2e checks green; session-11 quiz-surface parity pass complete (the diagnostic-quiz E3 port — 5 questions, the star progress row, tan options, the client-computed score semantics, the /-route $P model, the skip/close paths)
+project_state: 153 unit tests + 86 e2e checks green; session-12 dashboard-decode parity pass complete (the material gate un-deadened, the dashboard confetti port — the streak + mastery-label triggers decoded from c_, the mid-quiz confetti removed, the ChevronRight CTA icon, the three roadmap prompts split, the submit-route 422s)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -38,7 +38,7 @@ project_state: 125 unit tests + 82 e2e checks green; session-11 quiz-surface par
 **One sentence:** a production-grade, self-hosted clone of
 `https://personalized-tutor-app.base44.app/` ("Thinkerwell") — an AI tutor
 that builds a personalized 3-level mastery course from any topic or pasted
-material, diagnoses gaps with a 7-question quiz, and coaches the learner
+material, diagnoses gaps with a 5-question quiz, and coaches the learner
 through the Hub with a Socratic chat tutor named Nori.
 
 **Design thesis:** "friendly-brutalist stationery" — flat, ink-on-paper
@@ -223,8 +223,9 @@ channel, always via the `{ ok, data } | { ok, error }` envelope.
   selection + progress state.
 - `hub/lesson-view.tsx` — THE quiz flow (see §7).
 - `hub/nori-chat.tsx` — chat pane with `.prose` assistant bubbles.
-- `quiz/quiz-app.tsx` — 7-question diagnostic + preparing overlay + the
-  3/7 confetti guard.
+- `quiz/quiz-app.tsx` — the E3 diagnostic surface (S11: FIVE questions, the
+  star progress row, tan options, the skip/close paths) + the preparing
+  overlays. S12: no confetti (the decoded triggers live on the dashboard).
 - `courses/courses-app.tsx`, `login/login-card.tsx`, `mascot.tsx` (SVG
   wrappers), `toast.tsx` (Sonner-compatible, pointer-events fixed).
 
@@ -325,7 +326,10 @@ assessment…" / "Analyzing your results…" / "Preparing your course…").
 The score is the CLIENT-computed correct count (`diagnosticScore`) — the
 submit payload's validated score is stored, never re-derived. The skip
 (`POST /api/quiz/skip`) resets the enrollment → the 0% dashboard; the X
-close routes `/?course={id}`.
+close routes `/?course={id}`. **S12: E3 fires NO confetti** — the decoded
+80/90-particle triggers live on the DASHBOARD (see the dashboard contract
+below), so the mid-quiz burst the clone shipped through session 11 was a
+session-2 misattribution, now removed.
 
 **The lesson-content contract** (`/api/lessons/content`):
 `{title, concept, scenario, challenge, questions[8] ×
@@ -343,12 +347,25 @@ bar = lessons/6×100 UNROUNDED. The hub sidebar is 3-state (done
 lesson index; its Lesson Progress card shows `{answered + 1}/8` from the
 SESSION's correct count (the LessonView reports via `onAnswered`).
 
-**Confetti presets** (`src/lib/confetti.ts`): quiz milestone
-(80 particles, spread 55, origin {x:.85,y:.4}, `#FFFD73/#C8AEFF/#0F0E0E`)
-at diagnostic scores crossing 3 or 7; level-up (70/60/{x:.5,y:.3}/
-`#8b5cf6/#06b6d4/#f59e0b`); course-complete = two calls (120 particles,
-angles 60°/120°, spread 70, origins x:0/x:1, the right cannon swapping in
-`#10b981`).
+**Confetti presets** (`src/lib/confetti.ts`) — S12's corrected decode:
+the DASHBOARD (the live's c_ column, ported into `dashboard-app.tsx`)
+carries TWO ref-guarded triggers — the streak burst (80 particles,
+spread 55, origin {x:.85,y:.4}, `#FFFD73/#C8AEFF/#0F0E0E`) when
+`min(quizScore,7)` crosses EXACTLY 3 or 7 upward (`confettiAt`'s
+exact-equality semantics), and the label burst (90 particles, spread 60,
+origin {x:.85,y:.3}, the same colors) when the MASTERY TIER changes
+(`masteryLabelTier(scorePercent)` — Novice 0 / Apprentice 20 / Learner
+40 / Scholar 60 / Expert 80 / Master 100; the label NEVER renders, it
+exists for the trigger). The diagnostic quiz (E3) fires NOTHING — the
+session-2 mid-quiz placement was a misattribution. The hub's level-up
+(70/60/{x:.5,y:.3}/`#8b5cf6/#06b6d4/#f59e0b`) and course-complete (two
+calls, 120 particles, angles 60°/120°, spread 70, origins x:0/x:1, the
+right cannon swapping in `#10b981`) presets are unchanged. The triggers
+live in the UNKEYED shell (`dashboard-app.tsx`) because the live's
+unkeyed c_ keeps its refs across course switches — while the App
+Router's same-route switch REMOUNTS the keyed CourseDashboard (a new
+Router Cache entry; the clone's firing surface is `router.refresh()`,
+e.g. the m_ rename flow — e2e-pinned).
 
 **Gamification math** (`domain.ts`): `studyStreakDays(quizScore) =
 min(quizScore, 7)`; `totalXp(pct, score) = pct*10 + score*50`; the Study
@@ -580,6 +597,42 @@ exercises this via real 429s). The Daily Challenge returns
     enrollment EXISTS (the live's $P model — the skip/close paths land on
     the 0% dashboard; `POST /api/quiz/skip` resets the enrollment minus
     the LLM call the live itself discards).
+34. **The confetti triggers are on the DASHBOARD, not the quiz**
+    (session-12, S12-F2): E3 contains ZERO confetti — the 80-particle
+    streak burst (min(quizScore,7) crossing EXACTLY 3 or 7) + the
+    90-particle mastery-label burst (Novice→…→Master tier changes) live
+    in the live's c_ (the Course-Lessons column). The session-2 decode
+    found the 80-particle call but MISPLACED it into the quiz (the 3/7
+    numbers looked like the then-assumed 7-question quiz); the clone
+    shipped a mid-quiz burst through session 11. Never re-add confetti
+    to quiz-app.tsx; the trigger logic is `confettiAt` (exact equality)
+    + `masteryLabelTier` in domain.ts, consumed by dashboard-app.tsx.
+35. **The material gate is the BROAD predicate** (session-12, S12-F1):
+    the quiz-flow material context (the quiz preamble, the "Custom
+    Material" roadmap subject, the "based on their uploaded material"
+    gap analysis) fires for custom-SOURCED courses —
+    `enrollmentMaterial(source, text)` = `isCustomSource(source) &&
+    text.trim() ? text : null` (custom‖material). The `=== "custom"`
+    gate session 11 shipped was DEAD CODE — no writer in this codebase
+    emits "custom" (the writers emit "topic"​|"material"), so the
+    S11-F4 feature never fired. The live's own E3 checks
+    `content_source === "custom"` because ITS writers emit that label;
+    the clone's writer mapping differs — always gate on the predicate,
+    never the label.
+36. **The roadmap prompts are THREE distinct shapes + the
+    {"steps":[…]} wrapper** (session-12, S12-F4): GENERATE-time
+    (G5's empty-roadmap effect / the onboarding create) = "Create
+    exactly 3 progressive learning stages for the course…", course
+    name only; SUBMIT-time (E3, pct-aware) = "Based on someone scoring
+    {pct}%… create exactly 3 progressive learning focus areas… (one
+    per arena level)", material-aware; the skip-time variant is
+    discarded by the live's own code. The LLM answers in the
+    `{"steps":[…]}` OBJECT shape (response_json_schema) —
+    `generateCourseStages` parses BOTH the wrapper and a bare array
+    (a wrapper-only parser silently falls to the static fallback even
+    on a correct LLM answer). The "Enter The Hub" trailing icon is
+    ChevronRight at lucide default sw 2 (`m9 18 6-6-6-6` — stable
+    across lucide versions), never ArrowRight.
 
 ## §10 Debugging Guide
 
@@ -616,9 +669,9 @@ Run IN ORDER; the local gate is the only gate (no hosted CI):
 ```bash
 bun run lint          # eslint . — zero warnings
 bun run typecheck     # tsc --noEmit — zero errors (build won't catch them!)
-bun run test          # 125 Vitest checks
+bun run test          # 153 Vitest checks
 bun run build         # standalone build (also required for e2e)
-bun run test:e2e      # 82 Playwright checks on :3100
+bun run test:e2e      # 86 Playwright checks on :3100
 ```
 
 Verification categories beyond the gate:

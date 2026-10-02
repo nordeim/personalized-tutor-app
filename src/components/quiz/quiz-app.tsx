@@ -4,12 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, CircleCheckBig, CircleX, X } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
-import { MascotGenerating } from "@/components/mascot";
+import { MascotGenerating, QuizStar } from "@/components/mascot";
 import { ToastProvider } from "@/components/toast";
 import type { DashboardUser } from "@/components/dashboard/dashboard-app";
 import { diagnosticScore, quizDotState, quizMarkerPct } from "@/lib/domain";
-import { confettiAt } from "@/lib/domain";
-import { confettiQuizMilestone } from "@/lib/confetti";
 
 type QuizQuestion = { question: string; options: string[]; correctIndex: number };
 
@@ -21,6 +19,9 @@ type QuizQuestion = { question: string; options: string[]; correctIndex: number 
 // dark "Preparing your assessment…" / "Analyzing your results…" overlays.
 // The score is the CLIENT-side correct count (the live's
 // `filter((G, re) => G === c[re].ans).length` — diagnosticScore).
+// S12-F2a: E3 contains ZERO confetti — the milestone burst the clone fired
+// mid-quiz was a session-2 misattribution; the decoded triggers live on the
+// DASHBOARD (course-dashboard.tsx, the c_ port).
 
 const QUIZ_FONT = "'Funnel Sans', sans-serif";
 
@@ -86,14 +87,9 @@ export function QuizApp({
       next[current] = picked;
       return next;
     });
-    // The reference's confetti guard: fire when the running correct count
-    // CROSSES 3 or 7 (upward only, first observation just initializes).
-    const wasCorrect = picked === q.correctIndex;
-    if (wasCorrect) {
-      const prevCount = answers.filter((a, i) => a >= 0 && questions[i] && a === questions[i].correctIndex).length;
-      const nextCount = prevCount + 1;
-      if (confettiAt(prevCount, nextCount)) confettiQuizMilestone();
-    }
+    // S12-F2a: no confetti here — the live's E3 never fires during the
+    // diagnostic quiz (the decoded 80/90-particle triggers live on the
+    // dashboard's streak/mastery-label effects).
   }
 
   function next() {
@@ -138,19 +134,26 @@ export function QuizApp({
   // S11-F5: the live's wO onSkip — resets the enrollment (quiz-incomplete)
   // and navigates to the course dashboard (the LLM roadmap the live generates
   // here is discarded by its own code — not replicated per the doctrine).
+  // S12-F5: the envelope's redirectTo is consumed (one navigation owner —
+  // the server route) with the local backTarget as the degraded fallback,
+  // matching submit()'s typed-envelope contract.
   async function skip() {
     if (!course || skipping) return;
     setSkipping(true);
     try {
-      await fetch("/api/quiz/skip", {
+      const res = await fetch("/api/quiz/skip", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ courseId: course.id }),
       });
+      const json = (await res.json()) as
+        | { ok: true; data: { redirectTo: string } }
+        | { ok: false; error: { message: string } };
+      router.push(json.ok ? json.data.redirectTo : backTarget);
     } catch {
       /* navigate regardless — the reset is best-effort */
+      router.push(backTarget);
     }
-    router.push(backTarget);
     router.refresh();
   }
 
@@ -224,7 +227,7 @@ export function QuizApp({
                   pointerEvents: "none",
                 }}
               >
-                <img src="/quiz-star.svg" alt="" style={{ width: 42, height: 42 }} />
+                <QuizStar size={42} />
               </div>
             </div>
             <span className="flex-shrink-0 text-xs font-light" style={{ color: "#C0C0C0", fontFamily: QUIZ_FONT }}>
