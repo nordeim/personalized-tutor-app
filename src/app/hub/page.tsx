@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { displayName, parseRoadmap, lessonTitles } from "@/lib/domain";
+import { parseRoadmap, lessonTitles } from "@/lib/domain";
 import { HubApp } from "@/components/hub/hub-app";
 
 export const metadata: Metadata = { title: "The Hub" };
@@ -48,7 +48,6 @@ export default async function HubPage({
     : [];
   return (
     <HubApp
-      user={{ name: displayName(user.email, user.fullName), email: user.email }}
       course={
         enrollment
           ? {

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MascotHero, MascotHeroMobile } from "@/components/mascot";
-import { CATEGORY_TAGS, DIVE_TOPICS, parsePendingSetup } from "@/lib/domain";
+import { CATEGORY_TAGS, DIVE_TOPICS, loginRedirectUrl, onboardingInputsValid, parsePendingSetup } from "@/lib/domain";
 import { useToast } from "@/components/toast";
 import type { DashboardUser } from "@/components/dashboard/dashboard-app";
 
@@ -24,19 +24,10 @@ const PENDING_SETUP_KEY = "pending_student_setup";
 
 type Mode = "topic" | "material";
 
-/** S9-F6b: the pending-setup pickup's validity guard — the SAME thresholds
- * as the Continue gate (≥2-chars topic/course name, ≥20-chars material),
- * expressed over the parsed pending payload. One predicate, two call sites. */
-function pendingInputsValid(pending: {
-  mode: string;
-  topic: string;
-  courseName: string;
-  contentText: string;
-}): boolean {
-  return pending.mode === "topic"
-    ? pending.topic.trim().length >= 2
-    : pending.courseName.trim().length >= 2 && pending.contentText.trim().length >= 20;
-}
+// S10-F7 (the session-9 R5 completion): the 2/2/20 thresholds now live in
+// ONE domain predicate — onboardingInputsValid (src/lib/domain.ts,
+// unit-pinned in tests/domain-session10.test.ts) — consumed by BOTH the
+// Continue gate below and the post-login pending-setup pickup.
 
 type MaterialTab = "text" | "file";
 
@@ -138,6 +129,9 @@ export function OnboardingDashboard({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  // S10-F1: the deferral's from_url carries the path AND the query (the
+  // live's redirectToLogin(window.location.href) contract).
+  const search = useSearchParams().toString();
   const { toast } = useToast();
   const typed = useTypewriter(DIVE_TOPICS);
 
@@ -154,11 +148,9 @@ export function OnboardingDashboard({
   // S9-F6b: ONE validity predicate shared by the Continue gate and the
   // post-login pickup guards (three duplicated threshold copies drifted
   // apart silently otherwise). The thresholds are the live's decoded
-  // (≥2-chars topic/course name, ≥20-chars material).
-  const inputsValid =
-    mode === "topic"
-      ? topic.trim().length >= 2
-      : courseName.trim().length >= 2 && materialText.trim().length >= 20;
+  // (≥2-chars topic/course name, ≥20-chars material) — ONE predicate now
+  // (onboardingInputsValid; materialText maps onto contentText).
+  const inputsValid = onboardingInputsValid({ mode, topic, courseName, contentText: materialText });
 
   const canContinue = publicMode ? name.trim().length >= 2 && inputsValid : inputsValid;
 
@@ -176,7 +168,7 @@ export function OnboardingDashboard({
     const pending = parsePendingSetup(raw);
     if (!pending) return;
     sessionStorage.removeItem(PENDING_SETUP_KEY);
-    if (!pendingInputsValid(pending)) return;
+    if (!onboardingInputsValid(pending)) return;
     void generate({
       mode: pending.mode,
       topic: pending.topic,
@@ -186,7 +178,8 @@ export function OnboardingDashboard({
   }, [publicMode]);
 
   /** The anonymous Continue: store the form, then head to login with the
-   * return URL (the live's navigateToLogin: /login?from_url=<current>). */
+   * return URL (the live's navigateToLogin — path AND query ride, the
+   * ONE writer template loginRedirectUrl; S10-F1). */
   function deferToLogin() {
     sessionStorage.setItem(
       PENDING_SETUP_KEY,
@@ -198,7 +191,7 @@ export function OnboardingDashboard({
         name: name.trim(),
       }),
     );
-    router.push(`/login?from_url=${encodeURIComponent(pathname ?? "/")}`);
+    router.push(loginRedirectUrl(pathname, search));
   }
 
   async function generate(target: { mode: Mode; topic?: string; courseName?: string; contentText?: string }) {

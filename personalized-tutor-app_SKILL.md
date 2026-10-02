@@ -18,9 +18,9 @@ description: >
   header variant + the /demo auth gate + the Try-it navigation), the
   gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.8.0
+version: 1.9.0
 last_updated: 2026-10-03
-project_state: 91 unit tests + 69 e2e checks green; session-9 level-surface parity pass complete (the unclamped "9/8" Lesson Progress label, the Sign In pill from_url, the hub level-machinery decode + the level-2/3 context-card e2e pins via ?lesson=2|4, the lucide 0.475-vs-0.525 BookOpen/Trophy redesign trap)
+project_state: 108 unit tests + 76 e2e checks green; session-10 chat-surface parity pass complete (the BLACK user bubble + Send paper-plane icon, the query-carrying from_url contract with the open-redirect fix, the hub back-links + empty-name "?" menu, the R5 threshold consolidation)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -516,6 +516,26 @@ exercises this via real 429s). The Daily Challenge returns
     anonymous Sign In pill carries from_url (the live's navigateToLogin
     = redirectToLogin(window.location.href) — same contract on the
     desktop pill and the mobile item).
+30. **The chat bubble split + the safe lucide exception** (session-10):
+    the USER bubble is BLACK `#0F0E0E` + WHITE text (radius 16/16/4 —
+    bottom-RIGHT tail) while the assistant bubble is gray `#F0F0F0` +
+    dark text (16/16/16/4) — the clone's yellow user bubble was a
+    session-1 invention. The send button carries lucide's **Send** paper
+    plane at w-3.5 h-3.5 sw 1.5 — the paths are IDENTICAL across the
+    live's 0.475 and the clone's 0.525 (the ONE verified-safe lucide
+    import; every other icon swap needs a path probe first).
+31. **The from_url query contract + the open-redirect fix**
+    (session-10): the live's client-side writers carry the FULL current
+    URL (path AND query — `window.location.href`), while its login would
+    honor a foreign absolute from_url (an open-redirect vulnerability).
+    The clone: `loginRedirectUrl(pathname, search)` writes path+query for
+    all three client writers; `sameOriginRedirectTarget(raw, origin)`
+    consumes it on the login page — same-origin absolutes decode to
+    path+search, foreign origins and `//` collapse to `/` (fix-and-pin
+    doctrine; both directions e2e-pinned). The hub back-links carry
+    `?course={id}` and the hub "?" menu is the EMPTY-NAME m_ variant
+    ("?" avatar, empty lines, LayoutGrid icon) — the clone's
+    user-identity header there was an invention, not parity.
 
 ## §10 Debugging Guide
 
@@ -541,8 +561,8 @@ exercises this via real 429s). The Daily Challenge returns
 **Live-site verification commands:**
 ```bash
 curl -s localhost:3000/api/health          # {"ok":true,"data":{"status":"ok","db":true}}
-bun run test                              # 91 unit
-bun run build && bun run test:e2e         # 69 e2e on :3100
+bun run test                              # 108 unit
+bun run build && bun run test:e2e         # 76 e2e on :3100
 ```
 
 ## §11 Pre-Ship Checklist
@@ -554,7 +574,7 @@ bun run lint          # eslint . — zero warnings
 bun run typecheck     # tsc --noEmit — zero errors (build won't catch them!)
 bun run test          # 91 Vitest checks
 bun run build         # standalone build (also required for e2e)
-bun run test:e2e      # 69 Playwright checks on :3100
+bun run test:e2e      # 76 Playwright checks on :3100
 ```
 
 Verification categories beyond the gate:

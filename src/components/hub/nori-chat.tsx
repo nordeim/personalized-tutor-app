@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Send } from "lucide-react";
 import { MascotChat } from "@/components/mascot";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 type CurrentQuestion = { question: string; options: string[] } | null;
 
 // NoriChat — the Socratic AI tutor panel. Bubbles: assistant left with the
-// mascot avatar (bg #F0F0F0, radius 16/16/16/4), user right (bg #FFFD73).
-// Input row: rounded-xl #F0F0F0 with a w-7 h-7 black send button. When the
+// mascot avatar (bg #F0F0F0, radius 16/16/16/4), user right (bg #0F0E0E,
+// white text, radius 16/16/4 — session-10 live decode). Input row:
+// rounded-xl #F0F0F0 with a w-7 h-7 black send button (the lucide Send
+// paper plane at w-3.5 h-3.5 — session-10; paths verified identical across
+// the live's lucide 0.475 and the clone's 0.525, so the import is safe). When the
 // hub reports the active quiz question, it rides along to /api/chat so Nori
 // can answer in context (the reference's [Current question: …] prefix).
 
@@ -116,11 +120,14 @@ export function NoriChat({
             </div>
           ) : (
             <div key={i} className="flex justify-end">
+              {/* S10-F2 (session-10 live decode): the live's USER bubble is
+                  BLACK #0F0E0E with WHITE text — same classes/shape as the
+                  assistant bubble, mirrored tail (16/16/4 = BR corner). */}
               <div
                 className="max-w-[80%] px-3.5 py-2.5 text-sm font-light leading-relaxed"
                 style={{
-                  backgroundColor: "rgb(255, 253, 115)",
-                  color: "rgb(15, 14, 14)",
+                  backgroundColor: "rgb(15, 14, 14)",
+                  color: "rgb(255, 255, 255)",
                   borderRadius: "16px 16px 4px 16px",
                 }}
               >
@@ -173,10 +180,9 @@ export function NoriChat({
             style={{ backgroundColor: "rgb(15, 14, 14)" }}
             aria-label="Send message"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-up h-4 w-4 text-white">
-              <path d="m5 12 7-7 7 7" />
-              <path d="M12 19V5" />
-            </svg>
+            {/* S10-F3 (session-10 live decode): the live's icon is lucide's
+                Send paper plane at w-3.5 h-3.5 sw 1.5 — not an arrow-up. */}
+            <Send className="h-3.5 w-3.5 text-white" strokeWidth={1.5} />
           </button>
         </form>
       </div>

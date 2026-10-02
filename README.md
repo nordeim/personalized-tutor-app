@@ -28,7 +28,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 91 unit tests + 69 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 108 unit tests + 76 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -113,9 +113,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 91 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status)
+bun run test          # 108 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 69 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 76 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
@@ -254,6 +254,26 @@ pass also caught a lucide version trap: **BookOpen and Trophy were
 redesigned upstream between the live's 0.475 and the clone's 0.525** — the
 dashboard icons pin the live's exact paths as parameterized local
 components. 82 → 91 unit, 64 → 69 e2e.
+
+## The session-10 chat-surface parity pass
+
+A tenth audit ([`docs/remediation-plan-session-10.md`](docs/remediation-plan-session-10.md))
+drove the live's Nori chat through a real exchange for the first time (the
+session-9 handoff's suggested target) and decoded four more surfaces: the
+chat USER bubble is **BLACK `#0F0E0E` with white text** (radius 16/16/4 —
+the clone's yellow bubble was a session-1 invention), the send button
+carries lucide's **Send paper plane** at w-3.5 h-3.5 (paths verified
+identical across the live's lucide 0.475 and the clone's 0.525 — the one
+safe lucide swap), the client-side `from_url` contract carries the **path
+AND the query** (the live's `navigateToLogin` = the full
+`window.location.href` — now routed through one `loginRedirectUrl` helper
+with a same-origin guard on the login side that FIXES the open-redirect
+vulnerability the live ships), and the hub's back-links + "?" menu match
+the live exactly (the logo and mobile Dashboard link carry `?course=`,
+the "?" menu renders the empty-name header with a LayoutGrid icon). The
+mobile-nav headline was re-verified with the toaster-cover mechanism
+precisely measured (the live's menu still cannot be tapped open; the
+clone's fix + pins hold). 91 → 108 unit, 69 → 76 e2e.
 
 ## Pushing to GitHub
 

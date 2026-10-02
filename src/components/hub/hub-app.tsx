@@ -16,17 +16,17 @@ import { cn } from "@/lib/utils";
 import { useDismissOnOutsideClick } from "@/components/layout/use-dismiss";
 import {
   BookOpen,
+  Brain,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleCheckBig,
+  LayoutGrid,
   List,
   Lock,
   LogOut,
   MessageCircle,
-  Brain,
 } from "lucide-react";
-import type { DashboardUser } from "@/components/dashboard/dashboard-app";
 
 export type HubCourse = {
   id: string;
@@ -59,13 +59,11 @@ const DEMO_LESSONS = [
 // with the "All Lessons" header.
 
 export function HubApp({
-  user,
   course,
   courses,
   initialLesson,
   initialChat,
 }: {
-  user: DashboardUser;
   course: HubCourse | null;
   courses: { id: string; name: string }[];
   initialLesson: number;
@@ -147,7 +145,14 @@ export function HubApp({
           className="mx-[4px] mt-0 hidden flex-shrink-0 items-center justify-between rounded-b-[20px] px-8 py-3 md:flex"
           style={{ backgroundColor: "rgb(255, 253, 115)" }}
         >
-          <a href="/" className="flex items-center gap-2" aria-label="Thinkerwell home">
+          {/* S10-F4 (live decode): the hub logo href carries the CURRENT
+              course back to the dashboard (/?course={id}) — a bare / would
+              land on the FIRST enrollment instead of the viewed one. */}
+          <a
+            href={course ? `/?course=${course.id}` : "/"}
+            className="flex items-center gap-2"
+            aria-label="Thinkerwell home"
+          >
             <BrandMark />
             <span style={{ fontFamily: "Eczar, serif", fontWeight: 400, fontSize: "16px", position: "relative", top: "2px" }}>
               Thinkerwell
@@ -244,14 +249,17 @@ export function HubApp({
                   className="absolute right-0 top-full z-50 mt-2 overflow-hidden rounded-[16px] bg-white shadow-xl"
                   style={{ minWidth: 200 }}
                 >
+                  {/* S10-F5 (live decode): the hub's ? menu is the m_
+                      panel instantiated with NO user — the yellow header
+                      renders the literal "?" avatar and EMPTY name/email
+                      lines (the live's own output; the trigger's span is
+                      empty for the same reason). */}
                   <div className="p-3" style={{ backgroundColor: "rgb(255, 253, 115)" }}>
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-[9999px] bg-black font-semibold text-sm text-white">
-                        {user.name.slice(0, 1).toUpperCase()}
-                      </div>
+                      <div className="flex h-8 w-8 items-center justify-center rounded-[9999px] bg-black font-semibold text-sm text-white">?</div>
                       <div>
-                        <p className="text-sm font-semibold text-black">{user.name}</p>
-                        <p className="text-xs text-black/50">{user.email}</p>
+                        <p className="text-sm font-semibold text-black"></p>
+                        <p className="text-xs text-black/50"></p>
                       </div>
                     </div>
                   </div>
@@ -261,7 +269,8 @@ export function HubApp({
                       onClick={() => router.push("/courses")}
                       className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
                     >
-                      <List className="h-4 w-4 text-black" strokeWidth={1.5} />
+                      {/* S10-F6: the live's icon is LayoutGrid (not List). */}
+                      <LayoutGrid className="h-4 w-4 text-black" strokeWidth={1.5} />
                       <span className="text-sm font-medium text-black">My Courses</span>
                     </button>
                     <button
@@ -284,7 +293,13 @@ export function HubApp({
           className="mx-[4px] mt-0 flex flex-shrink-0 items-center justify-between rounded-b-[20px] px-4 py-3 md:hidden"
           style={{ backgroundColor: "rgb(255, 253, 115)" }}
         >
-          <a href="/" className="flex items-center gap-1.5" aria-label="Dashboard">
+          {/* S10-F4: the mobile hub header's Dashboard link also carries the
+              current course (the live: href="/?course=demo-enrollment"). */}
+          <a
+            href={course ? `/?course=${course.id}` : "/"}
+            className="flex items-center gap-1.5"
+            aria-label="Dashboard"
+          >
             <ChevronLeft className="h-4 w-4 text-black" strokeWidth={2} />
             <span className="text-sm font-medium text-black" style={{ fontFamily: '"Funnel Sans", sans-serif' }}>
               Dashboard

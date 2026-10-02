@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (91 unit + 69 Playwright
+   bun run test && bun run build && bun run test:e2e` (108 unit + 76 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -157,6 +157,24 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   card icons pin the LIVE's lucide 0.475 paths as parameterized local
   components (BookOpen/Trophy were REDESIGNED by lucide 0.525 — do not
   swap for lucide imports without re-probing).
+- **THE session-10 invariants:** the client-side from_url contract carries
+  the path AND the query (the live's `navigateToLogin` = full
+  `window.location.href`) through ONE pure helper
+  (`loginRedirectUrl(pathname, search)` in domain.ts — all three writers:
+  desktop pill, mobile item, onboarding deferral), while the login page
+  consumes it via `sameOriginRedirectTarget` (same-origin absolutes
+  decode; foreign origins + `//` collapse to `/` — the open-redirect FIX
+  the live ships as a vulnerability; both unit- AND e2e-pinned, including
+  the query-carrying round-trip). The Nori chat USER bubble is BLACK
+  `#0F0E0E` + WHITE text (radius 16/16/4) — the assistant bubble stays
+  gray — and the send button is lucide's Send paper plane at w-3.5 h-3.5
+  sw 1.5 (paths identical across lucide versions — the ONE safe import).
+  The hub's back-links carry `?course={id}` (desktop logo + mobile
+  Dashboard link); the hub's "?" menu renders the empty-name m_ header
+  (the "?" avatar + empty lines) with a LayoutGrid My Courses icon. The
+  onboarding 2/2/20 thresholds live in ONE domain predicate
+  (`onboardingInputsValid`). The live's demo-course chat is ephemeral
+  across reloads; the clone's persistence is the documented divergence.
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in

@@ -295,3 +295,23 @@ Work Log:
 
 Stage Summary:
 - Session 9 delivered and pushed: remote main @ ef3fb18 (+ this log commit), all keys destroyed, tree clean.
+
+---
+Task ID: 18
+Agent: main (Super Z)
+Task: Session 10 — chat-surface parity pass, from_url query contract + open-redirect fix, hub header decodes, docs, push
+
+Work Log:
+- git pull → 28e0c26 (docs/session_10.md = the session-9 transcript, per the handoff convention). Workspace PERSISTED from session 9 (.env + db/custom.db at the repo root + node_modules verified); baseline gate green (lint ✓ typecheck ✓ 91 unit ✓ build ✓ 69 e2e ✓); the stale shell DATABASE_URL trap re-armed (env -u for every command).
+- The live bundle UNCHANGED (index-CkEI9gsZ.js — the session-9 hash; every prior decode stands). scandihaven re-consulted for tech-stack patterns (aligned; nothing new to adopt).
+- Two-axis code review of ef3fb18 (Standards/Spec parallel sub-agents per skills/code-review): zero HARD violations; judgement calls = the R5 consolidation incomplete (2 predicates, different field names), the from_url push ×3 duplication, the usePathname-vs-window.location.href decode gap.
+- LIVE deep-audit — the Nori chat driven through a real exchange for the first time: the USER bubble decodes as BLACK #0F0E0E + WHITE text (radius 16/16/4, pad 10px 14px, font 14/300 — the clone's yellow bubble was a session-1 invention); the send button = lucide Send paper plane w-3.5 h-3.5 sw 1.5 (paths VERIFIED identical across lucide 0.475/0.525 — the one safe import); the live's demo chat is EPHEMERAL across reloads (the clone's persistence = documented divergence). The from_url contract re-decoded with a query-carrying URL: the pill at /?q=parity&s10=1 → login?from_url=<full absolute URL incl. query> on BOTH the desktop pill and the mobile item; the server-side auth guards are path-only on both sides (no change).
+- The hub headers fully decoded (incl. the second, mobile <header>): the desktop logo AND mobile "Dashboard" link href /?course={id} (the clone's bare / landed on the FIRST enrollment); the "?" menu = the m_ panel with NO user ("?" avatar + EMPTY name/email + LayoutGrid My Courses — the clone's identity header + List icon were inventions); the mobile lessons sheet, tab bar, course-pill panel, and both mobile menus re-verified matching.
+- The mobile-nav headline re-verified with the mechanism MEASURED: two fixed 390x32 z-[100] w-full containers with pointer-events auto; elementFromPoint at the hamburger's center IS the toaster; the live's menu cannot be tapped open — the clone's fix + real-tap pins hold. The live's hamburger has no aria-label (the clone's = documented a11y improvement).
+- TDD: loginRedirectUrl + sameOriginRedirectTarget + onboardingInputsValid in domain.ts (17 unit pins, 91 → 108 RED→GREEN); the user bubble → black/white; the Send icon swap; the three from_url writers → the ONE helper (useSearchParams added); the hub back-links + ?-menu + the dead user prop removed; the login page guard → sameOriginRedirectTarget (headers-derived origin).
+- E2E 69 → 76: session10-parity.spec (the BLACK user-bubble computed styles incl. the identical 3-value radius string, the Send path+size pins, the back-link hrefs, the ?-menu structure) + session10-public.spec (the query-carrying from_url chain, the post-login query round-trip, the foreign-origin open-redirect rejection).
+- Gate green: lint ✓ typecheck ✓ 108 unit ✓ build ✓ 76 e2e ✓ (one AI-latency flake in the tab-switch spec re-run clean); runtime re-probes confirmed every fix computed-identical to the live; screenshots 75-78 (the black user bubble, the empty-name ? menu, the mobile Dashboard link, the from_url query chain); .env.example re-verified (no new env vars).
+- Docs: remediation-plan-session-10 (11 findings + 14 TODOs executed), remediation-plan-session-9 R5 completion note, AGENTS (the chat-bubble split, the from_url contract + open-redirect fix, the hub header invariants, the one-predicate rule, counts 108/76), CLAUDE (session-10 invariants), README (session-10 section + counts), PAD v1.9 [S10] + testing table, SKILL v1.9.0 (traps 30-31), docs/session_10.md formatted summary, this worklog.
+
+Stage Summary:
+- Session-10 complete: the chat surface decoded and pinned (the black user bubble + the Send icon), the from_url contract query-carrying end-to-end with the open-redirect FIX, the hub back-links + empty-name "?" menu matching the live, R5 completed, 108 unit + 76 e2e green — ready for commit + push via the SSH wrapper.

@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (91 checks) | `bun run test` |
-| Browser E2E (69 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (108 checks) | `bun run test` |
+| Browser E2E (76 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (91) → `bun run build` → `bun run test:e2e` (69 Playwright
+`bun run test` (108) → `bun run build` → `bun run test:e2e` (76 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -198,10 +198,17 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   `full_name || pending.name`). `/demo`, `/hub`, `/quiz`, `/courses`
   remain auth-gated (`/demo` TOO — the live registers it under the auth
   guard; anonymous → `/login?from_url=%2Fdemo`). The Sign In pill's
-  from_url (session-9, S9-F2): the live's `Ha` pill calls
+  from_url (session-9 S9-F2 + session-10 S10-F1): the live's `Ha` pill calls
   `navigateToLogin()` = `redirectToLogin(window.location.href)` — the
-  current URL rides on BOTH the desktop pill and the mobile item (the
-  clone's pill previously pushed a bare `/login`).
+  current URL's path AND QUERY ride on BOTH the desktop pill and the
+  mobile item (verified live: the pill at `/?q=parity` routes to
+  `login?from_url=%2F%3Fq%3Dparity`). All three client writers go through
+  ONE pure helper — `loginRedirectUrl(pathname, search)` in `domain.ts` —
+  and the login page consumes from_url via `sameOriginRedirectTarget`
+  (same-origin absolute urls decode to path+search; foreign origins and
+  `//` collapse to `/` — the open-redirect FIX for a contract the live
+  ships as a vulnerability). The server-side auth guards stay path-only
+  (they match the live's platform guard).
 - **THE Try-it invariant (session-8):** "Try it Sample: Economics Course"
   NAVIGATES TO `/demo` — it never generates a course (the live's X2:
   `onTryIt: () => navigate("/demo")`; the is_sample pending path in the
@@ -248,6 +255,35 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   live probe) instead of lucide imports. Do NOT swap them for
   `lucide-react` imports without re-probing the live's paths — the
   session-8 e2e icon pins assert the `d` prefixes.
+- **THE Nori chat bubble split (session-10, S10-F2):** the USER bubble is
+  BLACK `#0F0E0E` with WHITE text (radius 16/16/4 — bottom-RIGHT tail;
+  browsers serialize the 4-value form to the identical 3-value string the
+  live computes), while the ASSISTANT bubble is gray `#F0F0F0` with dark
+  text (16/16/16/4 — bottom-left tail) — same classes on both
+  (`max-w-[80%] px-3.5 py-2.5 text-sm font-light leading-relaxed`). The
+  clone's earlier yellow user bubble was a session-1 invention;
+  computed-style-pinned in `tests/e2e/session10-parity.spec.ts`. The send
+  button is `w-7 h-7 rounded-lg` black with lucide's **Send** paper plane
+  at `w-3.5 h-3.5` sw 1.5 (S10-F3 — paths verified IDENTICAL across the
+  live's 0.475 and the clone's 0.525, so the named import is safe — the
+  ONE icon where that's true; the arrow-up it replaced was drift). The
+  live's demo-course chat is EPHEMERAL across reloads; the clone persists
+  ChatMessage rows — a documented divergence (the clone's DB makes it
+  possible; the README declares it a feature).
+- **THE hub header invariants (session-10):** the hub's back-links carry
+  the CURRENT course — the desktop logo AND the mobile "Dashboard" link
+  both href `/?course={id}` (S10-F4; a bare `/` would land on the FIRST
+  enrollment). The hub's "?" menu is the m_ panel instantiated with NO
+  user: the yellow `p-3` header renders the literal "?" avatar and EMPTY
+  name/email lines (S10-F5 — the live's own output; do not "helpfully"
+  fill in the user's identity), and the My Courses row's icon is
+  **LayoutGrid** sw 1.5 (S10-F6 — the same icon as every other My Courses
+  row in the app), never List.
+- **THE onboarding thresholds live in ONE predicate (session-10, S10-F7):**
+  `onboardingInputsValid({mode, topic, courseName, contentText})` in
+  `domain.ts` (unit-pinned) — consumed by BOTH the Continue gate and the
+  pending-setup pickup. The component maps its `materialText` state onto
+  `contentText`; do not re-inline the ≥2/≥2/≥20 literals.
 - **THE daily-challenge modal (session-8):** overlay `rgba(0,0,0,0.5)` via
   INLINE style (Trap 8 — v4's bg-black/50 computes oklab), NO backdrop
   blur, and NO result banner — after the reveal the SAME button slot swaps

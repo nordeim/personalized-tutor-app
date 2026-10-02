@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BrandMark } from "@/components/mascot";
-import { avatarLetter, courseContextLine, isCustomSource } from "@/lib/domain";
+import { avatarLetter, courseContextLine, isCustomSource, loginRedirectUrl } from "@/lib/domain";
 import { AddCourseModal } from "@/components/courses/add-course-modal";
 import { useToast } from "@/components/toast";
 import { cn } from "@/lib/utils";
@@ -565,6 +565,9 @@ function MobileMenuBody({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  // S10-F1: the live's navigateToLogin = redirectToLogin(window.location.href)
+  // — the query rides too (useSearchParams gives it without the leading ?).
+  const search = useSearchParams().toString();
 
   return (
     <div className="p-2">
@@ -614,10 +617,10 @@ function MobileMenuBody({
           type="button"
           onClick={() => {
             onDone();
-            // S8: the from_url rides the CURRENT path (the live's
-            // navigateToLogin — on /demo this stays %2Fdemo, on the public
-            // onboarding it is the landing URL).
-            router.push(`/login?from_url=${encodeURIComponent(pathname ?? "/")}`);
+            // S8/S10: the from_url rides the CURRENT URL (the live's
+            // navigateToLogin — path AND query; loginRedirectUrl is the ONE
+            // writer template).
+            router.push(loginRedirectUrl(pathname, search));
           }}
           className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left transition-all hover:bg-gray-50"
         >
@@ -675,6 +678,9 @@ export function AppHeader({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  // S10-F1: the desktop Sign In pill carries the CURRENT URL's path AND
+  // query (the live's navigateToLogin = redirectToLogin(window.location.href)).
+  const search = useSearchParams().toString();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const mobileRef = useRef<HTMLDivElement>(null);
@@ -723,12 +729,11 @@ export function AppHeader({
         {signedOut || !user ? (
           <button
             type="button"
-            // S9-F2: the live's pill calls navigateToLogin() =
+            // S9-F2/S10-F1: the live's pill calls navigateToLogin() =
             // redirectToLogin(window.location.href) — the CURRENT URL rides
-            // as from_url (the same contract as the mobile Sign In item).
-            onClick={() =>
-              router.push(`/login?from_url=${encodeURIComponent(pathname ?? "/")}`)
-            }
+            // (path AND query; loginRedirectUrl is the ONE writer template,
+            // the same contract as the mobile Sign In item).
+            onClick={() => router.push(loginRedirectUrl(pathname, search))}
             className="flex items-center gap-2 rounded-[9999px] bg-black px-4 py-1.5 text-sm font-medium text-white transition-all hover:bg-gray-800"
             style={{ fontFamily: '"Funnel Sans", sans-serif' }}
           >

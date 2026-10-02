@@ -410,3 +410,62 @@ export function parsePendingSetup(raw: string | null): {
     return null;
   }
 }
+
+// --- Session 10: the from_url contract + the onboarding validity predicate ---
+
+/**
+ * The ONE from_url writer template (session-10, S10-F1/F8): the live's
+ * client-side navigateToLogin() = redirectToLogin(window.location.href) —
+ * the CURRENT URL's path AND query ride on the login redirect. The clone's
+ * three writers (the desktop Sign In pill, the mobile Sign In item, the
+ * onboarding Continue deferral) all build their push through this helper so
+ * the query string survives the login round-trip (an anonymous visitor at
+ * /?course=X returns to /?course=X, not /).
+ */
+export function loginRedirectUrl(pathname: string | null | undefined, search: string | null | undefined): string {
+  const path = pathname && pathname.length > 0 ? pathname : "/";
+  const rawQuery = search && search.length > 0 ? search : "";
+  // normalize: useSearchParams().toString() has NO leading "?" — prepend it
+  // so the query rides as a query, never as a path segment.
+  const query = rawQuery.length > 0 && !rawQuery.startsWith("?") ? `?${rawQuery}` : rawQuery;
+  return `/login?from_url=${encodeURIComponent(path + query)}`;
+}
+
+/**
+ * The login page's from_url consumer (session-10, R8): relative same-app
+ * paths pass through; an ABSOLUTE url is tolerated (the live's own format —
+ * from_url=https://host/path?query) only when its origin matches, decoding
+ * to path+search. Foreign origins, protocol-relative ("//"), malformed
+ * values, and empty inputs all collapse to "/" — the open-redirect FIX for
+ * a contract the live ships as a vulnerability (clone doctrine: fix it AND
+ * pin it — see tests/e2e/session10-public.spec.ts).
+ */
+export function sameOriginRedirectTarget(raw: string | null | undefined, origin: string): string {
+  if (!raw) return "/";
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  try {
+    const parsed = new URL(raw);
+    if (parsed.origin === origin) return parsed.pathname + parsed.search;
+  } catch {
+    // not a parseable absolute URL — fall through to the safe default
+  }
+  return "/";
+}
+
+/**
+ * The onboarding validity predicate (session-10, S10-F7 — the session-9 R5
+ * completion): ONE home for the ≥2/≥2/≥20 thresholds, consumed by BOTH the
+ * Continue gate (topic ≥ 2, or material's courseName ≥ 2 AND contentText ≥
+ * 20) and the post-login pending-setup pickup. The component maps its
+ * materialText state onto contentText.
+ */
+export function onboardingInputsValid(input: {
+  mode: "topic" | "material";
+  topic: string;
+  courseName: string;
+  contentText: string;
+}): boolean {
+  return input.mode === "topic"
+    ? input.topic.trim().length >= 2
+    : input.courseName.trim().length >= 2 && input.contentText.trim().length >= 20;
+}

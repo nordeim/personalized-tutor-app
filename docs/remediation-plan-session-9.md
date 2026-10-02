@@ -91,6 +91,10 @@ is excluded from code checking, testing and compilation throughout.
   payload — the sessionStorage schema (`{name, content_source, …}`) is the
   live's own contract; the pickup ignoring it is the decoded
   account-name-wins behavior. Add the why-comment.
+  *(Session-10 completion: this landed as TWO predicates with different
+  field names — the consolidation was finished in session-10 as
+  `onboardingInputsValid` in `domain.ts` with unit pins; see
+  `docs/remediation-plan-session-10.md` R2.)*
 - [x] **R6. Challenge overlay dead class** (`course-dashboard.tsx:345`): drop
   the `bg-black/50` class, keep the inline `rgba(0, 0, 0, 0.5)` + the Trap 8
   comment (S9-F6c — one source of truth).
