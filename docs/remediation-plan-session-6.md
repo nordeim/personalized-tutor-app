@@ -108,7 +108,7 @@ checking, testing and compilation throughout.
   (same), README.md (counts + session-6 section), PAD v1.5 [S6] revision
   block, `personalized-tutor-app_SKILL.md` v1.5.0, `docs/session_6.md`,
   repo `worklog.md`. `.env.example` re-verify (no new env vars expected).
-- [ ] **R14. Commit + push** — Conventional Commit on main (fix:/refactor:
+- [x] **R14. Commit + push** — Conventional Commit on main (fix:/refactor:
   style — NOT a bare "update" message), push via `docs/ssh_git_wrapper_v3.py`
   (paramiko shim at `/home/z/my-project/bin/ssh`).
 
