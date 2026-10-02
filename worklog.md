@@ -383,3 +383,18 @@ Work Log:
 
 Stage Summary:
 - Session-12 complete: the dashboard confetti decoded and ported (the streak + mastery-label triggers with exact-equality semantics, on the unkeyed shell, e2e-pinned on the refresh surface), the dead material gate fixed (enrollmentMaterial), the roadmap prompts split to the live's three shapes with wrapper parsing, the ChevronRight CTA icon, the submit-route 422s — 153 unit + 86 e2e green, ready for commit + push via the SSH wrapper.
+
+---
+Task ID: 23
+Agent: main (Super Z)
+Task: Session 12 final delivery — push verification + key destruction + log commit
+
+Work Log:
+- Commit 3123f9f on main (the session-12 parity pass: 28 files, +~1,300 lines — the domain helpers + the AI-seam prompt split + the component fixes + 4 new e2e pins + 28 unit pins + screenshots 83-86 + the docs alignment).
+- Push via docs/ssh_git_wrapper_v3.py (paramiko shim at /home/z/my-project/bin/ssh, paramiko 5.0.0; dry-run then real push; --remote git@github.com:nordeim/personalized-tutor-app.git).
+- Verified: the wrapper's remote-ref assertion (3123f9f == HEAD) + an independent ls-remote (3123f9fb70ffb30a8ad35df34489fdd151bcead5 refs/heads/main).
+- All key material destroyed (the operator key shredded with 3 random-byte passes + removed; the /tmp/s12-push dir removed; the wrapper's temp keys shredded; the repo tree clean — the credential-bearing live-probe scripts never entered the tree, matching the established convention).
+- This log commit per the session-log pattern.
+
+Stage Summary:
+- Session 12 delivered and pushed: remote main @ 3123f9f (+ this log commit), all keys destroyed, tree clean. The dashboard now ships the decoded c_ confetti triggers (the streak + mastery-label bursts, exact-equality, on the unkeyed shell), the material gate un-deadened (enrollmentMaterial), the three roadmap prompts split with wrapper parsing, the ChevronRight CTA icon, and the submit-route 422s; 153 unit + 86 e2e green.
