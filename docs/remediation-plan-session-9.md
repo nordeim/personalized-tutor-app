@@ -135,7 +135,7 @@ is excluded from code checking, testing and compilation throughout.
   Boss card (the never-before-captured surfaces), the public onboarding
   desktop pill post-R2 (the from_url login URL), the hub Lesson Progress
   "9/8" terminal state.
-- [ ] **R12. Commit + push** — Conventional Commit on main; push via
+- [x] **R12. Commit + push** — Conventional Commit on main; push via
   `docs/ssh_git_wrapper_v3.py --remote git@github.com:nordeim/personalized-tutor-app.git`
   (paramiko shim; remote ref verified == HEAD; key shredded).
 

@@ -280,3 +280,18 @@ Work Log:
 
 Stage Summary:
 - Session-9 complete: the unclamped "9/8" label pinned, the live's dead-end hub machinery decoded (the clone's advancing flow confirmed as the documented fix), the lucide-version trap documented, the level-2/3 surfaces e2e-pinned for the first time, 91 unit + 69 e2e green — ready for commit + push via the SSH wrapper.
+
+---
+Task ID: 17
+Agent: main (Super Z)
+Task: Session 9 final delivery — push verification + key destruction + log commit
+
+Work Log:
+- Commit ef3fb18 on main (the session-9 parity pass: 24 files, +436/-275).
+- Push via docs/ssh_git_wrapper_v3.py (paramiko shim at /home/z/my-project/bin/ssh, paramiko 5.0.0 installed; dry-run then real push; --remote git@github.com:nordeim/personalized-tutor-app.git).
+- Verified: wrapper's remote-ref assertion (ef3fb18 == HEAD) + an independent ls-remote (ef3fb18482929f6207e5d79e4f51602520fa03b7 refs/heads/main).
+- All key material destroyed (the operator key shredded with random bytes + removed; the secrets dir removed; no wrapper temp keys; the repo tree clean).
+- This log commit (R12 check-off) per the session-log pattern.
+
+Stage Summary:
+- Session 9 delivered and pushed: remote main @ ef3fb18 (+ this log commit), all keys destroyed, tree clean.
