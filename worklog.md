@@ -425,10 +425,10 @@ Agent: main (Super Z)
 Task: Session 13 final delivery — push verification + key destruction + log commit
 
 Work Log:
-- Commit on main (the session-13 parity pass: the AI-seam hardening + the dual-shape parser + the course-switch fix + 4 new e2e pins + 22 unit pins + screenshots 87-90 + the docs alignment).
+- Commit 8797fec on main (the session-13 parity pass: 28 files, +1356/-207 — the AI-seam hardening + the dual-shape parser + the course-switch fix + 4 new e2e pins + 22 unit pins + screenshots 87-90 + the docs alignment).
 - Push via docs/ssh_git_wrapper_v3.py (paramiko shim at /home/z/my-project/bin/ssh, paramiko 5.0.0; dry-run then real push; --remote git@github.com:nordeim/personalized-tutor-app.git).
-- Verified: the wrapper's remote-ref assertion + an independent ls-remote.
-- All key material destroyed (the operator key shredded with random-byte passes + removed; the push dir removed; the wrapper's temp keys shredded; the repo tree clean — the credential-bearing live-probe scripts never entered the tree, matching the established convention).
+- Verified: the wrapper's remote-ref assertion (8797fec == HEAD) + an independent ls-remote (8797fec2692eb1db4c8ade1a674809e625b8c744 refs/heads/main).
+- All key material destroyed (the operator key shredded with random bytes + removed; the /tmp/s13-push dir removed; the wrapper's temp keys shredded; the repo tree clean — the credential-bearing live-probe scripts never entered the tree, matching the established convention).
 - This log commit per the session-log pattern.
 
 Stage Summary:
