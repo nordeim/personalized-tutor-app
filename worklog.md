@@ -349,3 +349,18 @@ Work Log:
 
 Stage Summary:
 - Session-11 complete: the diagnostic-quiz surface decoded and rebuilt as the E3 port (5 questions, the star progress row, tan options, the skip/close paths), the score semantics fixed (the client-computed correct count — the old server derivation scored every answered question correct), the /-route model aligned to the live's $P, 125 unit + 82 e2e green — ready for commit + push via the SSH wrapper.
+
+---
+Task ID: 21
+Agent: main (Super Z)
+Task: Session 11 final delivery — push verification + key destruction + log commit
+
+Work Log:
+- Commit 8fc9adb on main (the session-11 parity pass: 31 files, +1663/-351).
+- Push via docs/ssh_git_wrapper_v3.py (paramiko shim at /home/z/my-project/bin/ssh, paramiko 5.0.0; dry-run then real push; --remote git@github.com:nordeim/personalized-tutor-app.git).
+- Verified: the wrapper's remote-ref assertion (8fc9adb == HEAD) + an independent ls-remote (8fc9adbdeaec06196859aa5cca16f5bc8a940d6b refs/heads/main).
+- All key material destroyed (the operator key shredded with random bytes + removed; the /tmp/s11-push dir removed; the wrapper's temp keys shredded; the repo tree clean — the credential-bearing live-probe scripts never entered the tree, matching the established convention).
+- This log commit per the session-log pattern.
+
+Stage Summary:
+- Session 11 delivered and pushed: remote main @ 8fc9adb (+ this log commit), all keys destroyed, tree clean. The diagnostic-quiz surface now ships the decoded E3 (5 questions, the star progress row, tan options, the client-computed score, the skip/close paths, the $P dashboard model); 125 unit + 82 e2e green.
