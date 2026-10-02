@@ -1,0 +1,54 @@
+import { db } from "@/lib/db";
+import { requireSession } from "@/lib/auth";
+import { fail, ok, readJson } from "@/lib/api";
+import { chatWithNori } from "@/lib/ai";
+
+// POST /api/chat — Nori, the Socratic tutor.
+// Body: { message, courseId? } → { reply, aiGenerated }. Persists both
+// messages (chat history reloads with the Hub).
+export async function POST(req: Request) {
+  const user = await requireSession();
+  if (!user) return fail("UNAUTHORIZED", "Sign in required", 401);
+
+  const body = await readJson<{ message?: string; courseId?: string | null }>(req);
+  const message = body?.message?.trim();
+  if (!message) return fail("VALIDATION", "message is required", 422);
+  if (message.length > 2000) {
+    return fail("VALIDATION", "Message too long (2000 chars max)", 422);
+  }
+
+  const courseId = body?.courseId ?? null;
+  let subject: string | null = null;
+  if (courseId) {
+    const enrollment = await db.courseEnrollment.findUnique({ where: { id: courseId } });
+    if (enrollment && enrollment.userId === user.id) {
+      subject = enrollment.courseName;
+    }
+  }
+
+  const history = await db.chatMessage.findMany({
+    where: { userId: user.id, courseId },
+    orderBy: { createdAt: "asc" },
+    take: 20,
+  });
+
+  const { reply, aiGenerated } = await chatWithNori(
+    [
+      ...history.map((m) => ({
+        role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+        content: m.content,
+      })),
+      { role: "user" as const, content: message },
+    ],
+    subject,
+  );
+
+  await db.chatMessage.createMany({
+    data: [
+      { userId: user.id, courseId, role: "user", content: message },
+      { userId: user.id, courseId, role: "assistant", content: reply },
+    ],
+  });
+
+  return ok({ reply, aiGenerated });
+}

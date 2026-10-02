@@ -1,4 +1,4 @@
-export const DEMO_EMAIL = "demo@orbital.app";
+export const DEMO_EMAIL = "demo@thinkerwell.app";
 export const DEMO_PASSWORD = "Demo1234!";
 
 /**

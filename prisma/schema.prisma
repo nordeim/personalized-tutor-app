@@ -1,0 +1,111 @@
+// Thinkerwell (Personalized Tutor App clone) — data model.
+//
+// Mirrors the reference app's base44 entities (User, Student,
+// CourseEnrollment, DiagnosticQuiz, StudySession) plus lesson progress and
+// chat history the reference kept server-side. SQLite by default (zero
+// config); the db/ folder is git-ignored, recreated with db:push + db:seed.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String            @id @default(cuid())
+  email           String            @unique
+  passwordHash    String
+  fullName        String?
+  createdAt       DateTime          @default(now())
+  student         Student?
+  enrollments     CourseEnrollment[]
+  quizzes         DiagnosticQuiz[]
+  sessions        StudySession[]
+  lessonProgress  LessonProgress[]
+  chatMessages    ChatMessage[]
+}
+
+// The learner profile — one per user. `quizCompleted` marks that the
+// diagnostic quiz produced a roadmap (the reference's Student.quiz_completed).
+model Student {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  user           User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  currentSubject String?
+  // "topic" (Build Me a Course) | "material" (My Personal Material)
+  contentSource  String  @default("topic")
+  contentText    String?
+  quizCompleted  Boolean @default(false)
+}
+
+model CourseEnrollment {
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseName    String
+  contentSource String           @default("topic")
+  contentText   String?
+  quizScore     Int?
+  quizCompleted Boolean          @default(false)
+  // JSON array of 3 roadmap stages: [{ title, description }]
+  roadmapSteps  String           @default("[]")
+  gapAnalysis   String?
+  createdAt     DateTime         @default(now())
+  lessonProgress LessonProgress[]
+  chatMessages  ChatMessage[]
+}
+
+model DiagnosticQuiz {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject      String
+  score        Int      @default(0)
+  gapAnalysis  String?
+  // JSON array of 3 roadmap stages (shared shape with CourseEnrollment)
+  roadmapSteps String   @default("[]")
+  createdAt    DateTime @default(now())
+}
+
+// Per-lesson study state inside the Hub. Lesson index 0..5 maps onto
+// stage (0..2) and level (0..1) — the reference's 3-stage × 2-lesson grid.
+model LessonProgress {
+  id           String           @id @default(cuid())
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId     String
+  course       CourseEnrollment @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonIndex  Int
+  completed    Boolean          @default(false)
+  correctCount Int              @default(0)
+  total        Int              @default(8)
+  updatedAt    DateTime         @updatedAt
+  @@unique([userId, courseId, lessonIndex])
+}
+
+model StudySession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId       String
+  activeLevel     Int      @default(1)
+  currentScore    Int      @default(0)
+  coreConceptText String?
+  createdAt       DateTime @default(now())
+}
+
+model ChatMessage {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String?
+  course    CourseEnrollment? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  // "user" | "assistant"
+  role      String
+  content   String
+  createdAt DateTime          @default(now())
+}
