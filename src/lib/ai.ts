@@ -291,7 +291,6 @@ type RawLesson = {
 
 export async function generateLessonContent(
   level: number,
-  lessonNumber: number,
   subject: string,
   lessonFocus: string,
   stageTitle?: string,
@@ -355,14 +354,13 @@ export async function generateLessonContent(
       aiGenerated: true,
     };
   }
-  return fallbackLesson(level, subject, lessonFocus, lessonNumber);
+  return fallbackLesson(level, subject, lessonFocus);
 }
 
 function fallbackLesson(
   level: number,
   subject: string,
   lessonFocus: string,
-  lessonNumber: number,
 ): LessonContent {
   // The observed live no-course content: "This level introduces the
   // foundational concepts and basic principles required for understanding

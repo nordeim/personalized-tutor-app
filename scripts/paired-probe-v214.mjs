@@ -49,7 +49,6 @@ await lp.waitForURL(BASE + "/", { timeout: 20_000 });
 const cookies = await loginCtx.cookies(BASE);
 const session = cookies.find((c) => c.name === "orbital_session");
 if (!session) throw new Error("no orbital_session cookie after login");
-const cookie = `orbital_session=${session.value}`;
 await loginCtx.close();
 console.log("login: ok");
 

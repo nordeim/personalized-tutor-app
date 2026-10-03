@@ -5,7 +5,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MascotHero, MascotHeroMobile } from "@/components/mascot";
 import { CATEGORY_TAGS, DIVE_TOPICS, loginRedirectUrl, onboardingInputsValid, parsePendingSetup } from "@/lib/domain";
 import { useToast } from "@/components/toast";
-import type { DashboardUser } from "@/components/dashboard/dashboard-app";
 
 // The onboarding dashboard (reference home with no active course):
 // left hero card (mascot + typewriter "Dive into X" + feature pills),
@@ -115,13 +114,9 @@ function useTypewriter(topics: readonly string[]): string {
 }
 
 export function OnboardingDashboard({
-  user,
-  studentName,
   currentSubject,
   publicMode = false,
 }: {
-  user: DashboardUser | null;
-  studentName: string;
   currentSubject: string | null;
   /** S8-F1: the anonymous variant — renders the "Your Name" block and
    * defers the setup via pending_student_setup + /login. */
@@ -154,6 +149,15 @@ export function OnboardingDashboard({
 
   const canContinue = publicMode ? name.trim().length >= 2 && inputsValid : inputsValid;
 
+  // S16-F1 (latest-ref pattern): generate rides a ref so the pickup's
+  // deps stay [publicMode] alone — exhaustive-deps complete, the pinned
+  // "fires on publicMode change only" semantics intact (the ref-update
+  // effect runs before the consumer, so a firing consumer always reads
+  // the fresh closure).
+  const generateRef = useRef(generate);
+  useEffect(() => {
+    generateRef.current = generate;
+  });
   // S8-F1: the post-login pickup — the live's X2 reads
   // pending_student_setup on the authenticated onboarding, removes it, and
   // proceeds into the quiz. Here: parse the stored form and auto-submit it
@@ -169,7 +173,7 @@ export function OnboardingDashboard({
     if (!pending) return;
     sessionStorage.removeItem(PENDING_SETUP_KEY);
     if (!onboardingInputsValid(pending)) return;
-    void generate({
+    void generateRef.current({
       mode: pending.mode,
       topic: pending.topic,
       courseName: pending.courseName,

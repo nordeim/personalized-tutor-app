@@ -262,8 +262,17 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   ruleset (`react-hooks/purity` at next-default error, prefer-const /
   no-unreachable / no-redeclare / no-useless-escape / no-console at warn
   — no-console scoped off for scripts/** + prisma/**).
-  `react-hooks/exhaustive-deps` stays OFF by documented trade-off (the 3
-  intentional suppressions in the pinned quiz-flow timing effects).
+- **THE session-16 invariants (the dead-code/deps pass):**
+  `react-hooks/exhaustive-deps` is ON (the session-15 trade-off
+  retired via the LATEST-REF pattern — a `useRef` + no-deps update
+  effect declared before the consumer decouples the callback identity
+  from the pinned firing triggers: lesson-view's two reporters ride
+  `onAnsweredRef`/`onQuestionChangeRef` with deps `[lessonIndex]`/
+  `[q]`, onboarding's pickup rides `generateRef` with `[publicMode]`);
+  `@typescript-eslint/no-unused-vars` is ON (warn, `^_` patterns — the
+  TS-aware rule flags dead code, not named type-contract params); and
+  the unit runner runs `isolate: false` (5× faster; re-validate with
+  a shuffle seed when a stateful test file joins).
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in

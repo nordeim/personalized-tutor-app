@@ -38,7 +38,7 @@ async function pillSwitch(label, rowText) {
 
 // --- 91: the fresh authenticated dashboard (the remediated build) ---
 const s6 = await freshCourse("Astronomy", 6, 7);
-const s7 = await freshCourse("Botany", 7, 7);
+await freshCourse("Botany", 7, 7);
 await page.request.put(`${BASE}/api/student`, {
   data: { currentSubject: "Astronomy", quizCompleted: true },
 });

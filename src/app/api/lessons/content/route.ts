@@ -35,7 +35,6 @@ export async function POST(req: Request) {
 
   const content = await generateLessonContent(
     stage + 1,
-    lessonIndex + 1,
     enrollment.courseName,
     focus,
     stageTitle,

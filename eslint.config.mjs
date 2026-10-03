@@ -1,11 +1,18 @@
 import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
-import { dirname } from "path";
-import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
+// SESSION-16 — the last two scaffold suppressions retired:
+//   - `react-hooks/exhaustive-deps` is ON (warn): the 3 former "intentional
+//     suppressions" were refactored to the latest-ref pattern (a useRef + a
+//     no-deps update effect decouples the callback identity from the
+//     consuming effect's deps — no useCallback refactor, the pinned firing
+//     triggers unchanged; lesson-view's two reporters + onboarding's pickup).
+//   - `@typescript-eslint/no-unused-vars` is ON (warn, TS-aware): it flags
+//     dead code WITHOUT flagging named type-contract params (the base rule
+//     flags those; it stays off so callback contracts keep their
+//     documentation names). argsIgnorePattern/varsIgnorePattern "^_" for the
+//     intentional keeps; caughtErrors none (unused catch bindings are fine).
+//
 // SESSION-15 (S15-F3) — the lint gate hardened to the strongest rule set
 // the codebase passes at ZERO findings (each enabling was experiment-
 // verified before adoption):
@@ -17,14 +24,6 @@ const __dirname = dirname(__filename);
 //   - `no-console` is scoped OFF for `scripts/**` + `prisma/**`: the dev
 //     probe scripts' console IS their output mechanism, and the seed logs
 //     progress by design — zero findings remain in src/ and tests/.
-//   - `react-hooks/exhaustive-deps` stays OFF deliberately: the codebase
-//     has exactly 3 intentional dep suppressions in the quiz-flow timing
-//     effects (lesson-view.tsx:132,137 — the reveal/advance effects fire
-//     on lesson/question-change ONLY; onboarding-dashboard.tsx:178 — the
-//     pending-setup pickup fires on publicMode change only). Adding the
-//     deps without useCallback refactors would re-fire reset effects
-//     mid-quiz and break the e2e-pinned auto-advance semantics — the
-//     refactor risk outweighs the lint nicety (documented trade-off).
 
 const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
   rules: {
@@ -37,7 +36,7 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "@typescript-eslint/no-unused-disable-directive": "off",
 
     // React rules
-    "react-hooks/exhaustive-deps": "off", // the documented trade-off above
+    "react-hooks/exhaustive-deps": "warn", // session-16: the latest-ref pattern retired the suppressions
     "react/no-unescaped-entities": "off",
     "react/display-name": "off",
     "react/prop-types": "off",
@@ -53,6 +52,18 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-redeclare": "warn",
     "no-useless-escape": "warn",
     "no-console": "warn",
+
+    // Session-16: the TS-aware unused-vars gate (dead code only — the base
+    // rule would also flag named type-contract params; it stays off).
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "args": "after-used",
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrors": "none",
+      },
+    ],
 
     // Still scaffold-level off (existing findings; not this session's scope)
     "no-unused-vars": "off",

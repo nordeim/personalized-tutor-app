@@ -18,9 +18,9 @@ description: >
   header variant + the /demo auth gate + the Try-it navigation), the
   gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.14.0
+version: 1.15.0
 last_updated: 2026-10-03
-project_state: 182 unit tests + 91 e2e checks green; session-15 conventions pass complete (the trap-39 60s-timeout convention backfilled to the 4 old specs and made UNIT-ENFORCED by tests/e2e-conventions.test.ts; the e2e course fixtures extracted to tests/e2e/helpers.ts; the lint gate hardened to the strongest zero-findings ruleset)
+project_state: 182 unit tests + 91 e2e checks green; session-16 dead-code/deps pass complete (react-hooks/exhaustive-deps ON via the latest-ref pattern — the 3 session-15 suppressions retired; @typescript-eslint/no-unused-vars ON TS-aware with the 18 findings cleaned to zero; the vitest runner at isolate:false — a 5× speedup validated with shuffle-seed runs)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -722,6 +722,25 @@ exercises this via real 429s). The Daily Challenge returns
     also takes 12-15 serial minutes (workers: 1) — run it in per-spec
     chunks under a 10-minute command budget.
 
+42. **The base no-unused-vars rule flags named type-contract params —
+    the TS-aware rule does not** (session-16, S16-F2): enabling BOTH
+    rules double-reports and forces `_`-renaming of documentation-rich
+    callback contracts (`onComplete: (lessonIndex: number, …) => void`).
+    Enable ONLY `@typescript-eslint/no-unused-vars` (with `^_` ignore
+    patterns): it flags genuinely dead code (unused props, states,
+    destructures, implementation params) while leaving function-TYPE
+    annotations alone — the strongest zero-findings ruleset without
+    degrading the types' documentation value. The same session retired
+    the exhaustive-deps suppression trade-off via the LATEST-REF
+    pattern (see §15): a `useRef` + a no-deps update effect declared
+    BEFORE the consumer decouples the callback identity from the pinned
+    firing triggers — no useCallback refactor, the deps arrays stay
+    exactly the semantics the e2e pins demand. And the vitest
+    `isolate: false` adoption carries its own lesson: probe the
+    mock-pollution hazard EMPIRICALLY (full runs + shuffle seeds —
+    the ai-seam transport-capture pins fail loudly on leakage) instead
+    of rejecting the speedup on theoretical grounds.
+
 ## §10 Debugging Guide
 
 | Symptom | Likely cause | Fix/verify |
@@ -847,6 +866,29 @@ Verification categories beyond the gate:
   cite the live bundle's 1200/800/800 ms values — keep the citations.
 
 ## §15 Coding Patterns (copy these)
+
+**The latest-ref pattern (a pinned effect that must not depend on its
+callback):**
+```tsx
+// The callback rides a ref — the consuming effect's deps stay EXACTLY
+// the pinned firing triggers; the no-deps update effect (declared
+// BEFORE the consumer) keeps the ref fresh without useCallback.
+const onAnsweredRef = useRef(onAnswered);
+useEffect(() => {
+  onAnsweredRef.current = onAnswered; // runs after every render
+});
+useEffect(() => {
+  onAnsweredRef.current?.(0); // fires on lessonIndex change ONLY
+}, [lessonIndex]);
+```
+Session-16, S16-F1: this retired the 3 exhaustive-deps suppressions
+(the session-15 trade-off feared the useCallback refactor — the ref
+indirection makes it unnecessary). The ref-update effect MUST be
+declared before the consuming effect so a firing consumer reads the
+fresh closure. Bonus: a question-identity dep (`[q]` where
+`q = content?.questions[qIndex]`) fires on content-load and
+question-advance — and unlike a text-keyed dep it cannot miss a
+duplicate-text question change.
 
 **The envelope:**
 ```ts

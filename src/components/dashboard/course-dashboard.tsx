@@ -15,7 +15,6 @@ import {
   type Roadmap,
 } from "@/lib/domain";
 import type { CourseDto, DashboardUser } from "@/components/dashboard/dashboard-app";
-import { useToast } from "@/components/toast";
 
 type CourseView = CourseDto & { roadmap: Roadmap; lessonTitles: string[] };
 
@@ -141,7 +140,6 @@ export function CourseDashboard({
   bubbleQuote?: BubbleQuote;
 }) {
   const router = useRouter();
-  const { toast } = useToast();
   const quote = bubbleQuote ?? FALLBACK_BUBBLE;
   const today = useMemo(
     () =>

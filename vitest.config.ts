@@ -10,6 +10,16 @@ export default defineConfig({
   test: {
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
     environment: "node",
+    // SESSION-16 (S16-F3): worker reuse across files — a 5× wall-clock win
+    // (1.9s → ~0.4s for the 15 files). Validated empirically before adoption:
+    // 5 full runs green (3 sequential + --sequence.shuffle with 2 different
+    // seeds — file-order randomization) at 182/182, including the ai-seam
+    // transport-capture pins (session-14's captured req.messages assertions
+    // would fail on any vi.mock leakage across the shared worker). Safe here
+    // by doctrine: the unit layer tests PURE seams (domain/quotes/db-path —
+    // zero shared state). RE-VALIDATE (re-run with a shuffle seed) whenever
+    // a stateful or mock-heavy test file joins the suite.
+    isolate: false,
   },
   resolve: {
     alias: {

@@ -66,17 +66,13 @@ function SubjectIcon({ name, courseName, contentSource }: { name: string; course
 export function CoursesApp({ user, courses }: { user: DashboardUser; courses: CourseCard[] }) {
   const router = useRouter();
   const [list, setList] = useState(courses);
-  const [deleting, setDeleting] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
   async function remove(id: string) {
-    setDeleting(id);
-    try {
-      await fetch(`/api/courses/${id}`, { method: "DELETE" });
-      setList((prev) => prev.filter((c) => c.id !== id));
-    } finally {
-      setDeleting(null);
-    }
+    // S16-F2: the deleting state was never rendered — removed (the
+    // setDeleting calls were its only writers; byte-identical UI).
+    await fetch(`/api/courses/${id}`, { method: "DELETE" });
+    setList((prev) => prev.filter((c) => c.id !== id));
   }
 
   return (

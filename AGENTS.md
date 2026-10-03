@@ -431,16 +431,35 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   custom-payload calls (the 422 family, the material generate) stay
   inline in their specs.
 - **THE lint gate runs the strongest zero-findings ruleset
-  (session-15, S15-F3):** `react-hooks/purity` at the next-default
-  ERROR, `prefer-const`/`no-unreachable`/`no-redeclare`/
-  `no-useless-escape`/`no-console` at warn (no-console scoped off for
-  `scripts/**` + `prisma/**` — the probe scripts' console IS their
-  output). `react-hooks/exhaustive-deps` stays OFF deliberately: the 3
-  intentional suppressions in the quiz-flow timing effects
-  (`lesson-view.tsx:132,137`, `onboarding-dashboard.tsx:178`) fire on
-  lesson/question/mode change ONLY — adding the deps without useCallback
-  refactors would re-fire reset effects mid-quiz and break the
-  e2e-pinned auto-advance semantics.
+  (session-15, S15-F3 + session-16, S16-F1/F2):**
+  `react-hooks/purity` at the next-default ERROR, `prefer-const`/
+  `no-unreachable`/`no-redeclare`/`no-useless-escape`/`no-console` at
+  warn (no-console scoped off for `scripts/**` + `prisma/**` — the
+  probe scripts' console IS their output), `react-hooks/
+  exhaustive-deps` ON (warn — the session-15 "documented trade-off"
+  retired: the 3 former suppressions now ride the LATEST-REF pattern),
+  and `@typescript-eslint/no-unused-vars` ON (warn, `^_` ignore
+  patterns, caughtErrors none — the TS-aware rule flags dead code
+  WITHOUT flagging named type-contract params; the base rule stays
+  off so callback contracts keep their documentation names).
+- **THE latest-ref pattern (session-16, S16-F1):** a callback a
+  pinned effect must NOT depend on rides a `useRef` + a no-deps
+  update effect declared BEFORE the consumer — the consuming effect's
+  deps stay exactly the pinned firing triggers (`[lessonIndex]`, the
+  question identity `[q]`, `[publicMode]`) while the callback identity
+  is decoupled WITHOUT the useCallback refactor the session-15
+  trade-off feared. The three sites: lesson-view's two reporters
+  (`onAnsweredRef`/`onQuestionChangeRef` — hub-app passes stable
+  setters; the `[q]` restructure also fixes the old text-only
+  trigger's duplicate-question blind spot) and onboarding's pickup
+  (`generateRef`). The quiz-flow auto-advance + the pending-setup
+  pickup remain e2e-pinned.
+- **THE unit runner reuses workers (session-16, S16-F3):** vitest
+  `isolate: false` — a 5× wall-clock win (1.9s → ~0.4s), validated
+  with 5 full runs incl. 2 shuffle seeds before adoption (the
+  ai-seam transport-capture pins would fail on any cross-file mock
+  leakage). Safe by doctrine: the unit layer tests PURE seams. Re-run
+  with a shuffle seed whenever a stateful test file joins the suite.
 - **THE submit route validates FIRST, derives after (session-14,
   S14-F2):** every present-but-invalid payload check (answers/score/
   total) runs BEFORE the enrollment lookup; the derivations read only

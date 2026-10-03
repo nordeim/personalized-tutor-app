@@ -399,7 +399,6 @@ export function HubApp({
             <LessonView
               key={`desktop-${course?.id ?? "demo"}-${activeLesson}`}
               courseId={course?.id ?? null}
-              courseName={course?.courseName ?? null}
               lessonIndex={activeLesson}
               lessonTitle={titles[activeLesson] ?? DEMO_LESSONS[activeLesson]}
               subject={subject}
@@ -419,7 +418,6 @@ export function HubApp({
                 <LessonView
                   key={`mobile-${course?.id ?? "demo"}-${activeLesson}`}
                   courseId={course?.id ?? null}
-                  courseName={course?.courseName ?? null}
                   lessonIndex={activeLesson}
                   lessonTitle={titles[activeLesson] ?? DEMO_LESSONS[activeLesson]}
                   subject={subject}

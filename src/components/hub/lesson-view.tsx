@@ -73,7 +73,6 @@ const ADVANCE_MS = 800; // live: onAnswer → advance/retry-modal (800)
 
 export function LessonView({
   courseId,
-  courseName,
   lessonIndex,
   lessonTitle,
   subject,
@@ -83,7 +82,6 @@ export function LessonView({
   onQuestionChange,
 }: {
   courseId: string | null;
-  courseName: string | null;
   lessonIndex: number;
   lessonTitle: string;
   /** The h2 subject for level 1 (the live shows current_subject || "General"). */
@@ -127,14 +125,31 @@ export function LessonView({
   const isStageBoundary = lessonIndex === 1 || lessonIndex === 3;
   const q = content?.questions[qIndex];
 
+  // S16-F1 (latest-ref pattern): the reporter callbacks ride refs so the
+  // consuming effects' deps stay the pinned firing triggers alone —
+  // exhaustive-deps complete WITHOUT the useCallback refactor the
+  // session-15 trade-off feared. hub-app passes stable state setters
+  // (setSessionAnswered/setCurrentQuestion); the refs keep the contract
+  // robust for any caller. The update effects run before the consumers
+  // (declaration order), so a firing consumer always reads the fresh ref.
+  const onAnsweredRef = useRef(onAnswered);
   useEffect(() => {
-    onAnswered?.(0);
+    onAnsweredRef.current = onAnswered;
+  });
+  useEffect(() => {
+    onAnsweredRef.current?.(0);
   }, [lessonIndex]);
 
-  const activeQuestion = q ? { question: q.question, options: q.options } : null;
+  const onQuestionChangeRef = useRef(onQuestionChange);
   useEffect(() => {
-    onQuestionChange?.(activeQuestion);
-  }, [activeQuestion?.question]);
+    onQuestionChangeRef.current = onQuestionChange;
+  });
+  // Fires on question-identity change (content load or question advance)
+  // — a superset-equal of the old text-only trigger, immune to its
+  // duplicate-text blind spot.
+  useEffect(() => {
+    onQuestionChangeRef.current?.(q ? { question: q.question, options: q.options } : null);
+  }, [q]);
 
   function completeLesson(finalScore: number, total: number) {
     setFinished(true);

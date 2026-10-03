@@ -395,6 +395,33 @@ hydration fails → every AI-effect test hangs — kill it with
 `ss -tlnp | grep 3100` before a fresh run). 179 → 182 unit, 91 e2e
 (unchanged — the helper refactor is count-invariant).
 
+## The session-16 dead-code/deps pass
+
+A sixteenth audit
+([`docs/remediation-plan-session-16.md`](docs/remediation-plan-session-16.md))
+followed the session-15 handoff's three suggested directions and closed
+all three: **`react-hooks/exhaustive-deps` is now ON** (the session-15
+"documented trade-off" retired — the 3 former suppressions were
+refactored to the latest-ref pattern: a `useRef` + a no-deps update
+effect declared before the consumer decouples the callback identity
+from the pinned firing triggers, no useCallback refactor needed;
+lesson-view's two reporters + onboarding's post-login pickup, the
+quiz-flow auto-advance semantics e2e-pinned throughout), **the 18
+`src/` unused-vars findings cleaned to zero** (6 genuine dead-code
+sites removed — the vestigial `courseName`/`user`/`studentName` props,
+the never-rendered `deleting` state, the uncalled `toast`
+destructure, `fallbackLesson`'s vestigial `lessonNumber` — plus 5
+script-level cleanups; the rule enabled TS-aware so named
+type-contract params keep their documentation names), and **the unit
+runner runs `isolate: false`** (a 5× wall-clock win, 1.9s → ~0.4s —
+validated with 5 full runs including 2 shuffle-seed orderings before
+adoption). The live bundle re-verified **byte-identical for the 7th
+consecutive session** and the mobile-nav headline re-verified for the
+7th (the live's hamburger tap still refuses — the toaster cover; the
+clone's fix + 12/12 real-tap pins hold on the fresh build). 182 unit +
+91 e2e unchanged (the session is pure hygiene — behavior-preserving
+refactors proven by the existing pins).
+
 ## Pushing to GitHub
 
 Commits reach `git@github.com:nordeim/personalized-tutor-app.git` through

@@ -183,8 +183,6 @@ export function DashboardApp({
           />
         ) : (
           <OnboardingDashboard
-            user={user}
-            studentName={student?.name ?? user?.name ?? ""}
             currentSubject={student?.currentSubject ?? null}
             publicMode={user === null}
           />

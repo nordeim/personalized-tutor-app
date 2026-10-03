@@ -38,7 +38,7 @@ async function pillSwitch(label, rowText) {
 // Mount at the streak-3 course, then pill-switch to the streak-2 course:
 // the content UPDATES (the pre-fix code rendered the stale stats).
 const high = await freshCourse("Astronomy", 3);
-const low = await freshCourse("Botany", 2);
+await freshCourse("Botany", 2);
 await page.request.put(`${BASE}/api/student`, {
   data: { currentSubject: "Astronomy", quizCompleted: true },
 });
@@ -58,7 +58,7 @@ await page.screenshot({ path: `${OUT}/88-course-switch-after.png`, fullPage: fal
 // Mount at the streak-2 course (ref inits), switch to the streak-3 course
 // → min(quizScore,7) crosses EXACTLY 3 → the 80-particle burst.
 const two = await freshCourse("Chemistry", 2);
-const three = await freshCourse("Drama", 3);
+await freshCourse("Drama", 3);
 await page.request.put(`${BASE}/api/student`, {
   data: { currentSubject: "Chemistry", quizCompleted: true },
 });
@@ -74,7 +74,7 @@ await page.screenshot({ path: `${OUT}/89-switch-streak-burst.png`, fullPage: fal
 // the label change fires the 90-particle burst with NO streak crossing
 // (1 → 4).
 const app = await freshCourse("Geology", 1);
-const exp = await freshCourse("History", 4);
+await freshCourse("History", 4);
 await page.request.put(`${BASE}/api/student`, {
   data: { currentSubject: "Geology", quizCompleted: true },
 });
