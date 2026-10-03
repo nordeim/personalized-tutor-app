@@ -642,3 +642,18 @@ Work Log:
 
 Stage Summary:
 - Session-23 complete: the AI timeout budget family is mutually consistent BY CONSTRUCTION (the weight mirror + the headroom invariant + the scanner-derivation pin — tests/ai-budget.test.ts; AI_TIMEOUT_MS exported as the authority, AI_SPEC_REQUEST_TIMEOUT_MS canonical in tests/e2e/ai-budget.ts), the stale handler counts closed (16 everywhere), two informational observations documented — 204 unit + 91 e2e green in both e2e modes — ready for commit + push via the SSH wrapper.
+
+---
+Task ID: 39
+Agent: main (Super Z)
+Task: Session 23 final delivery — push verification + key destruction + log commit
+
+Work Log:
+- Commit 26fdc55 on main (the session-23 budget-family pin pass: 16 files, +675/-125 — the 3 budget pins + the canonical ai-budget module + the AI_TIMEOUT_MS export + the scanner rewire + the shard-plan comment + the handler-count fixes + screenshots 112-114 + the docs alignment).
+- Push via docs/ssh_git_wrapper_v3.py (paramiko 5.0.0; the shim at /home/z/my-project/bin/ssh on PATH; dry-run then real push; --remote git@github.com:nordeim/personalized-tutor-app.git).
+- Verified: the wrapper's remote-ref assertion (refs/heads/main @ 26fdc55 == local HEAD) + an independent ls-remote (26fdc55a216896f29d7c3a11727e071f008fba97 refs/heads/main, via GIT_SSH_COMMAND with the operator key).
+- All key material destroyed (the operator key overwritten with 3 random-byte passes + removed; /tmp/s23-push removed; the wrapper's temp keys shredded by itself; no /tmp/dbs-push-*.key remains). The repo tree clean — the credential-bearing probe/capture scripts (scripts/s23-*.cjs in the WORKSPACE scripts/ dir) never entered the tree, and the staged-diff credential scan found ZERO matches (one live-login-email reference in the new plan was caught and scrubbed pre-commit).
+- The session-23 raw transcript committed as docs/session_24.md (the handoff convention: session_N+1.md carries session N's raw log; session_23.md was rewritten as the formatted summary inside the remediation commit) + this final worklog entry, as the log commit.
+
+Stage Summary:
+- Session 23 delivered and pushed: remote main @ 26fdc55 (+ this log commit), all keys destroyed, tree clean. The AI timeout budget family is mutually consistent BY CONSTRUCTION (the weight mirror + the headroom invariant + the scanner-derivation pin — tests/ai-budget.test.ts; AI_TIMEOUT_MS exported as the authority, AI_SPEC_REQUEST_TIMEOUT_MS canonical in tests/e2e/ai-budget.ts); the stale handler counts closed (16 everywhere); 204 unit + 91 e2e green in both e2e modes.
