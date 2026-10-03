@@ -489,3 +489,18 @@ Work Log:
 
 Stage Summary:
 - Session-15 complete: the trap-39 timeout convention is backfilled and UNIT-ENFORCED (a spec that forgets it fails the unit gate in milliseconds), the e2e fixtures are one canonical module, the lint gate runs the strongest zero-findings ruleset, and the orphaned-webServer trap is diagnosed and documented — 182 unit + 91 e2e green, ready for commit + push via the SSH wrapper.
+
+---
+Task ID: 29
+Agent: main (Super Z)
+Task: Session 15 final delivery — push verification + key destruction + log commit
+
+Work Log:
+- Commit 7412f8b on main (the session-15 conventions pass: 21 files, +447/-261 — the e2e-conventions unit pin + the 8 timeout backfills + the helpers extraction across 6 specs + the lint hardening + the escape fix + screenshots 97-99 + the docs alignment).
+- Push via docs/ssh_git_wrapper_v3.py (paramiko shim at /home/z/my-project/bin/ssh, paramiko 5.0.0; dry-run then real push; --remote git@github.com:nordeim/personalized-tutor-app.git).
+- Verified: the wrapper's remote-ref assertion (7412f8b == HEAD) + an independent ls-remote (7412f8b412f993aecd85faa0ea3374581d867706 refs/heads/main).
+- All key material destroyed (the operator key shredded with 3 random-byte passes + removed; the /tmp/s15-push dir removed; the wrapper's temp keys shredded; the repo tree clean — the credential-bearing probe scripts scripts/s15-*.cjs/py never entered the tree, and the stash-compare scan proved my changes added ZERO credential matches vs the pre-session state).
+- This log commit per the session-log pattern.
+
+Stage Summary:
+- Session 15 delivered and pushed: remote main @ 7412f8b (+ this log commit), all keys destroyed, tree clean. The trap-39 convention is unit-enforced, the e2e fixtures are one canonical module, the lint gate runs the strongest zero-findings ruleset, and the orphaned-webServer trap is documented; 182 unit + 91 e2e green.
