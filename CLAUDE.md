@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (182 unit + 91 Playwright
+   bun run test && bun run build && bun run test:e2e` (186 unit + 91 Playwright
    checks required — run the e2e in per-spec chunks under a 10-minute
    command budget; kill any orphaned `standalone/server.js` on :3100 first).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
@@ -273,6 +273,27 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   TS-aware rule flags dead code, not named type-contract params); and
   the unit runner runs `isolate: false` (5× faster; re-validate with
   a shuffle seed when a stateful test file joins).
+- **THE session-17 invariants (the lint retirement + sharded e2e + manifest
+  pass):** the scaffold lint block retired to its final two DOCUMENTED offs
+  (`no-undef` — not type-aware, false-positives `React`/`NodeJS`, the
+  typecheck gate owns the hazard; `no-unused-vars` base — the TS-aware
+  split) — `no-debugger`/`no-irregular-whitespace`/`no-case-declarations`/
+  `no-fallthrough`/`no-mixed-spaces-and-tabs`/`no-empty` all enabled
+  (experiment-verified zero findings; the one `no-empty` finding was a
+  comment fix, no option relaxation), and the dead duplicate
+  `@typescript-eslint/no-unused-vars` config entry removed (JS
+  duplicate-key semantics — last wins; the dead line misread as "off").
+  `bun run test:e2e:sharded` runs the SAME 91 e2e checks as 3 parallel
+  playwright shards, each with its OWN port/DB/auth-state/outputDir (the
+  derivation: `tests/e2e/shard-env.ts`, unit-pinned; the wrapper:
+  `scripts/e2e-sharded.mjs` — spawn children via `bunx playwright`, never
+  `bun node_modules/@playwright/test/cli.js`; a SHARED `test-results/`
+  is a cross-process disposal race — per-shard outputDir is mandatory).
+  The serial `test:e2e` stays the DEFAULT (byte-compatible). The
+  dependency manifest's lower bounds mirror the gate-verified lockfile
+  (zero-resolution-change; the majors Prisma 7 / lucide 1.x / eslint 10 /
+  TS 7 stay out of scope by doctrine — lucide 1.x would re-drift every
+  decoded icon path).
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in

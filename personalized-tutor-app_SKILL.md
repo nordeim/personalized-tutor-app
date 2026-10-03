@@ -18,9 +18,9 @@ description: >
   header variant + the /demo auth gate + the Try-it navigation), the
   gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.15.0
+version: 1.16.0
 last_updated: 2026-10-03
-project_state: 182 unit tests + 91 e2e checks green; session-16 dead-code/deps pass complete (react-hooks/exhaustive-deps ON via the latest-ref pattern — the 3 session-15 suppressions retired; @typescript-eslint/no-unused-vars ON TS-aware with the 18 findings cleaned to zero; the vitest runner at isolate:false — a 5× speedup validated with shuffle-seed runs)
+project_state: 186 unit tests + 91 e2e checks green (both serial AND 3-shard parallel modes); session-17 lint/sharding/manifest pass complete (the scaffold lint block retired to its final two DOCUMENTED offs — no-undef (not type-aware) + the base no-unused-vars (TS-aware split) — with no-debugger/no-irregular-whitespace/no-case-declarations/no-fallthrough/no-mixed-spaces-and-tabs/no-empty enabled at zero findings; the sharded e2e harness — per-shard port/DB/auth/outputDir isolation, the pure derivation in tests/e2e/shard-env.ts unit-pinned; the manifest lower bounds mirror the gate-verified lockfile, zero-resolution-change)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -740,6 +740,36 @@ exercises this via real 429s). The Daily Challenge returns
     mock-pollution hazard EMPIRICALLY (full runs + shuffle seeds —
     the ai-seam transport-capture pins fail loudly on leakage) instead
     of rejecting the speedup on theoretical grounds.
+43. **A dead duplicate config key outlives its supersession and lies to
+    every reader after that** (session-17, S17-F1):
+    `eslint.config.mjs` carried `"@typescript-eslint/no-unused-vars":
+    "off"` in the TypeScript-rules block while the session-16 enablement
+    block re-declared the same key later in the SAME object literal — JS
+    duplicate-key semantics (last wins) made the dead entry harmless at
+    runtime, but anyone reading top-to-bottom concluded "the rule is
+    off." The fix is the audit discipline itself: when a later change
+    supersedes a config line, DELETE the line — never leave both.
+    Config files are read by humans first and parsers second.
+44. **Concurrent playwright processes cannot share an outputDir**
+    (session-17, S17-F2): the first sharded e2e runs failed with moving
+    `apiRequestContext.dispose: ENOENT ... .playwright-artifacts-0/...`
+    errors — three playwright runs all writing traces/screenshots into
+    one `test-results/` clobber each other's artifact dirs, and the
+    loser fails at DISPOSAL (not at the test — the failure "moves"
+    between runs, the tell-tale of an artifact race). Every parallel
+    instance needs its OWN `outputDir` (per-shard
+    `test-results/shard-{k}/` — parameterized via `E2E_OUTPUT` in
+    playwright.config.ts, derived in tests/e2e/shard-env.ts).
+45. **`bunx playwright` and `bun node_modules/@playwright/test/cli.js`
+    load the TS config DIFFERENTLY** (session-17, S17-F2): spawning the
+    cli.js path directly under bun parses `playwright.config.ts` as
+    plain JavaScript — it dies on the first TS-only construct (`as
+    Record<...>`) with a parse-error cascade. The bunx bin resolution
+    routes the config through the type-stripping loader. When a wrapper
+    spawns playwright children under bun, use `bunx playwright`, and
+    note the failure mode: a config parse error at child boot looks
+    NOTHING like a config problem (three shards × "Expected } but found
+    as" — diagnose the SPAWN, not the config).
 
 ## §10 Debugging Guide
 
@@ -945,6 +975,33 @@ if (levelingUp) {
     </div>
   );
 }
+```
+
+**The per-shard env derivation (parallel e2e — session-17, S17-F2):**
+```ts
+// tests/e2e/shard-env.ts — ONE pure module, unit-pinned; consumed by
+// playwright.config.ts (E2E_PORT/E2E_DB/E2E_AUTH/E2E_OUTPUT),
+// global-setup.ts (E2E_DB), auth.setup.ts (E2E_AUTH), and the wrapper.
+// Every shared mutable path is a cross-process race: port, DB file,
+// auth state, AND outputDir (traps 41/44).
+export function shardEnv(index: number, count: number): ShardEnv {
+  if (!Number.isInteger(count) || count < 2)
+    throw new Error(`shard count must be an integer >= 2 (got ${count})`);
+  if (!Number.isInteger(index) || index < 1 || index > count)
+    throw new Error(`shard index must be an integer in [1, ${count}] (got ${index})`);
+  return {
+    port: 3110 + index,                                  // clear of serial 3100
+    dbUrl: `file:../db/e2e-shard-${index}.db`,
+    authPath: `tests/e2e/.auth/user-shard-${index}.json`,
+    outputDir: `test-results/shard-${index}`,            // git-ignored tree
+  };
+}
+```
+```js
+// scripts/e2e-sharded.mjs — the orchestrator spawns children via
+// `bunx playwright` (trap 45), pre-flights the orphan-port kill (trap 41),
+// aggregates exit codes, and cleans up on exit. The serial `test:e2e`
+// stays the byte-compatible default (every env carries today's value).
 ```
 
 ## §16 Coding Anti-Patterns

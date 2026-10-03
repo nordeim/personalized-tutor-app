@@ -28,7 +28,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 182 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin + the trap-39 conventions pin) | `tests/` |
+| 🧪 | 186 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin + the trap-39 conventions pin + the shard-env pins) | `tests/` |
 
 ## Architecture
 
@@ -113,10 +113,12 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 182 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard, the e2e trap-39 timeout conventions)
+bun run test          # 186 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard, the e2e trap-39 timeout conventions, the sharded-e2e env derivation)
 bun run build         # standalone production build (e2e prerequisite)
 bun run test:e2e      # 91 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
+bun run test:e2e:sharded  # the SAME 91 checks as 3 parallel playwright shards
+                      # (own port/DB/auth/outputDir per shard — tests/e2e/shard-env.ts)
 ```
 
 The e2e suite covers: the auth surface (login, signup, bad credentials,
@@ -421,6 +423,43 @@ consecutive session** and the mobile-nav headline re-verified for the
 clone's fix + 12/12 real-tap pins hold on the fresh build). 182 unit +
 91 e2e unchanged (the session is pure hygiene — behavior-preserving
 refactors proven by the existing pins).
+
+## The session-17 lint/sharding/manifest pass
+
+A seventeenth audit
+([`docs/remediation-plan-session-17.md`](docs/remediation-plan-session-17.md))
+followed the session-16 handoff's three directions and closed all three,
+again with zero parity gaps behind them (the live bundle byte-identical for
+the **8th** consecutive session; the mobile-nav headline re-verified for
+the 8th — the live's hamburger tap still refuses behind the toaster cover
+while the clone's 12/12 real-tap pins hold). (1) **The scaffold lint block
+retired to its final two DOCUMENTED offs** — `no-debugger`,
+`no-irregular-whitespace`, `no-case-declarations`, `no-fallthrough`,
+`no-mixed-spaces-and-tabs`, and `no-empty` all enabled (each
+experiment-verified at zero findings; the one `no-empty` finding was an
+empty `catch {}` in the probe script's retry loop, fixed with a
+self-documenting comment instead of an option relaxation); `no-undef`
+stays off with the rationale documented (not type-aware — it
+false-positives the JSX scope's `React` and the `@types/node` ambient
+`NodeJS`; the typecheck gate owns the real hazard); and a dead duplicate
+`@typescript-eslint/no-unused-vars: "off"` entry removed (the session-16
+enablement block already wins by JS duplicate-key semantics — the dead
+line misread as "the rule is off"). (2) **`bun run test:e2e:sharded`** —
+the same 91 e2e checks as three parallel playwright shards, each with its
+own port (3111-3113), own `db/e2e-shard-{k}.db`, own auth state, and own
+`test-results/shard-{k}/` artifacts (a shared outputDir is a cross-process
+disposal race — the failure mode the first sharded runs hit before the
+per-shard dir existed). The serial `test:e2e` stays the byte-compatible
+default; the sharded mode kills the 12-15-minute slow-LLM wall clock and
+the chunking ceremony in one command. The derivation is one pure,
+unit-pinned module (`tests/e2e/shard-env.ts` — 182 → 186 unit); the
+wrapper only orchestrates (orphan pre-flight per trap 41, spawn via
+`bunx playwright`, aggregate, cleanup). (3) **The dependency manifest's
+lower bounds now mirror the gate-verified lockfile** (next `^16.3.8`,
+react `^19.3.0`, prisma `^6.19.3`, …) — a zero-resolution-change edit
+(the lockfile diff only re-records the declared ranges); the majors
+(Prisma 7, lucide-react 1.x, eslint 10, TypeScript 7) stay out of scope
+by doctrine — a lucide major would re-drift every decoded icon path.
 
 ## Pushing to GitHub
 

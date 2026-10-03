@@ -20,20 +20,28 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (182 checks) | `bun run test` |
+| Unit tests (186 checks) | `bun run test` |
 | Browser E2E (91 checks; needs a build) | `bun run test:e2e` |
+| Browser E2E, sharded (3 parallel processes) | `bun run test:e2e:sharded` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (182) → `bun run build` → `bun run test:e2e` (91 Playwright
+`bun run test` (186) → `bun run build` → `bun run test:e2e` (91 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
-NOTE: the full e2e run takes 12-15 minutes serially (workers: 1 — the specs
-share one seeded SQLite file); run it in per-spec chunks under a 10-minute
-command budget, and KILL any orphaned `standalone/server.js` on :3100 before
-a fresh run (`ss -tlnp | grep 3100`) — a tool-timeout kill leaves the
-webServer alive, and a later `next build` replaces `.next/static` out from
+NOTE: the full e2e run takes 12-15 minutes serially whenever the LLM is
+reachable-but-slow (workers: 1 — the specs share one seeded SQLite file);
+`bun run test:e2e:sharded` (session-17) runs the SAME 91 checks as 3
+parallel playwright processes — each with its OWN port (3111-3113), OWN
+`db/e2e-shard-{k}.db`, OWN `.auth/user-shard-{k}.json` state, and OWN
+`test-results/shard-{k}/` artifacts (a shared outputDir is a cross-process
+disposal race) — the per-shard derivation is `tests/e2e/shard-env.ts`
+(unit-pinned). The serial `test:e2e` stays the byte-compatible DEFAULT.
+Either way, KILL any orphaned `standalone/server.js` on :3100/:311x before
+a fresh run (`ss -tlnp | grep -E '310[0-9]|311[0-9]'` — the sharded wrapper
+pre-flights this itself) — a tool-timeout kill leaves the webServer alive,
+and a later `next build` replaces `.next/static` out from
 under it (stale chunk 500/404s → hydration fails → every AI-effect test
 hangs; session-15's diagnosis).
 There is no hosted CI; the local gate is the only gate.
@@ -431,17 +439,25 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   custom-payload calls (the 422 family, the material generate) stay
   inline in their specs.
 - **THE lint gate runs the strongest zero-findings ruleset
-  (session-15, S15-F3 + session-16, S16-F1/F2):**
+  (session-15, S15-F3 + session-16, S16-F1/F2 + session-17, S17-F1):**
   `react-hooks/purity` at the next-default ERROR, `prefer-const`/
   `no-unreachable`/`no-redeclare`/`no-useless-escape`/`no-console` at
   warn (no-console scoped off for `scripts/**` + `prisma/**` — the
   probe scripts' console IS their output), `react-hooks/
   exhaustive-deps` ON (warn — the session-15 "documented trade-off"
   retired: the 3 former suppressions now ride the LATEST-REF pattern),
-  and `@typescript-eslint/no-unused-vars` ON (warn, `^_` ignore
+  `@typescript-eslint/no-unused-vars` ON (warn, `^_` ignore
   patterns, caughtErrors none — the TS-aware rule flags dead code
   WITHOUT flagging named type-contract params; the base rule stays
-  off so callback contracts keep their documentation names).
+  off so callback contracts keep their documentation names), and the
+  session-17 retirements `no-debugger`/`no-irregular-whitespace`/
+  `no-case-declarations`/`no-fallthrough`/`no-mixed-spaces-and-tabs`/
+  `no-empty` (warn — all experiment-verified zero findings; the ONE
+  no-empty finding was a comment fix, no option relaxation). The
+  final two documented offs: `no-unused-vars` (base — the TS-aware
+  split above) and `no-undef` (not type-aware: false-positives the
+  JSX scope's `React` + the `@types/node` ambient `NodeJS`; the
+  `typecheck` gate owns that hazard).
 - **THE latest-ref pattern (session-16, S16-F1):** a callback a
   pinned effect must NOT depend on rides a `useRef` + a no-deps
   update effect declared BEFORE the consumer — the consuming effect's
@@ -460,6 +476,34 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   ai-seam transport-capture pins would fail on any cross-file mock
   leakage). Safe by doctrine: the unit layer tests PURE seams. Re-run
   with a shuffle seed whenever a stateful test file joins the suite.
+- **THE sharded-e2e harness (session-17, S17-F2):**
+  `bun run test:e2e:sharded` runs the SAME 91 checks as N parallel
+  playwright processes (`--shard=k/N`, default 3) — each shard gets
+  its OWN port (3111+), OWN `db/e2e-shard-{k}.db`, OWN
+  `.auth/user-shard-{k}.json`, and OWN `test-results/shard-{k}/`
+  outputDir. The isolation is what makes parallel safe: Playwright
+  DUPLICATES the setup dependency project into every shard
+  (verified via `--shard --list`), the specs are per-test isolated
+  (no beforeAll/serial), and the per-shard outputDir kills the
+  cross-process artifact-disposal race the shared `test-results/`
+  caused. The derivation lives in ONE pure module —
+  `tests/e2e/shard-env.ts`, unit-pinned in `tests/shard-env.test.ts`;
+  the wrapper (`scripts/e2e-sharded.mjs`) only orchestrates (orphan
+  pre-flight per trap 41, spawn, aggregate, cleanup). Spawn children
+  via `bunx playwright` — NOT `bun node_modules/@playwright/test/
+  cli.js` (only the bunx bin resolution loads the TS config through
+  the type-stripping loader; the direct path parses it as JS and
+  dies on the `as` cast). The serial `test:e2e` stays the DEFAULT
+  (byte-compatible env defaults).
+- **THE manifest lower bounds mirror the gate-verified lockfile
+  (session-17, S17-F3):** `package.json` declares the versions the
+  gate actually ran against (next `^16.3.8`, react `^19.3.0`,
+  prisma `^6.19.3`, typescript `^5.9.3`, …) — a zero-resolution-
+  change edit by construction (the lockfile pins already satisfy
+  them; `bun install` after the alignment only re-records the
+  declared ranges). The majors stay OUT of scope by doctrine:
+  lucide-react 1.x would re-drift every decoded icon path, and
+  Prisma 7 / eslint 10 / TS 7 are breaking majors.
 - **THE submit route validates FIRST, derives after (session-14,
   S14-F2):** every present-but-invalid payload check (answers/score/
   total) runs BEFORE the enrollment lookup; the derivations read only

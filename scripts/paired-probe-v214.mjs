@@ -25,7 +25,9 @@ async function waitForHealth() {
     try {
       const res = await fetch(BASE + "/api/health", { signal: AbortSignal.timeout(2000) });
       if (res.ok) return true;
-    } catch {}
+    } catch {
+      /* retry until the 40-attempt/500ms window elapses — not up yet */
+    }
     await new Promise((r) => setTimeout(r, 500));
   }
   return false;

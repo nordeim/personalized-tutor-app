@@ -1,6 +1,23 @@
 import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
 
+// SESSION-17 — the scaffold suppression block retired to its final two:
+//   - `no-empty` joins the zero-findings ruleset (warn): the ONE finding
+//     the experiment matrix surfaced (an empty `catch {}` in the probe
+//     script's retry loop) was fixed with a self-documenting comment —
+//     a comment-bearing block passes the rule, no option relaxation.
+//   - `no-debugger` / `no-irregular-whitespace` / `no-case-declarations` /
+//     `no-fallthrough` / `no-mixed-spaces-and-tabs` enabled (warn): all
+//     verified at ZERO findings by the session-17 experiment matrix.
+//   - `no-undef` stays OFF, now DOCUMENTED (was an undocumented scaffold
+//     default): the rule is not type-aware — it false-positives on the
+//     automatic JSX scope (`React`) and the @types/node ambient namespace
+//     (`NodeJS`); `bun run typecheck` (TypeScript itself) owns that hazard.
+//   - The dead duplicate `"@typescript-eslint/no-unused-vars": "off"`
+//     entry removed (session-16 had enabled the rule in a later key —
+//     JS duplicate-key semantics: last wins; the dead entry misread as
+//     "the rule is off").
+//
 // SESSION-16 — the last two scaffold suppressions retired:
 //   - `react-hooks/exhaustive-deps` is ON (warn): the 3 former "intentional
 //     suppressions" were refactored to the latest-ref pattern (a useRef + a
@@ -29,7 +46,6 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
   rules: {
     // TypeScript rules
     "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/ban-ts-comment": "off",
     "@typescript-eslint/prefer-as-const": "off",
@@ -52,6 +68,13 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-redeclare": "warn",
     "no-useless-escape": "warn",
     "no-console": "warn",
+    // Session-17 retirements (all experiment-verified zero findings)
+    "no-debugger": "warn",
+    "no-irregular-whitespace": "warn",
+    "no-case-declarations": "warn",
+    "no-fallthrough": "warn",
+    "no-mixed-spaces-and-tabs": "warn",
+    "no-empty": "warn",
 
     // Session-16: the TS-aware unused-vars gate (dead code only — the base
     // rule would also flag named type-contract params; it stays off).
@@ -65,14 +88,14 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
       },
     ],
 
-    // Still scaffold-level off (existing findings; not this session's scope)
+    // The FINAL two scaffold-level offs — both DOCUMENTED (session-17):
+    //   - `no-unused-vars` (base rule): the TS-aware rule above carries the
+    //     gate; the base rule additionally flags NAMED TYPE-CONTRACT params
+    //     (callback prop contracts) that only exist for documentation.
+    //   - `no-undef`: not type-aware — false-positives the automatic JSX
+    //     scope (`React`) + the @types/node ambient (`NodeJS`); `typecheck`
+    //     (TypeScript itself) owns the real hazard.
     "no-unused-vars": "off",
-    "no-debugger": "off",
-    "no-empty": "off",
-    "no-irregular-whitespace": "off",
-    "no-case-declarations": "off",
-    "no-fallthrough": "off",
-    "no-mixed-spaces-and-tabs": "off",
     "no-undef": "off",
   },
 }, {
