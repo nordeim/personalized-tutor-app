@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { AI_BACKED_ROUTES } from "./e2e/ai-routes";
+import { AI_SPEC_REQUEST_TIMEOUT_MS } from "./e2e/ai-budget";
 
 // SESSION-15 conventions pin (S15-F1) — trap 40's doctrine applied to the
 // test suite itself: "a convention nobody enforces is a convention nobody
@@ -14,6 +15,11 @@ import { AI_BACKED_ROUTES } from "./e2e/ai-routes";
 // sandboxes where the SDK 429s into the fallbacks instantly). Session-13
 // applied the convention to the specs it touched; this pin makes it
 // self-enforcing for every spec, present and future.
+// SESSION-23 (S23-F1): the exact-value check compares against the CANONICAL
+// constant (tests/e2e/ai-budget.ts — imported above), never a local literal;
+// the budget family's mutual-consistency pins live in tests/ai-budget.test.ts
+// (the weight mirror + the headroom invariant).
+
 //
 // SESSION-21 (S21-F1): the route set is the CANONICAL module
 // ./e2e/ai-routes.ts (imported above) — previously this local array and
@@ -129,13 +135,13 @@ describe("the trap-39 e2e conventions (S15-F1)", () => {
     expect(aiBacked(allCalls()).length).toBeGreaterThan(0);
   });
 
-  it("the timeout value is the trap-39 convention itself: exactly 60_000", () => {
+  it("the timeout value is the trap-39 convention itself (the canonical constant)", () => {
     const offenders = aiBacked(allCalls()).filter(
-      (c) => c.timeoutMs !== null && c.timeoutMs !== 60_000,
+      (c) => c.timeoutMs !== null && c.timeoutMs !== AI_SPEC_REQUEST_TIMEOUT_MS,
     );
     expect(
       offenders.map((c) => `${c.file}:${c.line} timeout ${c.timeoutMs}`),
-      "AI-backed page.request calls whose timeout is not 60_000",
+      "AI-backed page.request calls whose timeout is not the canonical convention value",
     ).toEqual([]);
   });
 });

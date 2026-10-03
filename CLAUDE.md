@@ -3,7 +3,7 @@ IMPORTANT: File is read fresh for every conversation. Be brief and practical.
 project_type: nextjs
 version: 1.0.0
 framework_version: "16.1"
-last_updated: 2026-10-03
+last_updated: 2026-10-04
 ---
 
 # Thinkerwell — Personalized Tutor App Clone
@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (201 unit + 91 Playwright
+   bun run test && bun run build && bun run test:e2e` (204 unit + 91 Playwright
    checks required — run the e2e in per-spec chunks under a 10-minute
    command budget; kill any orphaned `standalone/server.js` on :3100 first).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
@@ -331,6 +331,25 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   closed; the session-19 handoff's recorded-fixture and
   measured-calibration directions re-reviewed and deferred with
   documented rationale.
+- **THE session-23 invariants (the budget-family pin pass):** the AI
+  timeout budget family is PINNED — `AI_TIMEOUT_MS` is now EXPORTED from
+  `src/lib/ai.ts` (the production authority), `AI_SPEC_REQUEST_TIMEOUT_MS
+  = 60_000` lives in the canonical `tests/e2e/ai-budget.ts` (the
+  conventions scanner compares spec literals against IT, never a local
+  literal), and `AI_WEIGHT_SECONDS` keeps its plain-number form in
+  `tests/e2e/shard-plan.ts` (the wrapper constraint: the e2e-sharded
+  runner loads that chain where `server-only` does not exist — nothing
+  in it may import `@/lib/ai`). The relationships — the weight mirror
+  (`AI_WEIGHT_SECONDS × 1000 === AI_TIMEOUT_MS`) and the headroom
+  invariant (the spec convention EXCEEDS the production budget, or the
+  trap-39 flake returns) — are pinned in `tests/ai-budget.test.ts` along
+  with the scanner-derivation pin (the exact-value check imports the
+  canonical constant). Trap 47's own generalization made real: "any
+  constant two modules both 'know' … needs either one exported source or
+  a mutual-consistency pin — a comment claiming they match pins
+  nothing" (the shard-plan's "mirrors AI_TIMEOUT_MS = 45_000" comment was
+  exactly such a comment). The API handler count is 16 everywhere
+  (CLAUDE/README/PAD §4.2+§3.3 fixed from the stale 14/15).
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in
@@ -403,7 +422,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   resolves `getSessionUser()` server-side, redirecting to
   `/login?from_url=…` when required. `/login` renders its card for EVERY
   visitor (parity with the reference — no authenticated redirect).
-- All server logic lives in route handlers under `src/app/api/` (14 of
+- All server logic lives in route handlers under `src/app/api/` (16 of
   them); there are no server actions.
 - Client components are explicit: the app shells (`*-app.tsx`), header,
   chat, lesson view, login card carry `"use client"`.

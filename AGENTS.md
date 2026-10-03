@@ -20,7 +20,7 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (201 checks) | `bun run test` |
+| Unit tests (204 checks) | `bun run test` |
 | Browser E2E (91 checks; needs a build) | `bun run test:e2e` |
 | Browser E2E, sharded (3 parallel processes) | `bun run test:e2e:sharded` |
 | Prisma client after schema change | `bunx prisma generate` |
@@ -28,7 +28,7 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (201) → `bun run build` → `bun run test:e2e` (91 Playwright
+`bun run test` (204) → `bun run build` → `bun run test:e2e` (91 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 NOTE: the full e2e run takes 12-15 minutes serially whenever the LLM is
 reachable-but-slow (workers: 1 — the specs share one seeded SQLite file);
@@ -528,6 +528,23 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   drifted WITHIN the session that created it — the regex picked up a
   seventh alternative while its own comment claimed "the six routes the
   conventions scanner knows". Never re-inline the set; import the module.
+- **THE AI timeout budget family is PINNED (session-23, S23-F1):** three
+  views of one budget — `AI_TIMEOUT_MS` (now EXPORTED from
+  `src/lib/ai.ts`, the production `Promise.race` timer),
+  `AI_WEIGHT_SECONDS` (`tests/e2e/shard-plan.ts`, the balanced-shard cost
+  model), and `AI_SPEC_REQUEST_TIMEOUT_MS` (`tests/e2e/ai-budget.ts`, the
+  trap-39 convention the conventions scanner compares spec literals
+  against — never a local `60_000`). The relationships (weight mirror:
+  `AI_WEIGHT_SECONDS × 1000 === AI_TIMEOUT_MS`; headroom: the spec
+  convention EXCEEDS the production budget) are pinned in
+  `tests/ai-budget.test.ts`, which also pins that the scanner derives
+  from the canonical constant. WHY pins instead of one shared constant:
+  the e2e-sharded wrapper loads the `tests/e2e/*` chain at runtime where
+  the `server-only` package does NOT exist, so nothing in that chain may
+  import `@/lib/ai` — `shard-plan.ts` keeps its plain number and the
+  RELATIONSHIP lives in the vitest context (the "mutual-consistency pin"
+  arm of trap 47's doctrine; trap 48). A budget change now fails the
+  unit gate the moment any view disagrees.
 - **THE TypeScript concession is retired (session-19, S19-F1):
   `noImplicitAny: true`.** The last scaffold default (`false`, PAD K-4)
   flipped to strict — verified ZERO typecheck errors on the current tree

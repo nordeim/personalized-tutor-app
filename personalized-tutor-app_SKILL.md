@@ -19,9 +19,9 @@ description: >
   gamification math, the AI fallback doctrine, the exact test gate every
   change must pass, and the canonical AI route-set module (ONE source of
   truth for the AI-backed routes, filesystem-pinned).
-version: 1.18.0
-last_updated: 2026-10-03
-project_state: 201 unit tests + 91 e2e checks green (serial AND 3-shard parallel, the shards AI-weight BALANCED — LPT file assignment, the count invariant runtime-enforced, the route weights from the CANONICAL 6-route set — tests/e2e/ai-routes.ts, filesystem-pinned); noImplicitAny true (zero findings, canary-proven); session-21 canonical route-set pass complete (the duplicated AI-route set extracted into ONE module imported by both scanners — the previous copies had already drifted, the shard-plan regex carrying a seventh alternative (quiz/skip) the conventions scanner deliberately excludes; the set is now pinned against the actual @/lib/ai importers — tests/ai-routes.test.ts)
+version: 1.19.0
+last_updated: 2026-10-04
+project_state: 204 unit tests + 91 e2e checks green (serial AND 3-shard parallel, the shards AI-weight BALANCED — LPT file assignment, the count invariant runtime-enforced, the route weights from the CANONICAL 6-route set — tests/e2e/ai-routes.ts, filesystem-pinned); noImplicitAny true (zero findings, canary-proven); the AI TIMEOUT BUDGET FAMILY is PINNED (session-23 — AI_TIMEOUT_MS exported from src/lib/ai.ts, AI_SPEC_REQUEST_TIMEOUT_MS canonical in tests/e2e/ai-budget.ts, the weight mirror + headroom + scanner-derivation pins in tests/ai-budget.test.ts — trap 48); session-21 canonical route-set pass complete (the duplicated AI-route set extracted into ONE module imported by both scanners — the set is now pinned against the actual @/lib/ai importers — tests/ai-routes.test.ts)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -826,6 +826,37 @@ exercises this via real 429s). The Daily Challenge returns
     unescape; and build patterns from arrays with the route prefix
     stripped, or the prefix doubles.
 
+48. **A budget family held together by comments WILL drift — and a
+    shared constant is sometimes impossible, so pin the RELATIONSHIPS**
+    (session-23, S23-F1): the AI timeout budget lived as three views —
+    `AI_TIMEOUT_MS = 45_000` (PRIVATE in `src/lib/ai.ts`, the production
+    `Promise.race` timer), `AI_WEIGHT_SECONDS = 45` (the shard-plan cost
+    model, "mirrored" by a COMMENT), and the trap-39 `60_000` request
+    convention (a bare literal in the conventions scanner) — with
+    NOTHING failing if any one changed. A budget raise would silently
+    understate the shard weights AND push the request timeout under the
+    budget (reintroducing the trap-39 abort flake). The remediation is
+    trap 47's generalization made real: EXPORT the production authority
+    (`AI_TIMEOUT_MS`), give the convention value a canonical module
+    (`tests/e2e/ai-budget.ts` — the scanner imports it, never a local
+    literal), and PIN the relationships (`tests/ai-budget.test.ts`: the
+    weight mirror, the headroom invariant, and the scanner-derivation
+    source-scan). THE SUBTLETY: a single shared constant was NOT
+    available here — `scripts/e2e-sharded.mjs` loads the
+    `tests/e2e/*` chain at runtime where the `server-only` package does
+    not exist (a Next bundler directive), so nothing in that chain may
+    import `@/lib/ai`. When one source of truth is architecturally
+    unreachable, the mutual-consistency pin IS the doctrine: the
+    relationship gets tested at the one place all three views can meet
+    (the vitest context, where the `server-only` stub makes the
+    production import safe). Also NOTE: `z-ai-web-dev-sdk`'s module is
+    side-effect-free at import (a class definition; `loadConfig` runs
+    inside `ZAI.create()`), so importing `@/lib/ai` un-mocked under
+    vitest is safe — and an `isolate: false` one-run flake after a
+    4-file write batch is consistent with transform-cache churn: the
+    mock-leak hypothesis was disproven by a both-orders single-worker
+    experiment, and the shuffle-seed protocol (6 seeds) held green.
+
 ## §10 Debugging Guide
 
 | Symptom | Likely cause | Fix/verify |
@@ -861,7 +892,7 @@ Run IN ORDER; the local gate is the only gate (no hosted CI):
 ```bash
 bun run lint          # eslint . — zero warnings
 bun run typecheck     # tsc --noEmit — zero errors (build won't catch them!)
-bun run test          # 201 Vitest checks
+bun run test          # 204 Vitest checks
 bun run build         # standalone build (also required for e2e)
 bun run test:e2e      # 91 Playwright checks on :3100
 ```
@@ -1125,6 +1156,28 @@ const aiImporters = apiRouteFiles().filter((route) =>
     .includes('@/lib/ai"'),
 );
 expect(aiImporters.sort()).toEqual([...AI_BACKED_ROUTES].sort());
+```
+
+**The mutual-consistency pin (when one source of truth is
+architecturally unreachable — session-23, S23-F1):**
+```ts
+// tests/ai-budget.test.ts — the AI timeout budget family: three views
+// (the production AI_TIMEOUT_MS, the shard-plan AI_WEIGHT_SECONDS, the
+// trap-39 AI_SPEC_REQUEST_TIMEOUT_MS) that CANNOT share one constant:
+// the e2e-sharded wrapper loads the tests/e2e/* chain at runtime where
+// the `server-only` package does not exist, so nothing in that chain
+// may import @/lib/ai. The RELATIONSHIPS therefore get pinned at the
+// one place all three views can meet — the vitest context (the
+// server-only stub makes the production import safe):
+import { AI_TIMEOUT_MS } from "@/lib/ai";              // the authority
+import { AI_SPEC_REQUEST_TIMEOUT_MS } from "./e2e/ai-budget";
+import { AI_WEIGHT_SECONDS } from "./e2e/shard-plan";
+
+expect(AI_WEIGHT_SECONDS * 1000).toBe(AI_TIMEOUT_MS);   // weight mirror
+expect(AI_SPEC_REQUEST_TIMEOUT_MS).toBeGreaterThan(AI_TIMEOUT_MS); // headroom
+// + a source-scan pin: the conventions scanner imports the canonical
+// constant and carries no local 60_000 literal (a canonical constant
+// nobody imports can silently split brains).
 ```
 
 ## §16 Coding Anti-Patterns

@@ -33,8 +33,11 @@ import { AI_ROUTE_PATTERN } from "./ai-routes";
 // route that makes NO AI call in the clone — the session-11 fix). The set
 // is filesystem-pinned (tests/ai-routes.test.ts — the @/lib/ai importers).
 
-/** The slow-regime per-AI-call budget, in seconds (mirrors
- *  AI_TIMEOUT_MS = 45_000 in src/lib/ai.ts). */
+/** The slow-regime per-AI-call budget, in seconds (mirrors AI_TIMEOUT_MS in
+ *  src/lib/ai.ts). The relationship is PINNED in tests/ai-budget.test.ts
+ *  (the weight-mirror mutual-consistency pin) — this module deliberately
+ *  does NOT import @/lib/ai: the e2e-sharded wrapper loads it at runtime
+ *  where the `server-only` package does not exist (trap 48). */
 export const AI_WEIGHT_SECONDS = 45;
 
 /** One planned spec file: its test count (from playwright's --list) and

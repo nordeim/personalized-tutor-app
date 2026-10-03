@@ -28,7 +28,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 201 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin + the trap-39 conventions pin + the shard-env + shard-plan pins + the canonical AI-route-set pins) | `tests/` |
+| 🧪 | 204 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin + the trap-39 conventions pin + the shard-env + shard-plan pins + the canonical AI-route-set pins + the AI budget-family mutual-consistency pins) | `tests/` |
 
 ## Architecture
 
@@ -60,7 +60,7 @@ flowchart TB
 📂 prisma                  schema.prisma (7 models) + idempotent seed
 📂 public                  mascot.svg, logo.svg (extracted from the live app)
 📂 src/app                 routes: /, /login, /onboarding, /courses, /quiz, /hub, /demo
- │  └─ 📂 api              15 route handlers (auth, courses, quiz, lessons, chat, progress, challenge, health)
+ │  └─ 📂 api              16 route handlers (auth, courses, quiz, lessons, chat, progress, challenge, health)
  ├── 📄 globals.css        Tailwind v4 @theme tokens + the five engine-trap pins + toaster fix
  ├── 📄 layout.tsx         Root layout: Google Fonts (Funnel Sans + Eczar)
 📂 src/components
@@ -113,7 +113,7 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 201 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard, the e2e trap-39 timeout conventions, the sharded-e2e env derivation, the balanced-shard plan derivation, the canonical AI route set — filesystem-pinned against the @/lib/ai importers)
+bun run test          # 204 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard, the e2e trap-39 timeout conventions, the sharded-e2e env derivation, the balanced-shard plan derivation, the canonical AI route set — filesystem-pinned against the @/lib/ai importers, the AI timeout budget family — the weight mirror + the headroom invariant + the scanner-derivation pin)
 bun run build         # standalone production build (e2e prerequisite)
 bun run test:e2e      # 91 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
@@ -519,6 +519,38 @@ with documented rationale. The plan re-landed 364/291/290 (session11 at
 96, the spurious 45 gone). 197 → 201 unit, 91 e2e (unchanged), both e2e
 modes green; the live bundle byte-identical for the 10th consecutive
 session and the mobile-nav headline re-verified for the 10th.
+
+## The session-23 budget-family pin pass
+
+A twenty-third audit
+([`docs/remediation-plan-session-23.md`](docs/remediation-plan-session-23.md))
+followed the session-22 handoff's first direction — trap 47's doctrine
+names the hazard class verbatim ("any constant two modules both 'know'
+… needs either one exported source or a mutual-consistency pin — a
+comment claiming they match pins nothing") — and found the AI timeout
+budget family in exactly that state: **three views of one budget held
+together only by comments**. `AI_TIMEOUT_MS = 45_000` (the production
+`Promise.race` timer in `src/lib/ai.ts`, previously private),
+`AI_WEIGHT_SECONDS = 45` (the balanced-shard cost model, "mirrored" by
+comment only), and the trap-39 `60_000` convention (a bare literal in
+the conventions scanner). Nothing failed if any one changed: a budget
+raise would silently understate the shard weights AND reintroduce the
+trap-39 request-abort flake. The remediation (TDD): `AI_TIMEOUT_MS` is
+now exported (the authority read), the convention value lives in the
+canonical `tests/e2e/ai-budget.ts` (the scanner imports it — never a
+local literal), and `tests/ai-budget.test.ts` pins the weight mirror
+(`AI_WEIGHT_SECONDS × 1000 === AI_TIMEOUT_MS`), the headroom invariant
+(the spec convention EXCEEDS the production budget), and the
+scanner-derivation itself. Why pins instead of a shared constant: the
+e2e-sharded wrapper loads the `tests/e2e/*` chain where the
+`server-only` package does not exist, so nothing in that chain may
+import `@/lib/ai` — the relationship lives in the vitest context. The
+same pass closed the stale API-handler counts (CLAUDE/README/PAD said
+14/15 vs the filesystem truth of 16). 201 → 204 unit, 91 e2e
+(unchanged), both e2e modes green; the live bundle byte-identical for
+the 11th consecutive session and the mobile-nav headline re-verified
+for the 11th (the live's hamburger still refuses behind the toaster
+cover; the clone's real-tap pins hold in both e2e modes).
 
 ## Pushing to GitHub
 

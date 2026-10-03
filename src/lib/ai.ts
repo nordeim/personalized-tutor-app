@@ -40,7 +40,12 @@ export type LessonContent = {
   aiGenerated: boolean;
 };
 
-const AI_TIMEOUT_MS = 45_000;
+// The per-call budget every generator races against. EXPORTED (session-23,
+// S23-F1): the test infrastructure's budget family pins against the actual
+// value (tests/ai-budget.test.ts — the shard-plan weight mirror + the
+// trap-39 headroom invariant); a comment claiming they match pins nothing
+// (trap 47's doctrine).
+export const AI_TIMEOUT_MS = 45_000;
 
 async function complete(prompt: string, system?: string): Promise<string | null> {
   try {
