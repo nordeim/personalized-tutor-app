@@ -556,3 +556,18 @@ Work Log:
 
 Stage Summary:
 - Session-17 complete: the scaffold lint block is retired to its final two DOCUMENTED offs (six rules enabled, zero findings), the e2e suite runs the same 91 checks 3×-parallel via fully-isolated shards (per-shard port/DB/auth/outputDir, unit-pinned derivation, serial default byte-compatible), and the dependency manifest declares the gate-verified versions (zero resolution change) — 186 unit + 91 e2e green in both modes, ready for commit + push via the SSH wrapper.
+
+---
+Task ID: 33
+Agent: main (Super Z)
+Task: Session 17 final delivery — push verification + key destruction + log commits
+
+Work Log:
+- Commit d51d65a on main (the session-17 lint retirement + sharded e2e + manifest pass: 22 files — the shard-env module + pins + the config parameterization + the orchestrator + the 6 lint rules + the dead-duplicate deletion + the manifest alignment + screenshots 103-105 + the docs alignment).
+- Push via docs/ssh_git_wrapper_v3.py (paramiko 5.0.0 reinstalled; the shim rebuilt at /home/z/my-project/bin/ssh — the workspace had been reset; dry-run then real push; --remote git@github.com:nordeim/personalized-tutor-app.git).
+- Verified: the wrapper's remote-ref assertion (d51d65a == HEAD) + an independent ls-remote (d51d65ad7537d62b54149cf37c4b66371a323dc1 refs/heads/main, via GIT_SSH_COMMAND with a transient key).
+- All key material destroyed (the operator key overwritten with random bytes + removed; the wrapper's temp keys shredded; the /tmp/s17-* dirs removed; the repo tree clean — the credential-bearing probe/capture scripts scripts/s17-*.cjs never entered the tree, and the staged-diff credential scan found ZERO matches).
+- The session-17 raw transcript committed as docs/session_18.md (the handoff convention: session_N+1.md carries session N's raw log; session_17.md was rewritten as the formatted summary inside the remediation commit) + this final worklog entry, as the log commits.
+
+Stage Summary:
+- Session 17 delivered and pushed: remote main @ d51d65a (+ the log commits), all keys destroyed, tree clean. The scaffold lint block is retired to its final two documented offs, the e2e suite runs the same 91 checks in fully-isolated parallel shards (with the serial default byte-compatible), and the manifest mirrors the gate-verified versions; 186 unit + 91 e2e green in both e2e modes.
