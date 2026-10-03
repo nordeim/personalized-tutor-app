@@ -46,8 +46,9 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (179 unit + 91 Playwright
-   checks required).
+   bun run test && bun run build && bun run test:e2e` (182 unit + 91 Playwright
+   checks required — run the e2e in per-spec chunks under a 10-minute
+   command budget; kill any orphaned `standalone/server.js` on :3100 first).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
 
@@ -250,6 +251,19 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   (scores 6/7 with total 7 clamp the percent to 100 → Master→Master so
   the label burst cannot fire while the streak 6→7 crosses EXACTLY 7 —
   the 80-particle burst's only possible source; e2e + pixel-verified).
+- **THE session-15 invariants (the conventions pass):** the trap-39
+  60s-timeout convention is UNIT-ENFORCED (`tests/e2e-conventions.test.ts`
+  scans every spec source + helpers.ts with a balanced-paren scanner — a
+  new spec that forgets `timeout: 60_000` on an AI-backed request fails
+  the unit gate); the e2e course fixtures live in ONE module
+  (`tests/e2e/helpers.ts` — generateCourse/submitScore/
+  cleanupGeneratedEnrollments/restoreDemoStudent + the demo
+  credentials); and the lint gate runs the strongest zero-findings
+  ruleset (`react-hooks/purity` at next-default error, prefer-const /
+  no-unreachable / no-redeclare / no-useless-escape / no-console at warn
+  — no-console scoped off for scripts/** + prisma/**).
+  `react-hooks/exhaustive-deps` stays OFF by documented trade-off (the 3
+  intentional suppressions in the pinned quiz-flow timing effects).
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in

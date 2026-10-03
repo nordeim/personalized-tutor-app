@@ -20,15 +20,22 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (179 checks) | `bun run test` |
+| Unit tests (182 checks) | `bun run test` |
 | Browser E2E (91 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (179) → `bun run build` → `bun run test:e2e` (91 Playwright
+`bun run test` (182) → `bun run build` → `bun run test:e2e` (91 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
+NOTE: the full e2e run takes 12-15 minutes serially (workers: 1 — the specs
+share one seeded SQLite file); run it in per-spec chunks under a 10-minute
+command budget, and KILL any orphaned `standalone/server.js` on :3100 before
+a fresh run (`ss -tlnp | grep 3100`) — a tool-timeout kill leaves the
+webServer alive, and a later `next build` replaces `.next/static` out from
+under it (stale chunk 500/404s → hydration fails → every AI-effect test
+hangs; session-15's diagnosis).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
 what catches type errors; never skip it.
@@ -410,6 +417,30 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   version was a vacuous `expect(true).toBe(true)` — a mock that closes
   over a `vi.hoisted` holder can always capture what it receives; a test
   named for a contract it never observes pins nothing.
+- **THE trap-39 timeout convention is UNIT-ENFORCED (session-15,
+  S15-F1):** every `page.request` call to an AI-backed route (the six
+  `/api/*` routes that import `@/lib/ai`) carries an explicit
+  `timeout: 60_000` — Playwright's request default is 30s while the AI
+  seam budgets 45s. `tests/e2e-conventions.test.ts` pins it with a
+  balanced-paren scanner over every spec source + `tests/e2e/helpers.ts`
+  (a scanner-self-test guards the empty-match case — trap 40's lesson);
+  a new spec that forgets the timeout fails the UNIT gate, not a live
+  LLM window. The shared fixtures live in `tests/e2e/helpers.ts`
+  (`generateCourse`/`submitScore`/`cleanupGeneratedEnrollments`/
+  `restoreDemoStudent` + the demo credentials) — ONE canonical shape;
+  custom-payload calls (the 422 family, the material generate) stay
+  inline in their specs.
+- **THE lint gate runs the strongest zero-findings ruleset
+  (session-15, S15-F3):** `react-hooks/purity` at the next-default
+  ERROR, `prefer-const`/`no-unreachable`/`no-redeclare`/
+  `no-useless-escape`/`no-console` at warn (no-console scoped off for
+  `scripts/**` + `prisma/**` — the probe scripts' console IS their
+  output). `react-hooks/exhaustive-deps` stays OFF deliberately: the 3
+  intentional suppressions in the quiz-flow timing effects
+  (`lesson-view.tsx:132,137`, `onboarding-dashboard.tsx:178`) fire on
+  lesson/question/mode change ONLY — adding the deps without useCallback
+  refactors would re-fire reset effects mid-quiz and break the
+  e2e-pinned auto-advance semantics.
 - **THE submit route validates FIRST, derives after (session-14,
   S14-F2):** every present-but-invalid payload check (answers/score/
   total) runs BEFORE the enrollment lookup; the derivations read only

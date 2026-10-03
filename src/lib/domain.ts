@@ -93,7 +93,7 @@ export function parseRoadmap(json: string | null | undefined): Roadmap {
           };
         }
         if (typeof s === "string") {
-          const stripped = s.replace(/^(Lesson|Step)\s*\d+[:\.\-\s]*/i, "").trim();
+          const stripped = s.replace(/^(Lesson|Step)\s*\d+[:.\-\s]*/i, "").trim();
           const em = stripped.indexOf(" — ");
           if (em > -1) {
             return {

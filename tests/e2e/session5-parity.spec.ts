@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { generateCourse } from "./helpers";
+
 // SESSION-5 parity pins (desktop, 1440×900). Contexts arrive AUTHENTICATED
 // via the shared storageState, but the mutation-heavy specs register a FRESH
 // user through the API (page.request shares the context cookie jar) so the
@@ -63,13 +65,10 @@ test.describe("the preferences save updates the header name (S5-F15)", () => {
     // Give the user a completed course (API-driven): generate + submit the
     // diagnostic quiz — only then does / render the with-course dashboard
     // whose m_ menu carries Update Preferences.
-    const gen = await page.request.post("/api/courses/generate", {
-      data: { mode: "topic", topic: "Chess" },
-    });
-    const genBody = (await gen.json()) as { ok: boolean; data: { courseId: string } };
-    expect(genBody.ok).toBeTruthy();
+    const courseId = await generateCourse(page, "Chess");
     await page.request.post("/api/quiz/submit", {
-      data: { courseId: genBody.data.courseId, answers: [0, 1, 2, 3, 4, 5, 6], total: 7 },
+      data: { courseId, answers: [0, 1, 2, 3, 4, 5, 6], total: 7 },
+      timeout: 60_000,
     });
 
     await page.goto("/");

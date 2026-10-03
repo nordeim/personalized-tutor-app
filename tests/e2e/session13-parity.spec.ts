@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
 
+import {
+  cleanupGeneratedEnrollments,
+  generateCourse,
+  restoreDemoStudent,
+  submitScore,
+} from "./helpers";
+
 // SESSION-13 parity pins (desktop 1440×900, authenticated storageState).
 //
 // Covered:
@@ -37,56 +44,15 @@ import { expect, test } from "@playwright/test";
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
-async function generateCourse(
-  page: import("@playwright/test").Page,
-  topic: string,
-): Promise<string> {
-  const gen = await page.request.post("/api/courses/generate", {
-    data: { topic, mode: "topic" },
-    timeout: 60_000,
-  });
-  expect(gen.ok()).toBeTruthy();
-  const json = (await gen.json()) as { ok: boolean; data: { courseId: string } };
-  expect(json.ok).toBeTruthy();
-  return json.data.courseId;
-}
-
-async function submitScore(
-  page: import("@playwright/test").Page,
-  courseId: string,
-  score: number,
-  total = 5,
-): Promise<void> {
-  const res = await page.request.post("/api/quiz/submit", {
-    data: { courseId, answers: [1, 1, 1, 1, 1], total, score },
-    timeout: 60_000,
-  });
-  expect(res.ok()).toBeTruthy();
-}
-
 const GENERATED = ["Astronomy", "Botany", "Chemistry", "Drama"];
 
 test.afterEach(async ({ page }) => {
-  // Cleanup per the session-11/12 pattern: remove the generated
-  // enrollments AND restore the seeded student state (the generate route
-  // repoints current_subject at the new topic).
-  const res = await page.request.get("/api/courses");
-  if (res.ok()) {
-    const courses = (await res.json()) as {
-      ok: boolean;
-      data: { id: string; courseName: string }[];
-    };
-    if (courses.ok) {
-      for (const c of courses.data) {
-        if (GENERATED.includes(c.courseName)) {
-          await page.request.delete(`/api/courses/${c.id}`);
-        }
-      }
-    }
-  }
-  await page.request.put("/api/student", {
-    data: { currentSubject: "Economics", quizCompleted: true },
-  });
+  // Cleanup per the session-11/12 pattern (the S15-F2 helpers now carry
+  // the shapes): remove the generated enrollments AND restore the seeded
+  // student state (the generate route repoints current_subject at the
+  // new topic).
+  await cleanupGeneratedEnrollments(page, GENERATED);
+  await restoreDemoStudent(page);
 });
 
 /** The visible stats (the regexes ride the textContent — the same

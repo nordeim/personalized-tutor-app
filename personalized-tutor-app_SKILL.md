@@ -18,9 +18,9 @@ description: >
   header variant + the /demo auth gate + the Try-it navigation), the
   gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.13.0
+version: 1.14.0
 last_updated: 2026-10-03
-project_state: 179 unit tests + 91 e2e checks green; session-14 pin-the-pin pass complete (the vacuous prompt-split test replaced with captured-transport VERBATIM pins — mutation-verified; the streak-burst e2e gained its confound-free isolation drive; the submit route consolidated to validate-first/derive-after; the dual-shape OBJECT arm unified into isStageObject; the superseded session-11 one-shot probes retired)
+project_state: 182 unit tests + 91 e2e checks green; session-15 conventions pass complete (the trap-39 60s-timeout convention backfilled to the 4 old specs and made UNIT-ENFORCED by tests/e2e-conventions.test.ts; the e2e course fixtures extracted to tests/e2e/helpers.ts; the lint gate hardened to the strongest zero-findings ruleset)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -675,14 +675,20 @@ exercises this via real 429s). The Daily Challenge returns
     objects) once the contract is dual-shape. Unit-pin the exact
     crash input.
 39. **Playwright request-level calls carry a 30s default timeout
-    while the AI seam budgets 45s** (session-13, S13-F7): every
-    `page.request.post` that hits an AI-backed route needs an explicit
-    `timeout: 60_000` (the AI-assertion convention) — the suite passes
-    in fast-fail sandboxes (the SDK 429s into the fallbacks) but a
-    reachable-but-slow LLM aborts mid-test. Likewise, transient-canvas
-    assertions (confetti) must POLL (`expect.poll`) — the canvas
-    self-removes after its animation, so a fixed wait races its
-    lifetime.
+    while the AI seam budgets 45s** (session-13, S13-F7; unit-enforced
+    session-15): every `page.request.post` that hits an AI-backed route
+    needs an explicit `timeout: 60_000` (the AI-assertion convention) —
+    the suite passes in fast-fail sandboxes (the SDK 429s into the
+    fallbacks) but a reachable-but-slow LLM aborts mid-test. The
+    convention session-13 applied to ITS specs existed nowhere else:
+    8 calls in the four older specs still rode the 30s default (the
+    drift's root cause — a hand-copied helper). `tests/e2e-conventions
+    .test.ts` now scans every spec source (and `tests/e2e/helpers.ts`)
+    with a balanced-paren scanner and fails the UNIT gate on any
+    missing timeout — a convention nobody enforces is a convention
+    nobody keeps. Likewise, transient-canvas assertions (confetti) must
+    POLL (`expect.poll`) — the canvas self-removes after its animation,
+    so a fixed wait races its lifetime.
 40. **A test named for a contract it never observes pins nothing**
     (session-14, S14-F1): the session-13 "prompt split" test contained
     only `expect(true).toBe(true)` with a comment claiming the mock's
@@ -701,6 +707,20 @@ exercises this via real 429s). The Daily Challenge returns
     assertion cannot attribute the burst — isolate the drive (scores
     6/7 total 7 clamp the tier to Master→Master so only the exact-7
     streak crossing can fire) before claiming a preset is pinned.
+
+41. **A tool-timeout kill orphans the Playwright webServer — and a later
+    build breaks it silently** (session-15): when the e2e run is killed
+    by a command timeout, the standalone server on :3100 SURVIVES
+    (playwright never runs its teardown). The orphan keeps serving chunk
+    URLs from the OLD build while a later `next build` replaces
+    `.next/static` on disk — the browser then gets 500/404 on every
+    chunk, REACT HYDRATION FAILS, and every AI-effect test hangs at its
+    loading overlay (the fetch never fires — no request event, " element
+    not found", 45s timeouts). The suite looks broken; the code is fine.
+    Before any e2e run: `ss -tlnp | grep 3100` and kill the orphan (or
+    reuse it ONLY if no build happened since it booted). The full suite
+    also takes 12-15 serial minutes (workers: 1) — run it in per-spec
+    chunks under a 10-minute command budget.
 
 ## §10 Debugging Guide
 

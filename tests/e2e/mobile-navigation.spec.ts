@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { generateCourse } from "./helpers";
+
 // MOBILE NAVIGATION — the highest-regression-risk chrome and the exact
 // surface the live app ships broken: the Sonner toaster portal renders
 // `div.fixed.top-0.z-[100].w-full.p-4` with pointer-events auto WHILE
@@ -90,16 +92,10 @@ test.describe("mobile navigation (390×844)", () => {
     await page.request.post("/api/auth/register", {
       data: { email, password: "Password123!", fullName: "S5 Mobile" },
     });
-    const gen1 = await page.request.post("/api/courses/generate", {
-      data: { mode: "topic", topic: "Astronomy" },
-    });
-    const gen2 = await page.request.post("/api/courses/generate", {
-      data: { mode: "topic", topic: "Chemistry" },
-    });
-    const first = (await gen1.json()) as { data: { courseId: string } };
-    const second = (await gen2.json()) as { data: { courseId: string } };
-    expect(first.data.courseId).toBeTruthy();
-    expect(second.data.courseId).toBeTruthy();
+    const first = await generateCourse(page, "Astronomy");
+    const second = await generateCourse(page, "Chemistry");
+    expect(first).toBeTruthy();
+    expect(second).toBeTruthy();
 
     await page.goto("/");
     await page.getByRole("button", { name: "Open menu" }).tap();
@@ -125,7 +121,7 @@ test.describe("mobile navigation (390×844)", () => {
 
     // A row tap navigates to /?course={id} (the DASHBOARD, not the hub).
     await menu.getByRole("button", { name: /Astronomy/ }).tap();
-    await expect(page).toHaveURL(new RegExp(`/\\?course=${first.data.courseId}`));
+    await expect(page).toHaveURL(new RegExp(`/\\?course=${first}`));
     await expect(page.getByRole("menu")).toBeHidden();
   });
 

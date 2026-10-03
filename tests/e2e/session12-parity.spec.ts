@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 
+import {
+  cleanupGeneratedEnrollments,
+  generateCourse,
+  restoreDemoStudent,
+} from "./helpers";
+
 // SESSION-12 parity pins (desktop 1440×900, authenticated storageState).
 //
 // Covered:
@@ -19,48 +25,16 @@ import { expect, test } from "@playwright/test";
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
-/**
- * Generate a quiz-incomplete course AS THE SEEDED DEMO USER (the page
- * context is already authenticated via storageState — zero login/register
- * calls, keeping the auth rate-limit budget at the suite's baseline). The
- * enrollments are deleted in afterEach so the demo user's state stays
- * [Economics] for the later specs.
- */
-async function generateCourse(
-  page: import("@playwright/test").Page,
-  topic: string,
-): Promise<string> {
-  const gen = await page.request.post("/api/courses/generate", {
-    data: { topic, mode: "topic" },
-    timeout: 60_000,
-  });
-  expect(gen.ok()).toBeTruthy();
-  const json = (await gen.json()) as { ok: boolean; data: { courseId: string } };
-  expect(json.ok).toBeTruthy();
-  return json.data.courseId;
-}
-
 const GENERATED = ["Astronomy", "Botany"];
 
 test.afterEach(async ({ page }) => {
-  // Cleanup: remove the generated enrollments AND restore the demo
-  // student's state (the generate route repoints current_subject at the
-  // new topic, which would break every later spec that pins the seeded
-  // "Economics" surfaces).
-  const res = await page.request.get("/api/courses");
-  if (res.ok()) {
-    const courses = (await res.json()) as { ok: boolean; data: { id: string; courseName: string }[] };
-    if (courses.ok) {
-      for (const c of courses.data) {
-        if (GENERATED.includes(c.courseName)) {
-          await page.request.delete(`/api/courses/${c.id}`);
-        }
-      }
-    }
-  }
-  await page.request.put("/api/student", {
-    data: { currentSubject: "Economics", quizCompleted: true },
-  });
+  // Cleanup (the S15-F2 helpers now carry the shapes): remove the
+  // generated enrollments AND restore the demo student's state (the
+  // generate route repoints current_subject at the new topic, which
+  // would break every later spec that pins the seeded "Economics"
+  // surfaces).
+  await cleanupGeneratedEnrollments(page, GENERATED);
+  await restoreDemoStudent(page);
 });
 
 test.describe("the dashboard confetti decode (S12-F2 — the c_ port)", () => {

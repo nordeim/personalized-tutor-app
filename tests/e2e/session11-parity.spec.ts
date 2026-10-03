@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
 
+import {
+  cleanupGeneratedEnrollments,
+  generateCourse,
+  restoreDemoStudent,
+} from "./helpers";
+
 // SESSION-11 parity pins (desktop 1440×900, authenticated storageState).
 //
 // Covered:
@@ -22,47 +28,19 @@ import { expect, test } from "@playwright/test";
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
-/**
- * Generate a quiz-incomplete course AS THE SEEDED DEMO USER (the page
- * context is already authenticated via storageState — zero login/register
- * calls, keeping the auth rate-limit budget at the suite's baseline). The
- * enrollment is deleted in afterEach so the demo user's state stays
- * [Economics] for the later specs (dashboard.spec pins the seeded 80%).
- */
-async function freshCourse(page: import("@playwright/test").Page): Promise<string> {
-  const gen = await page.request.post("/api/courses/generate", {
-    data: { topic: "Astronomy", mode: "topic" },
-  });
-  expect(gen.ok()).toBeTruthy();
-  const json = (await gen.json()) as { ok: boolean; data: { courseId: string } };
-  expect(json.ok).toBeTruthy();
-  return json.data.courseId;
-}
-
 test.afterEach(async ({ page }) => {
-  // Cleanup: remove the generated enrollments AND restore the demo
-  // student's current_subject (the generate route points it at the new
-  // topic — "Astronomy" — which would break every later spec that pins the
-  // seeded "Economics" surfaces) so the demo state returns to baseline.
-  const res = await page.request.get("/api/courses");
-  if (res.ok()) {
-    const courses = (await res.json()) as { ok: boolean; data: { id: string; courseName: string }[] };
-    if (courses.ok) {
-      for (const c of courses.data) {
-        if (c.courseName === "Astronomy") {
-          await page.request.delete(`/api/courses/${c.id}`);
-        }
-      }
-    }
-  }
-  await page.request.put("/api/student", {
-    data: { currentSubject: "Economics", quizCompleted: true },
-  });
+  // Cleanup (the S15-F2 helpers now carry the shapes): remove the generated
+  // enrollments AND restore the demo student's current_subject (the
+  // generate route points it at the new topic — "Astronomy" — which would
+  // break every later spec that pins the seeded "Economics" surfaces) so
+  // the demo state returns to baseline.
+  await cleanupGeneratedEnrollments(page, ["Astronomy"]);
+  await restoreDemoStudent(page);
 });
 
 test.describe("the diagnostic-quiz surface (S11-F1 — the E3 port)", () => {
   test("renders the live's structure: star progress, lilac tile, tan options, 5 questions", async ({ page }) => {
-    const courseId = await freshCourse(page);
+    const courseId = await generateCourse(page, "Astronomy");
     await page.goto(`/quiz?course=${courseId}`);
     await expect(page.getByText("A. ").first()).toBeVisible({ timeout: 60_000 });
 
@@ -120,7 +98,7 @@ test.describe("the diagnostic-quiz surface (S11-F1 — the E3 port)", () => {
   });
 
   test("the reveal paints the live's colors: correct #BCFCAF, wrong-pick #FFD0D0, others 40%", async ({ page }) => {
-    const courseId = await freshCourse(page);
+    const courseId = await generateCourse(page, "Astronomy");
     await page.goto(`/quiz?course=${courseId}`);
     await expect(page.getByText("A. ").first()).toBeVisible({ timeout: 60_000 });
 
@@ -158,7 +136,7 @@ test.describe("the diagnostic-quiz surface (S11-F1 — the E3 port)", () => {
 
 test.describe("the quiz flow's terminal paths (S11-F2/F3/F5/F6)", () => {
   test("the skip path lands on the 0% course dashboard (the $P model)", async ({ page }) => {
-    const courseId = await freshCourse(page);
+    const courseId = await generateCourse(page, "Astronomy");
     await page.goto(`/quiz?course=${courseId}`);
     await expect(page.getByText("A. ").first()).toBeVisible({ timeout: 60_000 });
 
@@ -173,7 +151,7 @@ test.describe("the quiz flow's terminal paths (S11-F2/F3/F5/F6)", () => {
   });
 
   test("the X close path routes back to the course dashboard", async ({ page }) => {
-    const courseId = await freshCourse(page);
+    const courseId = await generateCourse(page, "Astronomy");
     await page.goto(`/quiz?course=${courseId}`);
     await expect(page.getByText("A. ").first()).toBeVisible({ timeout: 60_000 });
 
@@ -188,7 +166,7 @@ test.describe("the quiz flow's terminal paths (S11-F2/F3/F5/F6)", () => {
     // the answered count (the session-1 derivation scored every ANSWERED
     // question correct, so a fully-answered quiz always scored "perfect").
     // The client-side computation itself is unit-pinned (diagnosticScore).
-    const courseId = await freshCourse(page);
+    const courseId = await generateCourse(page, "Astronomy");
     const submit = await page.request.post("/api/quiz/submit", {
       data: {
         courseId,
@@ -198,6 +176,7 @@ test.describe("the quiz flow's terminal paths (S11-F2/F3/F5/F6)", () => {
         total: 5,
         score: 0,
       },
+      timeout: 60_000,
     });
     expect(submit.ok()).toBeTruthy();
     const json = (await submit.json()) as { ok: boolean; data: { score: number; redirectTo: string } };
@@ -215,6 +194,7 @@ test.describe("the quiz flow's terminal paths (S11-F2/F3/F5/F6)", () => {
     // (the /5 divisor provably matches the 5-question quiz).
     const retake = await page.request.post("/api/quiz/submit", {
       data: { courseId, answers: [1, 1, 1, 0, 0], total: 5, score: 3 },
+      timeout: 60_000,
     });
     expect(retake.ok()).toBeTruthy();
     await page.goto(`/?course=${courseId}`);
@@ -222,7 +202,7 @@ test.describe("the quiz flow's terminal paths (S11-F2/F3/F5/F6)", () => {
   });
 
   test("the final question swaps the action to Submit Assessment and lands on the dashboard", async ({ page }) => {
-    const courseId = await freshCourse(page);
+    const courseId = await generateCourse(page, "Astronomy");
     await page.goto(`/quiz?course=${courseId}`);
     await expect(page.getByText("A. ").first()).toBeVisible({ timeout: 60_000 });
 

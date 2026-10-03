@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { generateCourse } from "./helpers";
+
 // SESSION-8 parity pins (desktop 1440×900, authenticated storageState).
 //
 // Covered:
@@ -39,11 +41,7 @@ test.describe("the hub h2 subject is the STUDENT's current_subject (S8-F4)", () 
       data: { email, password: "Password123!", fullName: "S8 Subject" },
     });
     expect(reg.ok()).toBeTruthy();
-    const gen = await page.request.post("/api/courses/generate", {
-      data: { mode: "topic", topic: "Astronomy" },
-    });
-    const genJson = (await gen.json()) as { ok: boolean; data?: { courseId: string } };
-    expect(genJson.ok).toBe(true);
+    const courseId = await generateCourse(page, "Astronomy");
     const put = await page.request.put("/api/student", {
       data: { currentSubject: "Physics" },
     });
@@ -53,7 +51,7 @@ test.describe("the hub h2 subject is the STUDENT's current_subject (S8-F4)", () 
     // "Physics" — even though the active course is Astronomy. (The lesson
     // content is AI-generated for a real courseId — the fallback guarantees
     // termination, but 45s keeps the AI path in budget.)
-    await page.goto(`/hub?course=${genJson.data?.courseId}`);
+    await page.goto(`/hub?course=${courseId}`);
     const h2 = page.getByRole("heading", { level: 2 }).first();
     await expect(h2).toHaveText("Physics", { timeout: 45_000 });
   });

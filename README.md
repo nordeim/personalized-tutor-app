@@ -28,7 +28,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 179 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 182 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin + the trap-39 conventions pin) | `tests/` |
 
 ## Architecture
 
@@ -113,7 +113,7 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 179 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard)
+bun run test          # 182 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard, the e2e trap-39 timeout conventions)
 bun run build         # standalone production build (e2e prerequisite)
 bun run test:e2e      # 91 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
@@ -361,6 +361,39 @@ domain.ts, the `ai.ts` "THREE prompts" comment now names the discarded
 skip-time variant, and the superseded session-11 one-shot probes were
 retired (their coverage lives in the e2e spec). 175 → 179 unit,
 90 → 91 e2e.
+
+## The session-15 conventions pass
+
+A fifteenth audit
+([`docs/remediation-plan-session-15.md`](docs/remediation-plan-session-15.md))
+followed the session-14 handoff's test-quality/hygiene direction and found
+the audit surface exactly as predicted: no parity gaps (the live bundle
+byte-identical for the 6th consecutive session, the mobile-nav headline
+re-verified — the live's hamburger still refuses the tap while the clone's
+12/12 pins hold). The real findings were three conventions that existed but
+were enforced nowhere: **the trap-39 60s-timeout convention had never been
+backfilled to the four specs session-13 didn't touch** (8 AI-backed
+request-level calls riding Playwright's 30s default against the 45s AI
+budget — a latent flake that only fires when the LLM is reachable-but-slow),
+**the e2e course fixtures were triplicated** (generateCourse/freshCourse +
+the afterEach cleanup ~120 duplicated lines across session11/12/13 — the
+root cause of the first drift), and **the lint gate suppressed rules the
+codebase already passes**. The remediation: the timeouts backfilled and the
+convention made self-enforcing — `tests/e2e-conventions.test.ts` scans
+every spec source with a balanced-paren scanner and fails the UNIT gate if
+any AI-backed request call lacks `timeout: 60_000` (a scanner-self-test
+guards the empty-match case); the fixtures extracted to one canonical
+`tests/e2e/helpers.ts`; and the lint gate hardened to the strongest
+zero-findings ruleset (`react-hooks/purity` back at next-default error,
+prefer-const/no-unreachable/no-redeclare/no-useless-escape/no-console at
+warn, no-console scoped off for the probe scripts; exhaustive-deps stays
+off by documented trade-off — the 3 intentional suppressions in the pinned
+quiz-flow timing effects). The same session diagnosed and documented the
+**orphaned-webServer trap** (a tool-timeout kill leaves the :3100 server
+alive; a later `next build` swaps `.next/static` under it → ChunkLoadError →
+hydration fails → every AI-effect test hangs — kill it with
+`ss -tlnp | grep 3100` before a fresh run). 179 → 182 unit, 91 e2e
+(unchanged — the helper refactor is count-invariant).
 
 ## Pushing to GitHub
 
