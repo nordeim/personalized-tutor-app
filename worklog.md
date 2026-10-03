@@ -454,3 +454,18 @@ Work Log:
 
 Stage Summary:
 - Session-14 complete: the "verbatim parity" claim is now actually pinned (captured-transport verbatim prompt pins, mutation-verified), the streak burst has its confound-free isolation pin (e2e + pixel), the submit route validates first and derives after, the dual-shape OBJECT arm is one shared guard — 179 unit + 91 e2e green, ready for commit + push via the SSH wrapper.
+
+---
+Task ID: 27
+Agent: main (Super Z)
+Task: Session 14 final delivery — push verification + key destruction + log commit
+
+Work Log:
+- Commit 6ee1e55 on main (the session-14 pin-the-pin pass: 25 files, +748/-356 — the captured-transport prompt pins + the isolated streak-burst drive + the submit-route consolidation + the isStageObject extraction + the probe retirements + screenshots 91-96 + the docs alignment).
+- Push via docs/ssh_git_wrapper_v3.py (paramiko shim at /home/z/my-project/bin/ssh; dry-run then real push; --remote git@github.com:nordeim/personalized-tutor-app.git).
+- Verified: the wrapper's remote-ref assertion (6ee1e55 == HEAD) + an independent ls-remote (6ee1e5529380a3dc7d2af6361201f62c9b2137fe refs/heads/main).
+- All key material destroyed (the operator key shredded with 3 random-byte passes + removed; the /tmp/s14-push dir removed; the wrapper's temp keys shredded; the repo tree clean — the credential-bearing live-probe scripts never entered the tree, and the pre-existing credential-text matches are the operator's own historical prompt files, verified via git stash to be identical pre-session).
+- This log commit per the session-log pattern.
+
+Stage Summary:
+- Session 14 delivered and pushed: remote main @ 6ee1e55 (+ this log commit), all keys destroyed, tree clean. The "verbatim parity" claim is now genuinely pinned (mutation-verified), the streak burst has its confound-free isolation pin, the submit route validates first, and the dual-shape predicate is shared; 179 unit + 91 e2e green.
