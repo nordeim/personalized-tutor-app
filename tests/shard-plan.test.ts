@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { AI_BACKED_ROUTES, AI_ROUTE_PATTERN } from "./e2e/ai-routes";
 import {
-  AI_ROUTE_PATTERN,
   AI_WEIGHT_SECONDS,
   countSpecSignals,
   planShards,
@@ -51,16 +51,23 @@ describe("countSpecSignals (the static spec scanner)", () => {
   });
 
   it("matches exactly the six AI-backed routes the conventions scanner knows", () => {
-    const routes = [
-      "/api/courses/generate",
-      "/api/quiz/generate",
-      "/api/quiz/submit",
-      "/api/quiz/skip",
-      "/api/chat",
-      "/api/challenge",
-      "/api/lessons/content",
-    ];
-    expect(routes.filter((r) => AI_ROUTE_PATTERN.test(r))).toHaveLength(7);
+    // The canonical set lives in tests/e2e/ai-routes.ts (the single
+    // source BOTH scanners import — session-21 S21-F1: the previous
+    // local regex carried a SEVENTH alternative, quiz/skip, that the
+    // conventions scanner deliberately excludes). /api/quiz/skip is NOT
+    // AI-backed in the clone: the live's skip fires an LLM roadmap call
+    // its own code discards (the enrollment write ships empty strings) —
+    // the clone skips the wasted call (session-11 S11-F5), so counting a
+    // quiz/skip mention at the 45s AI budget inflated
+    // session11-parity.spec.ts's weight by 45 for a route that makes NO
+    // AI call.
+    const routes = [...AI_BACKED_ROUTES];
+    expect(routes).toHaveLength(6);
+    expect(routes.filter((r) => AI_ROUTE_PATTERN.test(r))).toHaveLength(
+      AI_BACKED_ROUTES.length,
+    );
+    // the deliberately-excluded route never matches (the doctrine above)
+    expect(AI_ROUTE_PATTERN.test("/api/quiz/skip")).toBe(false);
     // non-AI routes never match
     for (const r of ["/api/student", "/api/courses", "/api/health", "/api/auth/login"]) {
       expect(AI_ROUTE_PATTERN.test(r)).toBe(false);

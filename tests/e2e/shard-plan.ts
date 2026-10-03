@@ -25,15 +25,17 @@
 // The wrapper prints the full weight table + the resulting plan for
 // inspection on every run.
 
+import { AI_ROUTE_PATTERN } from "./ai-routes";
+// SESSION-21 (S21-F1): the AI route matcher lives in ./ai-routes.ts — the
+// CANONICAL set both scanners import (the conventions scanner's
+// AI_BACKED_ROUTES array + this pattern were previously duplicated and
+// DRIFTED: the local regex carried a seventh alternative, quiz/skip, a
+// route that makes NO AI call in the clone — the session-11 fix). The set
+// is filesystem-pinned (tests/ai-routes.test.ts — the @/lib/ai importers).
+
 /** The slow-regime per-AI-call budget, in seconds (mirrors
  *  AI_TIMEOUT_MS = 45_000 in src/lib/ai.ts). */
 export const AI_WEIGHT_SECONDS = 45;
-
-/** The six AI-backed route paths (the same set the e2e-conventions
- *  scanner knows). NO /g flag — a stateful lastIndex would corrupt
- *  repeated .test() calls; countSpecSignals builds a fresh global regex. */
-export const AI_ROUTE_PATTERN =
-  /api\/(courses\/generate|quiz\/generate|quiz\/submit|quiz\/skip|chat|challenge|lessons\/content)/;
 
 /** One planned spec file: its test count (from playwright's --list) and
  *  its AI-route mention count (from the source scan). */

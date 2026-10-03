@@ -20,7 +20,7 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (197 checks) | `bun run test` |
+| Unit tests (201 checks) | `bun run test` |
 | Browser E2E (91 checks; needs a build) | `bun run test:e2e` |
 | Browser E2E, sharded (3 parallel processes) | `bun run test:e2e:sharded` |
 | Prisma client after schema change | `bunx prisma generate` |
@@ -28,7 +28,7 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (197) → `bun run build` → `bun run test:e2e` (91 Playwright
+`bun run test` (201) → `bun run build` → `bun run test:e2e` (91 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 NOTE: the full e2e run takes 12-15 minutes serially whenever the LLM is
 reachable-but-slow (workers: 1 — the specs share one seeded SQLite file);
@@ -513,6 +513,21 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   declared ranges). The majors stay OUT of scope by doctrine:
   lucide-react 1.x would re-drift every decoded icon path, and
   Prisma 7 / eslint 10 / TS 7 are breaking majors.
+- **THE canonical AI route set is ONE module (session-21, S21-F1):**
+  `tests/e2e/ai-routes.ts` — `AI_BACKED_ROUTES` (the six `@/lib/ai`
+  importers) + `AI_ROUTE_PATTERN` (derived from the array). BOTH scanners
+  import it: the conventions scanner (the trap-39 timeout check) and the
+  shard-plan weight scan. The set is FILESYSTEM-PINNED in
+  `tests/ai-routes.test.ts` (walk `src/app/api/**/route.ts`, collect the
+  `@/lib/ai` importers, assert equality — the set cannot drift from the
+  code). `/api/quiz/skip` is DELIBERATELY excluded: the live's skip fires
+  an LLM roadmap call its own code discards; the clone skips the wasted
+  call (session-11), so that route makes NO AI call — counting its
+  mentions at the 45s AI budget inflates the shard weights for nothing.
+  The previous duplication (the conventions array + the shard-plan regex)
+  drifted WITHIN the session that created it — the regex picked up a
+  seventh alternative while its own comment claimed "the six routes the
+  conventions scanner knows". Never re-inline the set; import the module.
 - **THE TypeScript concession is retired (session-19, S19-F1):
   `noImplicitAny: true`.** The last scaffold default (`false`, PAD K-4)
   flipped to strict — verified ZERO typecheck errors on the current tree

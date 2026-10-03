@@ -3,6 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { AI_BACKED_ROUTES } from "./e2e/ai-routes";
+
 // SESSION-15 conventions pin (S15-F1) — trap 40's doctrine applied to the
 // test suite itself: "a convention nobody enforces is a convention nobody
 // keeps." Trap 39 (SKILL §9) says every page.request call to an AI-backed
@@ -12,18 +14,15 @@ import { describe, expect, it } from "vitest";
 // sandboxes where the SDK 429s into the fallbacks instantly). Session-13
 // applied the convention to the specs it touched; this pin makes it
 // self-enforcing for every spec, present and future.
-
-/** The six routes that import from @/lib/ai (verified by grep — the AI
- * seam's callers). /api/quiz/skip is NOT here: the clone skips the
- * live's discarded LLM call (the documented session-11 fix). */
-const AI_BACKED_ROUTES = [
-  "/api/courses/generate",
-  "/api/quiz/generate",
-  "/api/quiz/submit",
-  "/api/chat",
-  "/api/lessons/content",
-  "/api/challenge",
-];
+//
+// SESSION-21 (S21-F1): the route set is the CANONICAL module
+// ./e2e/ai-routes.ts (imported above) — previously this local array and
+// the shard-plan's regex were DUPLICATED copies that drifted (the
+// shard-plan picked up a seventh alternative, quiz/skip, this scanner
+// deliberately excludes). The set is filesystem-pinned against the
+// @/lib/ai importers in tests/ai-routes.test.ts. /api/quiz/skip is NOT
+// in the set: the clone skips the live's discarded LLM call (the
+// documented session-11 fix).
 
 type Call = {
   file: string;

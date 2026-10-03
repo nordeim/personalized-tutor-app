@@ -16,11 +16,12 @@ description: >
   the radius/blur scale pins it produced, the session-8 public-surface model
   (the anonymous onboarding + pending_student_setup deferral + the signedOut
   header variant + the /demo auth gate + the Try-it navigation), the
-  gamification math, the AI fallback doctrine, and the
-  exact test gate every change must pass.
-version: 1.17.0
+  gamification math, the AI fallback doctrine, the exact test gate every
+  change must pass, and the canonical AI route-set module (ONE source of
+  truth for the AI-backed routes, filesystem-pinned).
+version: 1.18.0
 last_updated: 2026-10-03
-project_state: 197 unit tests + 91 e2e checks green (serial AND 3-shard parallel, the shards now AI-weight BALANCED — LPT file assignment, the count invariant runtime-enforced); noImplicitAny tightened to true (zero findings, canary-proven); session-19 balance + strictness pass complete (the sharded harness plans whole files by weight = aiMentions×45 + tests — tests/e2e/shard-plan.ts, unit-pinned; the wrapper derives its inventory from playwright's own --list, prepends auth.setup.ts per shard, and asserts the executed sum = total + N − 1)
+project_state: 201 unit tests + 91 e2e checks green (serial AND 3-shard parallel, the shards AI-weight BALANCED — LPT file assignment, the count invariant runtime-enforced, the route weights from the CANONICAL 6-route set — tests/e2e/ai-routes.ts, filesystem-pinned); noImplicitAny true (zero findings, canary-proven); session-21 canonical route-set pass complete (the duplicated AI-route set extracted into ONE module imported by both scanners — the previous copies had already drifted, the shard-plan regex carrying a seventh alternative (quiz/skip) the conventions scanner deliberately excludes; the set is now pinned against the actual @/lib/ai importers — tests/ai-routes.test.ts)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -795,6 +796,35 @@ exercises this via real 429s). The Daily Challenge returns
     robust to it. And keep the count invariant a RUNTIME assertion, not
     a structural assumption: file-list sharding could silently drop or
     duplicate a file, and only the parsed sum catches it.
+47. **A duplicated domain constant drifts within the session that
+    creates the duplication** (session-21, S21-F1): the AI route set
+    lived in TWO places — the conventions scanner's six-route
+    `AI_BACKED_ROUTES` array and the shard-plan's `AI_ROUTE_PATTERN`
+    regex — and by the time the duplication was one session old, the
+    regex carried a SEVENTH alternative (`quiz/skip`) the array
+    deliberately excludes, while its own module comment AND its pin's
+    name both claimed "the six routes the conventions scanner knows"
+    (the pin listed seven routes and asserted seven — a
+    self-contradictory pin that pins the wrong contract and cannot catch
+    the drift it was written to pin). The concrete cost: the only
+    `quiz/skip` mention in the spec tree is a flow COMMENT, counted at
+    the 45s AI budget, inflating session11-parity's shard weight by 45
+    for a route that makes NO AI call in the clone (the session-11 fix —
+    the live's skip discards its own LLM call). The doctrine: ONE
+    canonical module (`tests/e2e/ai-routes.ts` — the array + the pattern
+    DERIVED from it, so an orphan alternative is impossible by
+    construction), imported by every consumer; and pin the set against
+    an AUTHORITY that cannot lie — the filesystem
+    (`tests/ai-routes.test.ts` walks `src/app/api/**/route.ts` and
+    asserts the set equals the actual `@/lib/ai` importers). The same
+    lesson generalizes: any constant two modules both "know" (route
+    sets, timeout budgets, key names) needs either one exported source
+    or a mutual-consistency pin — a comment claiming they match pins
+    nothing. NOTE also: `RegExp.prototype.source` escapes "/" as "\/"
+    (a `new RegExp("api/(x)")` serializes its source as `api\/(x)` —
+    the literal form's serialization), so source-string comparisons must
+    unescape; and build patterns from arrays with the route prefix
+    stripped, or the prefix doubles.
 
 ## §10 Debugging Guide
 
@@ -831,9 +861,9 @@ Run IN ORDER; the local gate is the only gate (no hosted CI):
 ```bash
 bun run lint          # eslint . — zero warnings
 bun run typecheck     # tsc --noEmit — zero errors (build won't catch them!)
-bun run test          # 153 Vitest checks
+bun run test          # 201 Vitest checks
 bun run build         # standalone build (also required for e2e)
-bun run test:e2e      # 86 Playwright checks on :3100
+bun run test:e2e      # 91 Playwright checks on :3100
 ```
 
 Verification categories beyond the gate:
@@ -1058,6 +1088,43 @@ export function planShards(files: SpecFile[], count: number): string[][] {
 // semantics --shard=k/N provided). After the run, parse each shard's
 // "N passed" line and ASSERT sum == total + N - 1 on green runs — the
 // count invariant as a RUNTIME assertion, not a structural assumption.
+```
+
+**The canonical-constant module (one source of truth, authority-pinned —
+session-21, S21-F1):**
+```ts
+// tests/e2e/ai-routes.ts — ONE module for a set two consumers both
+// need (the conventions scanner + the shard-plan weight scan). The
+// pattern is DERIVED from the array, so an orphan alternative is
+// impossible by construction. NO /g flag (a stateful lastIndex would
+// corrupt repeated .test(); consumers build a fresh global regex from
+// .source).
+export const AI_BACKED_ROUTES: readonly string[] = [
+  "/api/courses/generate",
+  "/api/quiz/generate",
+  "/api/quiz/submit",
+  "/api/chat",
+  "/api/lessons/content",
+  "/api/challenge",
+  // /api/quiz/skip deliberately EXCLUDED: the live's skip discards its
+  // own LLM call; the clone skips the wasted call (session-11) — the
+  // route makes NO AI call, so its mentions carry no 45s weight.
+];
+
+export const AI_ROUTE_PATTERN = new RegExp(
+  `api/(${AI_BACKED_ROUTES.map((r) => r.slice("/api/".length)).join("|")})`,
+);
+```
+```ts
+// tests/ai-routes.test.ts — the AUTHORITY pin: the set is not a
+// hand-maintained list, it IS the @/lib/ai importers. A new AI-backed
+// route (or a route dropping its AI import) fails the pin until the
+// set is updated — the set and the code cannot drift apart silently.
+const aiImporters = apiRouteFiles().filter((route) =>
+  readFileSync(path.join(repoRoot, "src", "app", route.slice(1), "route.ts"), "utf8")
+    .includes('@/lib/ai"'),
+);
+expect(aiImporters.sort()).toEqual([...AI_BACKED_ROUTES].sort());
 ```
 
 ## §16 Coding Anti-Patterns

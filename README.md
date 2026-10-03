@@ -28,7 +28,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 197 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin + the trap-39 conventions pin + the shard-env + shard-plan pins) | `tests/` |
+| 🧪 | 201 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin + the trap-39 conventions pin + the shard-env + shard-plan pins + the canonical AI-route-set pins) | `tests/` |
 
 ## Architecture
 
@@ -113,7 +113,7 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 197 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard, the e2e trap-39 timeout conventions, the sharded-e2e env derivation, the balanced-shard plan derivation)
+bun run test          # 201 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard, the e2e trap-39 timeout conventions, the sharded-e2e env derivation, the balanced-shard plan derivation, the canonical AI route set — filesystem-pinned against the @/lib/ai importers)
 bun run build         # standalone production build (e2e prerequisite)
 bun run test:e2e      # 91 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
@@ -493,6 +493,32 @@ green. The AI-seam e2e speedup (recorded fixtures) was reviewed and
 DEFERRED by documented rationale: the suite exists to exercise the real
 seam and its 429-fallback paths — the balanced sharding captures most
 of the wall-clock win without changing what is verified.
+
+## The session-21 canonical route-set pass
+
+A twenty-first audit
+([`docs/remediation-plan-session-21.md`](docs/remediation-plan-session-21.md))
+followed the session-19 handoff's third direction ("the two AI-route
+regexes can drift — extract a single exported constant module") and
+found the drift had ALREADY happened: the shard-plan's `AI_ROUTE_PATTERN`
+carried a SEVENTH alternative (`quiz/skip`) that the conventions scanner
+deliberately excludes (the live's skip fires an LLM call its own code
+discards; the clone skips the wasted call — so that route makes NO AI
+call), while the module's own comment and pin both claimed "the six
+routes the conventions scanner knows" — a self-contradictory pin that
+inflated session11-parity's shard weight by 45 for a route with no AI
+cost. The fix is the canonical module `tests/e2e/ai-routes.ts`
+(`AI_BACKED_ROUTES` + the derived pattern) imported by BOTH scanners, and
+a FILESYSTEM-AUTHORITY pin that walks `src/app/api/**/route.ts` and
+asserts the set equals the actual `@/lib/ai` importers — the set can
+never drift from the code again. The same pass closed two stale-doc
+drifts (the PAD §1.2 table still said `noImplicitAny: false`; the SKILL
+§11 checklist still said 153/86) and re-reviewed the handoff's other two
+directions (recorded fixtures, measured weight calibration) — deferred
+with documented rationale. The plan re-landed 364/291/290 (session11 at
+96, the spurious 45 gone). 197 → 201 unit, 91 e2e (unchanged), both e2e
+modes green; the live bundle byte-identical for the 10th consecutive
+session and the mobile-nav headline re-verified for the 10th.
 
 ## Pushing to GitHub
 

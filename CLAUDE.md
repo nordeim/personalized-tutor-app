@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (197 unit + 91 Playwright
+   bun run test && bun run build && bun run test:e2e` (201 unit + 91 Playwright
    checks required — run the e2e in per-spec chunks under a 10-minute
    command budget; kill any orphaned `standalone/server.js` on :3100 first).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
@@ -313,6 +313,24 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   `noImplicitAny: true` (the flip: zero typecheck errors on the tree,
   canary-verified the flag bites — TS7006; the last scaffold TS
   concession, PAD K-4, retired).
+- **THE session-21 invariants (the canonical route-set pass):** the AI
+  route set lives in ONE module — `tests/e2e/ai-routes.ts` (`AI_BACKED_ROUTES`
+  + the derived `AI_ROUTE_PATTERN`) — imported by BOTH the conventions
+  scanner and the shard-plan weight scan; the set is FILESYSTEM-PINNED
+  against the actual `@/lib/ai` importers (walk `src/app/api/**/route.ts`,
+  assert equality — `tests/ai-routes.test.ts`). `/api/quiz/skip` is
+  deliberately EXCLUDED (the live's skip discards its own LLM call; the
+  clone skips the wasted call — session-11 — so the route makes NO AI
+  call in the clone). The prior duplication (the conventions array + the
+  shard-plan regex) drifted within its creating session — the regex
+  carried a seventh alternative (quiz/skip) while its comment and pin
+  both claimed "the six routes the conventions scanner knows": a
+  self-contradictory pin inflating session11-parity's weight by 45. Never
+  re-inline the set. The two stale-doc drifts the same audit found (the
+  PAD §1.2 table's `noImplicitAny: false`, the SKILL §11 counts) are
+  closed; the session-19 handoff's recorded-fixture and
+  measured-calibration directions re-reviewed and deferred with
+  documented rationale.
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in
