@@ -20,14 +20,14 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (175 checks) | `bun run test` |
-| Browser E2E (90 checks; needs a build) | `bun run test:e2e` |
+| Unit tests (179 checks) | `bun run test` |
+| Browser E2E (91 checks; needs a build) | `bun run test:e2e` |
 | Prisma client after schema change | `bunx prisma generate` |
 | Recreate DB from schema | `bun run db:push` |
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (175) → `bun run build` → `bun run test:e2e` (90 Playwright
+`bun run test` (179) → `bun run build` → `bun run test:e2e` (91 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 There is no hosted CI; the local gate is the only gate.
 `next.config.ts` sets `ignoreBuildErrors` — the explicit `typecheck` step is
@@ -397,6 +397,36 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   `.every` → a 500 from the route, violating the "AI may degrade,
   never fail" invariant. The quiz parser already did this; the stages
   parser now mirrors it. Unit-pinned (the exact crash shape).
+- **THE prompt-split pins are VERBATIM and transport-captured
+  (session-14, S14-F1):** `tests/ai-seam.test.ts`'s mock records the
+  REQUEST (`completions.create(req)` receives `req.messages` — the user
+  prompt last), so the two roadmap prompt tails are asserted VERBATIM:
+  the generate-time object tail (`…"description": "2-3 sentence
+  description." }] }` + the `Create exactly 3 progressive learning
+  stages` wording) vs the submit-time string-array tail (`["Step 1:
+  ...", …] }` + the `Based on someone scoring {pct}%` wording, with the
+  material-aware subject swap pinned too), plus bidirectional negatives
+  (each branch must NOT carry the other's schema). The session-13
+  version was a vacuous `expect(true).toBe(true)` — a mock that closes
+  over a `vi.hoisted` holder can always capture what it receives; a test
+  named for a contract it never observes pins nothing.
+- **THE submit route validates FIRST, derives after (session-14,
+  S14-F2):** every present-but-invalid payload check (answers/score/
+  total) runs BEFORE the enrollment lookup; the derivations read only
+  validated input (`total` = the validated number or `answers.length ||
+  5`; `score` = the validated number or 0). The 422 status matrix is
+  byte-identical to the session-13 layout for every pinned input class —
+  the e2e 422 family carries it.
+- **THE confetti drives are ISOLATED (session-14, S14-F6):** the
+  2→3 streak drive crosses BOTH the exact-3 boundary AND the
+  Learner→Scholar tier change — either preset could produce its canvas
+  (canvas-confetti renders onto ONE shared global canvas, so a count
+  cannot discriminate). The isolation drive: scores 6 and 7 (total 7) —
+  `quizProgressPercent` clamps 120/140 → 100 → tier Master→Master (the
+  label burst CANNOT fire) while streak 6→7 crosses EXACTLY 7 → the
+  80-particle burst is the ONLY possible firing effect (e2e-pinned +
+  pixel-verified: 1,383 burst-particle pixels vs a direct-mount
+  baseline).
 - **THE daily-challenge modal (session-8):** overlay `rgba(0,0,0,0.5)` via
   INLINE style (Trap 8 — v4's bg-black/50 computes oklab), NO backdrop
   blur, and NO result banner — after the reveal the SAME button slot swaps

@@ -2,8 +2,10 @@ import "server-only";
 import ZAI from "z-ai-web-dev-sdk";
 import {
   DEFAULT_LESSON_TITLES,
+  isStageObject,
   LESSONS_PER_COURSE,
   QUESTIONS_PER_LESSON,
+  STAGES_PER_COURSE,
 } from "@/lib/domain";
 
 // AI seam (server-only): wraps z-ai-web-dev-sdk chat completions with the
@@ -104,9 +106,12 @@ export async function generateCourseStages(
   // create exactly 3 progressive learning focus areas… (one per arena
   // level)", material-aware, STRING response schema — the live's
   // response_json_schema is an array of strings and its own writers store
-  // them verbatim). The session-11 port collapsed both onto the submit
-  // wording; the session-12 split restored the bodies; this pass restores
-  // each branch's RESPONSE schema to the decode.
+  // them verbatim). The THIRD (the skip-time variant the live's wO onSkip
+  // fires) is DISCARDED by the live's own code — its LLM result is computed
+  // and never used — so the clone skips the wasted call (the fix-and-pin
+  // doctrine). The session-11 port collapsed the first two onto the submit
+  // wording; the session-12 split restored the bodies; the session-13 pass
+  // restored each branch's RESPONSE schema to the decode.
   const hasMaterial = !!opts?.material && opts.material.trim().length > 0;
   const prompt =
     typeof opts?.pct === "number"
@@ -133,13 +138,13 @@ export async function generateCourseStages(
       : null;
   if (
     stages &&
-    stages.length >= 3 &&
+    stages.length >= STAGES_PER_COURSE &&
     stages.every((s) => {
       if (typeof s === "string") return s.trim().length > 0;
-      return typeof s === "object" && s !== null && typeof s.title === "string";
+      return isStageObject(s);
     })
   ) {
-    return { stages: stages.slice(0, 3), aiGenerated: true };
+    return { stages: stages.slice(0, STAGES_PER_COURSE), aiGenerated: true };
   }
   return {
     stages: fallbackStages(courseName),

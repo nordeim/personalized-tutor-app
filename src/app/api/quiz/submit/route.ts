@@ -24,10 +24,12 @@ export async function POST(req: Request) {
     score?: number;
   }>(req);
   const courseId = body?.courseId;
+  // S14-F2 (the S13-F4 completion): ALL present-but-invalid payload checks
+  // run BEFORE the enrollment lookup — validate first, derive after (the
+  // S12-F8 doctrine applied symmetrically in placement, not just outcome).
   // S13-F4: a present-but-NON-ARRAY answers is REJECTED (422) — the silent
   // `?? []` coercion masked client bugs. A MISSING answers still degrades
   // to [] (the legacy-client path the session-11 spec pins).
-  const answers = Array.isArray(body?.answers) ? body.answers : [];
   if (body?.answers !== undefined && !Array.isArray(body.answers)) {
     return fail("VALIDATION", "answers must be an array of indices", 422);
   }
@@ -44,6 +46,17 @@ export async function POST(req: Request) {
   ) {
     return fail("VALIDATION", "score must be a non-negative integer", 422);
   }
+  // S13-F4: total validates like the other present-but-invalid fields —
+  // a positive integer. The old truthy-plus-`> 0` check let `"5"` (string)
+  // and `0.5` through (string coercion; pct = 200 on the fractional case).
+  // A MISSING total still degrades (answers.length || 5).
+  if (
+    body?.total !== undefined &&
+    (typeof body.total !== "number" || !Number.isInteger(body.total) || body.total < 1)
+  ) {
+    return fail("VALIDATION", "total must be a positive integer", 422);
+  }
+  const answers = Array.isArray(body?.answers) ? body.answers : [];
   if (
     answers.some((a) => typeof a !== "number" || !Number.isInteger(a) || a < -1 || a > 3)
   ) {
@@ -55,24 +68,15 @@ export async function POST(req: Request) {
     return fail("NOT_FOUND", "Course not found", 404);
   }
 
-  // S13-F4: total validates like the other present-but-invalid fields —
-  // a positive integer. The old truthy-plus-`> 0` check let `"5"` (string)
-  // and `0.5` through (string coercion; pct = 200 on the fractional case).
-  // A MISSING total still degrades (answers.length || 5).
-  if (
-    body?.total !== undefined &&
-    (typeof body.total !== "number" || !Number.isInteger(body.total) || body.total < 1)
-  ) {
-    return fail("VALIDATION", "total must be a positive integer", 422);
-  }
-  const total = body?.total && body.total > 0 ? body.total : answers.length || 5;
+  // S14-F2: the derivations read ONLY validated input — a present total is
+  // a positive integer and a present score a non-negative integer in range
+  // (the guards above + the score ≤ total check below), so the old
+  // re-derivation cascades were dead guards.
+  const total = typeof body?.total === "number" ? body.total : answers.length || 5;
   if (body?.score !== undefined && body.score > total) {
     return fail("VALIDATION", "score cannot exceed total", 422);
   }
-  const score =
-    typeof body?.score === "number" && Number.isInteger(body.score) && body.score >= 0 && body.score <= total
-      ? body.score
-      : 0;
+  const score = typeof body?.score === "number" ? body.score : 0;
   const pct = Math.round((score / total) * 100);
   // S12-F1: the broad custom-source predicate — material-mode enrollments
   // (the only writers of contentText) now feed the prompt context the

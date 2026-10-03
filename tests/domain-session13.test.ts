@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseRoadmap } from "@/lib/domain";
+import { isStageObject, parseRoadmap } from "@/lib/domain";
 
 // Session-13 R2 — the dual-shape roadmap contract (S13-F5): the live stores
 // the submit-time LLM answer as a STRING array (`"Step 1: Core Foundations —
@@ -72,5 +72,26 @@ describe("parseRoadmap — the dual-shape contract (S13-F5)", () => {
       JSON.stringify(["Step 1: A", "Step 2: B", "Step 3: C", "Step 4: D"]),
     );
     expect(road).toHaveLength(3);
+  });
+});
+
+// S14-F3: the shared OBJECT-arm predicate — one guard consumed by BOTH
+// parseRoadmap's object branch and the AI seam's dual-shape element
+// validator (the two sites hand-rolled the identical check before the
+// extraction). These pins pin the guard itself.
+describe("isStageObject — the dual-shape OBJECT arm (S14-F3)", () => {
+  it("accepts a title-bearing object (description optional)", () => {
+    expect(isStageObject({ title: "A", description: "a" })).toBe(true);
+    expect(isStageObject({ title: "A" })).toBe(true);
+  });
+
+  it("rejects null, arrays, primitives, and title-less objects", () => {
+    expect(isStageObject(null)).toBe(false);
+    expect(isStageObject(undefined)).toBe(false);
+    expect(isStageObject("Step 1: A")).toBe(false);
+    expect(isStageObject(3)).toBe(false);
+    expect(isStageObject(["A"])).toBe(false);
+    expect(isStageObject({ description: "no title" })).toBe(false);
+    expect(isStageObject({ title: 42 })).toBe(false);
   });
 });

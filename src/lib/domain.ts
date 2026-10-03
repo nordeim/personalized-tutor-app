@@ -8,6 +8,18 @@ export const STAGES_PER_COURSE = 3;
 export type RoadmapStage = { title: string; description: string };
 export type Roadmap = RoadmapStage[];
 
+/** S14-F3: the dual-shape roadmap contract's OBJECT arm — one predicate,
+ * consumed by BOTH `parseRoadmap` (the persisted JSON's object branch) and
+ * the AI seam's dual-shape element validator (`generateCourseStages`). The
+ * LLM/JSON element is a stage object iff it is a non-null object carrying a
+ * string `title` (the description is optional — parseRoadmap defaults it
+ * to ""). */
+export function isStageObject(
+  s: unknown,
+): s is { title: string; description?: unknown } {
+  return typeof s === "object" && s !== null && typeof (s as { title?: unknown }).title === "string";
+}
+
 export type LessonMeta = {
   index: number; // 0..5
   number: number; // 1..6
@@ -74,11 +86,10 @@ export function parseRoadmap(json: string | null | undefined): Roadmap {
         // the Kh lesson-title expansion): strip the /^(Lesson|Step)\s*\d+/
         // prefix, split on " — " (title before, description after), else on
         // ": " when the index < 40, else the whole string with "".
-        if (typeof s === "object" && s !== null && typeof (s as RoadmapStage).title === "string") {
-          const obj = s as RoadmapStage;
+        if (isStageObject(s)) {
           return {
-            title: obj.title,
-            description: typeof obj.description === "string" ? obj.description : "",
+            title: s.title,
+            description: typeof s.description === "string" ? s.description : "",
           };
         }
         if (typeof s === "string") {

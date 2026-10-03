@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (175 unit + 90 Playwright
+   bun run test && bun run build && bun run test:e2e` (179 unit + 91 Playwright
    checks required).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
    runbook (`docs/how-to-git-push-using-ssh-wrapper_SKILL.md`).
@@ -234,6 +234,22 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   ARRAY-CHECKS `parsed?.steps` (a lazy string reply crashed `.every` →
   500 — the degrade-never-fail invariant). e2e-pinned by the
   course-switch content/burst/label drives.
+- **THE session-14 invariants (the pin-the-pin pass):** the roadmap
+  prompt-split is now asserted VERBATIM from the captured transport
+  request (`tests/ai-seam.test.ts`'s mocked `completions.create(req)`
+  records `req.messages` — the session-13 "prompt split" test was a
+  vacuous `expect(true).toBe(true)`; a mock closing over a `vi.hoisted`
+  holder can always capture what it receives — a test named for a
+  contract it never observes pins nothing); the submit route validates
+  FIRST, derives after (every present-but-invalid 422 runs BEFORE the
+  enrollment lookup; the derivations read only validated input — the
+  422 matrix is byte-identical, e2e-carried); the dual-shape OBJECT arm
+  is ONE predicate (`isStageObject` in domain.ts — consumed by both
+  `parseRoadmap` and the AI seam's element validator; the stage count
+  rides `STAGES_PER_COURSE`); and the confetti drives are ISOLATED
+  (scores 6/7 with total 7 clamp the percent to 100 → Master→Master so
+  the label burst cannot fire while the streak 6→7 crosses EXACTLY 7 —
+  the 80-particle burst's only possible source; e2e + pixel-verified).
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in

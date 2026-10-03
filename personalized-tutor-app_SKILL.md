@@ -18,9 +18,9 @@ description: >
   header variant + the /demo auth gate + the Try-it navigation), the
   gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.12.0
+version: 1.13.0
 last_updated: 2026-10-03
-project_state: 175 unit tests + 90 e2e checks green; session-13 course-switch + data-contract pass complete (the frozen viewCourseId state fixed — same-route switches update the content and fire the ported c_ bursts on their natural surface; the {steps} wrapper parser array-checked; the roadmap response schemas split to the live's verbatim decode with dual-shape parseRoadmap; the submit route's 422 symmetry; the e2e timeout hardening)
+project_state: 179 unit tests + 91 e2e checks green; session-14 pin-the-pin pass complete (the vacuous prompt-split test replaced with captured-transport VERBATIM pins — mutation-verified; the streak-burst e2e gained its confound-free isolation drive; the submit route consolidated to validate-first/derive-after; the dual-shape OBJECT arm unified into isStageObject; the superseded session-11 one-shot probes retired)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -643,6 +643,13 @@ exercises this via real 429s). The Daily Challenge returns
     trailing icon is
     ChevronRight at lucide default sw 2 (`m9 18 6-6-6-6` — stable
     across lucide versions), never ArrowRight.
+    **The prompt split is PINNED from the captured transport**
+    (session-14, S14-F1): `tests/ai-seam.test.ts`'s mock records the
+    REQUEST — the mocked `completions.create(req)` receives
+    `req.messages` (the user prompt last) — so both tails are asserted
+    VERBATIM (each branch's wording + its response-schema tail, the
+    material-aware subject swap, and bidirectional negatives).
+    Mutation-verified: swapping the tails fails exactly the two pins.
 37. **A frozen `useState` can silently break same-route
     navigation** (session-13, S13-F2): the dashboard shell's
     `viewCourseId` state initialized from a prop whose value changes
@@ -676,6 +683,24 @@ exercises this via real 429s). The Daily Challenge returns
     assertions (confetti) must POLL (`expect.poll`) — the canvas
     self-removes after its animation, so a fixed wait races its
     lifetime.
+40. **A test named for a contract it never observes pins nothing**
+    (session-14, S14-F1): the session-13 "prompt split" test contained
+    only `expect(true).toBe(true)` with a comment claiming the mock's
+    call history "is not directly exposed" — but a mock factory that
+    closes over a `vi.hoisted` holder can always CAPTURE what it
+    receives (the mocked `completions.create(req)` records
+    `req.messages`; the user prompt rides last). Whenever a test's name
+    promises an assertion about an interaction (a prompt's wording, a
+    call's arguments, a request's shape), capture the interaction and
+    assert it verbatim — and prove the pin with a MUTATION (swap the
+    implementation's tails and watch exactly that test fail). A
+    `expect(true).toBe(true)` placeholder that survives review is worse
+    than a missing test: it claims coverage that does not exist. The
+    same session found the sibling confound in the e2e layer: two
+    confetti effects share ONE global canvas, so a canvas-count
+    assertion cannot attribute the burst — isolate the drive (scores
+    6/7 total 7 clamp the tier to Master→Master so only the exact-7
+    streak crossing can fire) before claiming a preset is pinned.
 
 ## §10 Debugging Guide
 

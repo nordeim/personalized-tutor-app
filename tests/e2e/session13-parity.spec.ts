@@ -20,6 +20,13 @@ import { expect, test } from "@playwright/test";
 //             the tier WITHOUT crossing a streak boundary (1 → 4) → the
 //             only possible firing effect is the label change — its
 //             first behavioral pin.
+//   S14-F6 — the streak burst ISOLATED: the 2→3 drive above crosses both
+//             the exact-3 boundary AND the Learner→Scholar tier change,
+//             so its canvas could come from either preset (one shared
+//             canvas-confetti surface). Scores 6/7 (total 7) clamp the
+//             percent to 100 → Master→Master (no label change) while the
+//             streak 6→7 crosses EXACTLY 7 — the 80-particle burst is the
+//             ONLY possible firing effect.
 //   S13-F4 — the submit-route validation symmetry: a present-but-non-
 //             array answers and a non-integer/invalid total → 422.
 //
@@ -48,9 +55,10 @@ async function submitScore(
   page: import("@playwright/test").Page,
   courseId: string,
   score: number,
+  total = 5,
 ): Promise<void> {
   const res = await page.request.post("/api/quiz/submit", {
-    data: { courseId, answers: [1, 1, 1, 1, 1], total: 5, score },
+    data: { courseId, answers: [1, 1, 1, 1, 1], total, score },
     timeout: 60_000,
   });
   expect(res.ok()).toBeTruthy();
@@ -174,6 +182,42 @@ test.describe("the same-route course switch (S13-F2 — the frozen-state fix)", 
     await page.getByRole("button", { name: "Chemistry" }).first().click();
     await page.waitForTimeout(400);
     await page.getByRole("menu").getByText("Drama", { exact: true }).first().click();
+    await expect
+      .poll(async () => page.locator("canvas").count(), { timeout: 8_000 })
+      .toBeGreaterThan(0);
+  });
+
+  test("the streak burst fires ISOLATED — the exact-7 crossing with NO label change (S14-F6)", async ({ page }) => {
+    // The 2→3 drive above crosses BOTH the exact-3 streak boundary AND the
+    // Learner(40%)→Scholar(60%) tier change — either effect can produce the
+    // canvas (canvas-confetti renders onto ONE shared global canvas, so a
+    // count cannot discriminate). This drive ISOLATES the streak burst:
+    // scores 6 and 7 (total 7) — quizProgressPercent clamps 120/140 → 100
+    // → tier Master→Master (the label effect CANNOT fire) while
+    // studyStreakDays 6→7 crosses EXACTLY 7 → confettiAt(6,7) fires. The
+    // only possible firing effect is the 80-particle streak burst — the
+    // preset's first confound-free behavioral pin.
+    const astronomy = await generateCourse(page, "Astronomy");
+    const botany = await generateCourse(page, "Botany");
+    await submitScore(page, astronomy, 6, 7); // streak 6, pct 100 → Master
+    await submitScore(page, botany, 7, 7); // streak 7 — the exact-7 crossing
+    await page.request.put("/api/student", {
+      data: { currentSubject: "Astronomy", quizCompleted: true },
+    });
+
+    // Mount at the streak-6 course: first observation initializes BOTH refs
+    // WITHOUT firing (streak 6 is not a boundary arrival; tier Master).
+    await page.goto(`/?course=${astronomy}`);
+    await expect(page.getByText("Course Progress")).toBeVisible({ timeout: 15_000 });
+    await expect
+      .poll(async () => page.locator("canvas").count(), { timeout: 2_000 })
+      .toBe(0);
+
+    // Switch to the streak-7 course: 6→7 crosses exactly 7 → the streak
+    // burst fires; the label stays Master→Master → the label burst cannot.
+    await page.getByRole("button", { name: "Astronomy" }).first().click();
+    await page.waitForTimeout(400);
+    await page.getByRole("menu").getByText("Botany", { exact: true }).first().click();
     await expect
       .poll(async () => page.locator("canvas").count(), { timeout: 8_000 })
       .toBeGreaterThan(0);

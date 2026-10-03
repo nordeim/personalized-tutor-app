@@ -1,28 +1,42 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // The AI seam's LLM transport, mocked: every `complete()` call answers with
-// `state.reply` (null = SDK failure → the fallback path). vi.hoisted keeps the
-// mutable holder available to the hoisted mock factory.
+// `reply.current` (null = SDK failure → the fallback path). vi.hoisted keeps
+// the mutable holders available to the hoisted mock factory.
 const reply = vi.hoisted(() => ({ current: "__UNSET__" as string | null }));
+// S14-F1: the transport's REQUESTS, captured — the mocked
+// `completions.create(req)` receives `req.messages` (the user prompt LAST —
+// `complete()` appends it after the optional system message), so recording
+// the final message's content pins each generator's PROMPT verbatim (the
+// R1 contract the session-13 vacuous test never observed).
+const prompts = vi.hoisted(() => [] as string[]);
 
 vi.mock("z-ai-web-dev-sdk", () => ({
   default: {
     create: async () => ({
       chat: {
         completions: {
-          create: async () => ({
-            choices:
-              reply.current === null || reply.current === "__UNSET__"
-                ? []
-                : [{ message: { content: reply.current } }],
-          }),
+          create: async (req: unknown) => {
+            const messages = (req as { messages?: { content?: string }[] })
+              ?.messages;
+            prompts.push(
+              Array.isArray(messages)
+                ? (messages[messages.length - 1]?.content ?? "")
+                : "",
+            );
+            return {
+              choices:
+                reply.current === null || reply.current === "__UNSET__"
+                  ? []
+                  : [{ message: { content: reply.current } }],
+            };
+          },
         },
       },
     }),
   },
 }));
 
-// eslint-disable-next-line import/first
 import { generateCourseStages } from "@/lib/ai";
 
 // Session-13 R0/R1: the roadmap generator's prompt split (the generate-time
@@ -33,6 +47,7 @@ import { generateCourseStages } from "@/lib/ai";
 describe("generateCourseStages — the response-shape contract (S13-F1/F5)", () => {
   beforeEach(() => {
     reply.current = "__UNSET__";
+    prompts.length = 0;
   });
 
   it("parses the {steps: [objects]} wrapper (the generate-time shape)", async () => {
@@ -115,9 +130,16 @@ describe("generateCourseStages — the response-shape contract (S13-F1/F5)", () 
 describe("generateCourseStages — the prompt split (S13-F5/F8, verbatim parity)", () => {
   beforeEach(() => {
     reply.current = "__UNSET__";
+    prompts.length = 0;
   });
 
-  it("generate-time (no pct): the OBJECT schema + the '2-3 sentence description.' tail", async () => {
+  // S14-F1: the session-13 version of this test was VACUOUS
+  // (`expect(true).toBe(true)` — "the mock's call history is not directly
+  // exposed" was wrong: the mocked `completions.create(req)` receives
+  // `req.messages`). These pins assert each branch's prompt VERBATIM — a
+  // regression that collapses the split back onto either single schema
+  // fails (a)/(b) and the bidirectional negatives (d) immediately.
+  it("generate-time (no pct): the stages wording + the verbatim OBJECT schema tail", async () => {
     reply.current = JSON.stringify({
       steps: [
         { title: "Foundations", description: "The base." },
@@ -126,10 +148,41 @@ describe("generateCourseStages — the prompt split (S13-F5/F8, verbatim parity)
       ],
     });
     await generateCourseStages("Botany");
-    // The mocked transport received the prompt; assert via the mock's call
-    // history is not directly exposed — instead pin the shapes via the
-    // aiGenerated round-trips above and the code-level pins below.
-    expect(true).toBe(true);
+    expect(prompts).toHaveLength(1);
+    const prompt = prompts[0];
+    expect(prompt).toContain('Create exactly 3 progressive learning stages for the course "Botany".');
+    // S13-F8: the live's verbatim object tail — "2-3 sentence description."
+    expect(prompt).toContain(
+      'Return JSON: { "steps": [{ "title": "Stage title", "description": "2-3 sentence description." }] }',
+    );
+    // bidirectional: the generate branch must NOT carry the string schema
+    expect(prompt).not.toContain('"steps": ["Step 1:');
+  });
+
+  it("submit-time (pct present): the focus-areas wording + the verbatim STRING schema tail", async () => {
+    reply.current = JSON.stringify({
+      steps: ["Step 1: A", "Step 2: B", "Step 3: C"],
+    });
+    await generateCourseStages("Botany", { pct: 60 });
+    expect(prompts).toHaveLength(1);
+    const prompt = prompts[0];
+    expect(prompt).toContain("Based on someone scoring 60% on a diagnostic quiz about Botany");
+    expect(prompt).toContain(
+      'Return JSON: { "steps": ["Step 1: ...", "Step 2: ...", "Step 3: ..."] }',
+    );
+    // bidirectional: the submit branch must NOT carry the object schema
+    expect(prompt).not.toContain('"2-3 sentence description."');
+  });
+
+  it("submit-time + material: the subject swaps to the uploaded-material wording", async () => {
+    reply.current = JSON.stringify({
+      steps: ["Step 1: A", "Step 2: B", "Step 3: C"],
+    });
+    await generateCourseStages("Botany", { pct: 60, material: "  chapter 1 notes  " });
+    const prompt = prompts[0];
+    expect(prompt).toContain("Based on someone scoring 60% on a diagnostic quiz about their uploaded material");
+    expect(prompt).toContain('"Custom Material"');
+    expect(prompt).not.toContain("diagnostic quiz about Botany");
   });
 
   it("keeps the submit-time string schema when pct is present (round-trip)", async () => {

@@ -28,7 +28,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 175 unit tests + 90 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
+| 🧪 | 179 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin) | `tests/` |
 
 ## Architecture
 
@@ -113,9 +113,9 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 175 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing, the dual-shape roadmap)
+bun run test          # 179 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard)
 bun run build         # standalone production build (e2e prerequisite)
-bun run test:e2e      # 90 Playwright checks against the standalone server on :3100
+bun run test:e2e      # 91 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 ```
 
@@ -338,6 +338,29 @@ objects vs submit-time STRING arrays, with `parseRoadmap` mapping both
 via the live's Kh/card split semantics), completed the submit route's
 422 symmetry (non-array answers, non-integer total), and hardened the
 e2e AI-timeout convention. 153 → 175 unit, 86 → 90 e2e.
+
+## The session-14 pin-the-pin pass
+
+A fourteenth audit
+([`docs/remediation-plan-session-14.md`](docs/remediation-plan-session-14.md))
+turned the audit on the session-13 commit itself and found the one real
+gap: **the prompt-split unit test was vacuous** — the test named for the
+S13-F5/F8 "verbatim parity" contained only `expect(true).toBe(true)`
+with a comment claiming the mock's call history "is not directly
+exposed" (it is: the mocked `completions.create(req)` receives
+`req.messages`). The pins now assert both roadmap prompt tails VERBATIM
+from the captured transport request, plus bidirectional negatives —
+mutation-verified (swapping the tails fails exactly the two new pins).
+The same pass: the streak-burst e2e drive gained its first CONFOUND-FREE
+isolation pin (scores 6/7 with total 7 clamp the percent to 100 →
+Master→Master so only the exact-7 streak crossing can fire — pixel-
+verified at 1,383 burst-particle pixels), the submit route consolidated
+to validate-first/derive-after (the 422 matrix byte-identical), the
+dual-shape OBJECT arm became ONE shared `isStageObject` guard in
+domain.ts, the `ai.ts` "THREE prompts" comment now names the discarded
+skip-time variant, and the superseded session-11 one-shot probes were
+retired (their coverage lives in the e2e spec). 175 → 179 unit,
+90 → 91 e2e.
 
 ## Pushing to GitHub
 
