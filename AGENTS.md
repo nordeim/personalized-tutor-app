@@ -20,7 +20,7 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Production server | `bun run start` |
 | Lint | `bun run lint` |
 | Type check | `bun run typecheck` |
-| Unit tests (186 checks) | `bun run test` |
+| Unit tests (197 checks) | `bun run test` |
 | Browser E2E (91 checks; needs a build) | `bun run test:e2e` |
 | Browser E2E, sharded (3 parallel processes) | `bun run test:e2e:sharded` |
 | Prisma client after schema change | `bunx prisma generate` |
@@ -28,16 +28,20 @@ remote via `docs/ssh_git_wrapper_v3.py`.
 | Seed demo account | `bun run db:seed` |
 
 **Gate order before every push:** `bun run lint` → `bun run typecheck` →
-`bun run test` (186) → `bun run build` → `bun run test:e2e` (91 Playwright
+`bun run test` (197) → `bun run build` → `bun run test:e2e` (91 Playwright
 checks — boots the standalone server on :3100 against its own `db/e2e.db`).
 NOTE: the full e2e run takes 12-15 minutes serially whenever the LLM is
 reachable-but-slow (workers: 1 — the specs share one seeded SQLite file);
-`bun run test:e2e:sharded` (session-17) runs the SAME 91 checks as 3
-parallel playwright processes — each with its OWN port (3111-3113), OWN
-`db/e2e-shard-{k}.db`, OWN `.auth/user-shard-{k}.json` state, and OWN
-`test-results/shard-{k}/` artifacts (a shared outputDir is a cross-process
-disposal race) — the per-shard derivation is `tests/e2e/shard-env.ts`
-(unit-pinned). The serial `test:e2e` stays the byte-compatible DEFAULT.
+`bun run test:e2e:sharded` (session-17, balanced session-19) runs the SAME
+91 checks as 3 parallel playwright processes — each with its OWN port
+(3111-3113), OWN `db/e2e-shard-{k}.db`, OWN `.auth/user-shard-{k}.json`
+state, and OWN `test-results/shard-{k}/` artifacts (a shared outputDir is a
+cross-process disposal race) — the per-shard env derivation is
+`tests/e2e/shard-env.ts` and the AI-weighted file→shard assignment is
+`tests/e2e/shard-plan.ts` (both unit-pinned: the LPT plan spreads the
+AI-heavy specs across shards — a count-based `--shard` split put 17 of the
+22 AI-route calls in ONE shard, degenerating to serial wall clock in the
+slow-LLM regime). The serial `test:e2e` stays the byte-compatible DEFAULT.
 Either way, KILL any orphaned `standalone/server.js` on :3100/:311x before
 a fresh run (`ss -tlnp | grep -E '310[0-9]|311[0-9]'` — the sharded wrapper
 pre-flights this itself) — a tool-timeout kill leaves the webServer alive,
@@ -476,25 +480,30 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   ai-seam transport-capture pins would fail on any cross-file mock
   leakage). Safe by doctrine: the unit layer tests PURE seams. Re-run
   with a shuffle seed whenever a stateful test file joins the suite.
-- **THE sharded-e2e harness (session-17, S17-F2):**
+- **THE sharded-e2e harness (session-17, BALANCED session-19):**
   `bun run test:e2e:sharded` runs the SAME 91 checks as N parallel
-  playwright processes (`--shard=k/N`, default 3) — each shard gets
-  its OWN port (3111+), OWN `db/e2e-shard-{k}.db`, OWN
-  `.auth/user-shard-{k}.json`, and OWN `test-results/shard-{k}/`
-  outputDir. The isolation is what makes parallel safe: Playwright
-  DUPLICATES the setup dependency project into every shard
-  (verified via `--shard --list`), the specs are per-test isolated
-  (no beforeAll/serial), and the per-shard outputDir kills the
-  cross-process artifact-disposal race the shared `test-results/`
-  caused. The derivation lives in ONE pure module —
-  `tests/e2e/shard-env.ts`, unit-pinned in `tests/shard-env.test.ts`;
-  the wrapper (`scripts/e2e-sharded.mjs`) only orchestrates (orphan
-  pre-flight per trap 41, spawn, aggregate, cleanup). Spawn children
-  via `bunx playwright` — NOT `bun node_modules/@playwright/test/
-  cli.js` (only the bunx bin resolution loads the TS config through
-  the type-stripping loader; the direct path parses it as JS and
-  dies on the `as` cast). The serial `test:e2e` stays the DEFAULT
-  (byte-compatible env defaults).
+  playwright processes — each shard gets its OWN port (3111+), OWN
+  `db/e2e-shard-{k}.db`, OWN `.auth/user-shard-{k}.json`, and OWN
+  `test-results/shard-{k}/` outputDir. The isolation is what makes parallel
+  safe: the setup project signs the demo user in against each shard's own
+  server (the wrapper prepends `tests/e2e/auth.setup.ts` to every shard's
+  file list — the same setup-duplication `--shard=k/N` provided), the
+  specs are per-test isolated (no beforeAll/serial), and the per-shard
+  outputDir kills the cross-process artifact-disposal race. The env
+  derivation lives in `tests/e2e/shard-env.ts`; the FILE→SHARD ASSIGNMENT
+  lives in `tests/e2e/shard-plan.ts` (session-19: LPT bin-packing over
+  weight = aiMentions×45 + tests — a count-based `--shard` split loaded
+  17 of the 22 direct AI-route calls onto one shard, which in the
+  reachable-but-slow LLM regime degenerates the parallel harness to the
+  serial wall clock; the plan lands 364/313/313 on the current inventory).
+  The wrapper (`scripts/e2e-sharded.mjs`) only orchestrates: it derives
+  the inventory from playwright's own `--list` (zero drift vs a filesystem
+  walk), reads the spec sources for the AI weights, plans, spawns
+  `bunx playwright test <files>` per shard (trap 45 — never the cli.js
+  path), prints the weight table + plan, and ENFORCES the count invariant
+  at runtime (the parsed per-shard "N passed" lines must sum to
+  `total + N − 1` on green runs — the setup duplication, counted). The
+  serial `test:e2e` stays the DEFAULT (byte-compatible env defaults).
 - **THE manifest lower bounds mirror the gate-verified lockfile
   (session-17, S17-F3):** `package.json` declares the versions the
   gate actually ran against (next `^16.3.8`, react `^19.3.0`,
@@ -504,6 +513,12 @@ bun run db:seed && bun run dev`. Demo login: `demo@thinkerwell.app` /
   declared ranges). The majors stay OUT of scope by doctrine:
   lucide-react 1.x would re-drift every decoded icon path, and
   Prisma 7 / eslint 10 / TS 7 are breaking majors.
+- **THE TypeScript concession is retired (session-19, S19-F1):
+  `noImplicitAny: true`.** The last scaffold default (`false`, PAD K-4)
+  flipped to strict — verified ZERO typecheck errors on the current tree
+  (canary-proven: an implicit-any parameter fails with TS7006), so any
+  new untyped parameter now fails the `typecheck` gate instead of riding
+  the concession. `strict: true` means what it says.
 - **THE submit route validates FIRST, derives after (session-14,
   S14-F2):** every present-but-invalid payload check (answers/score/
   total) runs BEFORE the enrollment lookup; the derivations read only

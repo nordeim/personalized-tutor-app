@@ -18,9 +18,9 @@ description: >
   header variant + the /demo auth gate + the Try-it navigation), the
   gamification math, the AI fallback doctrine, and the
   exact test gate every change must pass.
-version: 1.16.0
+version: 1.17.0
 last_updated: 2026-10-03
-project_state: 186 unit tests + 91 e2e checks green (both serial AND 3-shard parallel modes); session-17 lint/sharding/manifest pass complete (the scaffold lint block retired to its final two DOCUMENTED offs — no-undef (not type-aware) + the base no-unused-vars (TS-aware split) — with no-debugger/no-irregular-whitespace/no-case-declarations/no-fallthrough/no-mixed-spaces-and-tabs/no-empty enabled at zero findings; the sharded e2e harness — per-shard port/DB/auth/outputDir isolation, the pure derivation in tests/e2e/shard-env.ts unit-pinned; the manifest lower bounds mirror the gate-verified lockfile, zero-resolution-change)
+project_state: 197 unit tests + 91 e2e checks green (serial AND 3-shard parallel, the shards now AI-weight BALANCED — LPT file assignment, the count invariant runtime-enforced); noImplicitAny tightened to true (zero findings, canary-proven); session-19 balance + strictness pass complete (the sharded harness plans whole files by weight = aiMentions×45 + tests — tests/e2e/shard-plan.ts, unit-pinned; the wrapper derives its inventory from playwright's own --list, prepends auth.setup.ts per shard, and asserts the executed sum = total + N − 1)
 ---
 
 # Thinkerwell (Personalized Tutor App) — Engineering SKILL
@@ -770,6 +770,31 @@ exercises this via real 429s). The Daily Challenge returns
     note the failure mode: a config parse error at child boot looks
     NOTHING like a config problem (three shards × "Expected } but found
     as" — diagnose the SPAWN, not the config).
+46. **A count-based `--shard=k/N` split is AI-unbalanced in the slow-LLM
+    regime** (session-19, S19-F2): playwright shards by test COUNT,
+    contiguous in file order — measured, that loaded 17 of the 22 direct
+    AI-route request-level calls onto ONE shard while another carried ~1.
+    In the fast-fallback regime (429s → deterministic fallbacks) every
+    shard finishes ~1.3m and the imbalance is INVISIBLE; in the
+    reachable-but-slow regime (each AI call budgeting the 45s
+    `AI_TIMEOUT_MS`) the heavy shard alone ≈ the full serial wall clock
+    while the others idle — the parallel harness silently degenerates.
+    The fix: plan WHOLE-FILE shard assignments by LPT bin-packing over
+    `weight = aiMentions×45 + tests` (a static AI-route-mention scan of
+    the spec sources — pure, unit-pinned: `tests/e2e/shard-plan.ts`), and
+    spawn per-shard FILE LISTS with `auth.setup.ts` prepended to every
+    shard (the setup-duplication semantics `--shard` itself provided).
+    Derive the inventory from playwright's OWN `--list` — and note the
+    list-line for the setup project ends `.setup.ts`, NOT `.spec.ts`: a
+    `\S+\.spec\.ts` regex silently drops it and the expected-count math
+    runs one short (the exact bug the first balanced run hit — the
+    runtime count assertion caught it: the parsed per-shard "N passed"
+    lines must sum to `total + N − 1`). The static weight undercounts
+    UI-driven AI flows (specs mounting /hub or /quiz without naming the
+    route) — document the limitation; the ballast term keeps the plan
+    robust to it. And keep the count invariant a RUNTIME assertion, not
+    a structural assumption: file-list sharding could silently drop or
+    duplicate a file, and only the parsed sum catches it.
 
 ## §10 Debugging Guide
 
@@ -1002,6 +1027,37 @@ export function shardEnv(index: number, count: number): ShardEnv {
 // `bunx playwright` (trap 45), pre-flights the orphan-port kill (trap 41),
 // aggregates exit codes, and cleans up on exit. The serial `test:e2e`
 // stays the byte-compatible default (every env carries today's value).
+```
+
+**The balanced-shard plan (parallel e2e by AI weight — session-19, S19-F2):**
+```ts
+// tests/e2e/shard-plan.ts — ONE pure module, unit-pinned
+// (tests/shard-plan.test.ts). The LPT assignment: sort the files
+// weight-desc (ties name-asc), assign each to the currently-lightest
+// shard (ties lowest index). Deterministic; a group may be empty when
+// files < shards; count < 2 or an empty inventory throws (one shard IS
+// the serial mode).
+export const AI_WEIGHT_SECONDS = 45; // mirrors AI_TIMEOUT_MS in ai.ts
+
+export function specWeight(f: SpecFile): number {
+  return f.aiMentions * AI_WEIGHT_SECONDS + f.tests; // worst-case seconds
+}
+
+export function planShards(files: SpecFile[], count: number): string[][] {
+  /* sort desc → greedy-assign to the lightest shard → string[][] */
+}
+```
+```js
+// The wrapper (scripts/e2e-sharded.mjs): derive the inventory from
+// playwright's OWN `--list` (zero drift vs a filesystem walk — and the
+// setup line ends `.setup.ts`, NOT `.spec.ts`; a \S+\.spec\.ts regex
+// drops it and the expected-count math runs one short), scan the spec
+// sources for the AI weights, plan, then spawn per shard:
+//   bunx playwright test tests/e2e/auth.setup.ts <group files...>
+// (auth.setup.ts prepended to EVERY shard = the setup-duplication
+// semantics --shard=k/N provided). After the run, parse each shard's
+// "N passed" line and ASSERT sum == total + N - 1 on green runs — the
+// count invariant as a RUNTIME assertion, not a structural assumption.
 ```
 
 ## §16 Coding Anti-Patterns

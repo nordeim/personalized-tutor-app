@@ -28,7 +28,7 @@ The reference app is a closed SaaS (base44) whose entity writes are locked behin
 | 🖼️ | Pixel-measured design system: yellow chrome, purple setup panel, animated mascot | `src/app/globals.css` + `public/*.svg` |
 | 👻 | Guest demo route with the reference's sample Economics course (auth-gated like the live) | `/demo` |
 | 🌱 | Public onboarding: anonymous `/` renders the landing surface with the deferred sign-up flow | `src/app/page.ts` + `onboarding-dashboard.tsx` |
-| 🧪 | 186 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin + the trap-39 conventions pin + the shard-env pins) | `tests/` |
+| 🧪 | 197 unit tests + 91 Playwright e2e checks (incl. the mobile-nav regression pin + the trap-39 conventions pin + the shard-env + shard-plan pins) | `tests/` |
 
 ## Architecture
 
@@ -113,12 +113,13 @@ topic → diagnostic quiz → AI-generated course flow.
 ## Testing
 
 ```bash
-bun run test          # 186 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard, the e2e trap-39 timeout conventions, the sharded-e2e env derivation)
+bun run test          # 197 Vitest unit checks (domain grid, quote pool, gamification math, quiz-derived progress, db-path, source-predicate split, lesson-row status, from_url contract, onboarding thresholds, diagnostic-score semantics, mastery tiers, material gate, the AI-seam wrapper parsing + the captured-transport prompt-split pins, the dual-shape roadmap + the isStageObject guard, the e2e trap-39 timeout conventions, the sharded-e2e env derivation, the balanced-shard plan derivation)
 bun run build         # standalone production build (e2e prerequisite)
 bun run test:e2e      # 91 Playwright checks against the standalone server on :3100
                       # boots its own db/e2e.db (pushed + seeded by the global setup)
 bun run test:e2e:sharded  # the SAME 91 checks as 3 parallel playwright shards
-                      # (own port/DB/auth/outputDir per shard — tests/e2e/shard-env.ts)
+                      # (own port/DB/auth/outputDir per shard — tests/e2e/shard-env.ts;
+                      # WHOLE-FILE assignment by AI weight — tests/e2e/shard-plan.ts)
 ```
 
 The e2e suite covers: the auth surface (login, signup, bad credentials,
@@ -460,6 +461,38 @@ react `^19.3.0`, prisma `^6.19.3`, …) — a zero-resolution-change edit
 (the lockfile diff only re-records the declared ranges); the majors
 (Prisma 7, lucide-react 1.x, eslint 10, TypeScript 7) stay out of scope
 by doctrine — a lucide major would re-drift every decoded icon path.
+
+## The session-19 balance + strictness pass
+
+A nineteenth audit
+([`docs/remediation-plan-session-19.md`](docs/remediation-plan-session-19.md))
+followed the session-17 handoff's directions with the live bundle
+**byte-identical for the 9th consecutive session** and the mobile-nav
+headline re-verified for the 9th (the live's hamburger tap still refuses
+behind the toaster cover; the clone's 12/12 real-tap pins hold). (1)
+**The sharded e2e harness now plans shards by AI weight** — playwright's
+count-based `--shard=k/N` split put 17 of the 22 direct AI-route
+request-level calls on ONE shard (session11+12+13+10-parity), so in the
+reachable-but-slow LLM regime (each AI call budgeting 45s) that shard
+alone approached the full serial wall clock while the others idled. The
+plan (`tests/e2e/shard-plan.ts`, unit-pinned) is LPT bin-packing over
+`weight = aiMentions × 45 + tests`; the wrapper derives the inventory
+from playwright's own `--list`, prepends `auth.setup.ts` to every
+shard's file list (the same setup-duplication `--shard` provided), and
+ENFORCES the count invariant at runtime (the per-shard "N passed" lines
+must sum to `total + N − 1`). The plan lands 364/313/313 on the current
+inventory — a ~2.1× improvement of the slow-regime critical path
+(serial still the byte-compatible default; the sharded run executes the
+same 91 unique checks). (2) **`noImplicitAny: true`** — the last
+scaffold TypeScript concession (PAD K-4) retired for FREE: the flip
+produced zero typecheck errors on the current tree (canary-verified the
+flag bites — TS7006 on any new implicit-any), so the typecheck gate now
+hardens against untyped parameters instead of riding the concession.
+197 unit (the eleven shard-plan pins join) + 91 e2e, both e2e modes
+green. The AI-seam e2e speedup (recorded fixtures) was reviewed and
+DEFERRED by documented rationale: the suite exists to exercise the real
+seam and its 429-fallback paths — the balanced sharding captures most
+of the wall-clock win without changing what is verified.
 
 ## Pushing to GitHub
 

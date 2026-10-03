@@ -3,7 +3,7 @@ IMPORTANT: File is read fresh for every conversation. Be brief and practical.
 project_type: nextjs
 version: 1.0.0
 framework_version: "16.1"
-last_updated: 2026-10-02
+last_updated: 2026-10-03
 ---
 
 # Thinkerwell — Personalized Tutor App Clone
@@ -46,7 +46,7 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 4. **IMPLEMENT** — One layer at a time; keep `bun run build` green between
    layers.
 5. **VERIFY** — Run the full gate: `bun run lint && bun run typecheck &&
-   bun run test && bun run build && bun run test:e2e` (186 unit + 91 Playwright
+   bun run test && bun run build && bun run test:e2e` (197 unit + 91 Playwright
    checks required — run the e2e in per-spec chunks under a 10-minute
    command budget; kill any orphaned `standalone/server.js` on :3100 first).
 6. **DELIVER** — Conventional Commit on `main`, push via the SSH wrapper
@@ -294,6 +294,25 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
   (zero-resolution-change; the majors Prisma 7 / lucide 1.x / eslint 10 /
   TS 7 stay out of scope by doctrine — lucide 1.x would re-drift every
   decoded icon path).
+- **THE session-19 invariants (the balanced sharding + the TypeScript
+  tightening):** the sharded e2e harness plans WHOLE-FILE shard
+  assignments by LPT bin-packing over `weight = aiMentions*45 + tests`
+  (`tests/e2e/shard-plan.ts`, unit-pinned) — a count-based `--shard=k/N`
+  split put 17 of the 22 direct AI-route request-level calls on ONE
+  shard, which in the reachable-but-slow LLM regime (each call budgeting
+  the 45s `AI_TIMEOUT_MS`) degenerated the parallel harness to the
+  serial wall clock. The wrapper derives the inventory from playwright's
+  own `--list`, prepends `tests/e2e/auth.setup.ts` to every shard's file
+  list (the setup-duplication semantics), spawns `bunx playwright test
+  <files>` per shard, and ENFORCES the count invariant at runtime (the
+  per-shard "N passed" lines must sum to `total + N - 1` on green runs —
+  the setup list-line ends `.setup.ts`, not `.spec.ts`; a regex that
+  misses it runs the expected count one short). The static aiMentions
+  scan UNDERCOUNTS UI-driven AI flows (specs mounting /hub or /quiz
+  without naming the route) — documented, bounded, ballast-robust. And
+  `noImplicitAny: true` (the flip: zero typecheck errors on the tree,
+  canary-verified the flag bites — TS7006; the last scaffold TS
+  concession, PAD K-4, retired).
 - **THE mobile-nav invariant:** the toast container
   (`src/components/toast.tsx`) is `pointer-events-none` with toast items
   `pointer-events-auto`, mirrored by the `[data-sonner-toaster]` rules in
@@ -382,8 +401,10 @@ stage, 8 questions each) inside the Hub while chatting with Nori.
 
 ### TypeScript Standards
 
-- `strict: true` with `noImplicitAny: false` (intentional scaffold
-  default).
+- `strict: true` with `noImplicitAny: true` (the last scaffold
+  concession retired session-19 — the flip produced zero typecheck
+  errors on the current tree; any new implicit-any now fails the gate
+  with TS7006).
 - Route handlers cast parsed bodies to typed shapes and validate manually
   (trim, length caps, enum membership, ownership checks). Follow that
   style; do not introduce Zod halfway.
